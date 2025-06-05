@@ -1,0 +1,163 @@
+/* DetalleFacturaPage.css */
+
+/* Fondo de la página */
+body {
+    background-color: #0e0a0a; /* fondo oscuro general */
+  }
+  
+  /* Contenedor general */
+  .invoice-container {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      color: #333;
+      background-color: #fff; /* factura en blanco para resaltar */
+      border-radius: 0.5rem;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+      margin: 2rem auto;
+  }
+    
+  /* Contenido interno */
+  .invoice-content {
+    padding: 2rem;
+    background: none;
+  }
+    
+  /* Encabezado */
+  .invoice-header {
+    border-bottom: 3px solid #0d6efd;
+    padding-bottom: 1rem;
+  }
+  .company-info h5 {
+    margin-top: 0.5rem;
+    font-weight: 600;
+    color: #0d6efd;
+  }
+  .company-info p {
+    display: none; /* ocultamos detalles sobrantes */
+  }
+  .invoice-meta h4 {
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+    color: #0d6efd;
+  }
+  .invoice-meta p {
+    margin: 0.2rem 0;
+    font-size: 0.9rem;
+    color: #333;
+  }
+    
+  /* Bloque Facturar A */
+  .address-block {
+    border: 1px solid #0d6efd;
+    border-radius: 0.25rem;
+    background-color: #e9f5ff;
+  }
+  .address-block h6 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    margin: 0;
+    background-color: #0d6efd;
+    color: #fff;
+    padding: 0.5rem;
+  }
+  .address-block p {
+    font-size: 0.875rem;
+    margin: 0.75rem;
+    line-height: 1.4;
+    color: #333;
+  }
+    
+  /* Tabla de detalles */
+  .invoice-table thead th {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    color: #fff;
+  }
+  .invoice-table tbody td {
+    font-size: 0.875rem;
+    vertical-align: middle;
+  }
+    
+  /* Totales */
+  .totals-box {
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+  }
+  .totals-box span {
+    font-size: 0.9rem;
+    color: #333;
+  }
+  .totals-box hr {
+    margin: 0.5rem 0;
+    border-top: 1px solid #ddd;
+  }
+    
+  /* Botón Descargar */
+  button {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+  }
+    
+  /* Pie de página oculto (no se usa) */
+  .invoice-footer {
+    display: none;
+  }
+    
+  /* Media queries para adaptación a diferentes tamaños */
+  @media (max-width: 768px) {
+    .invoice-container {
+      margin: 1rem;
+    }
+  }
+    
+  @media (max-width: 576px) {
+    .invoice-container {
+      margin: 0.5rem;
+    }
+  }
+    
+  @media (max-width: 320px) {
+    .invoice-container {
+      margin: 0.25rem;
+    }
+  }
+    
+  /* Estilo para el fondo oscuro general */
+  body {
+    background-color: #0e0a0a; /* fondo oscuro general */
+  }
+    
+  /* Estilo para el fondo de la factura */
+  .invoice-container {
+    background-color: #fff; /* factura en blanco para resaltar */
+  }
+    
+  /* Estilo para el fondo de los botones */
+  button {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+  }
+    
+  /* Estilo para el fondo de la tabla */
+  .invoice-table thead th {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+  }
+    
+  /* Estilo para el fondo de los totales */
+  .totals-box {
+    background-color: #f8f9fa;
+  }
+    
+  /* Estilo para el fondo del pie de página */
+  .invoice-footer {
+    background-color: #f8f9fa;
+  }
+    
+  /* Estilo para el fondo de la firma */
+  .signature {
+    background-color: #f8f9fa;
+  }
+    
+
