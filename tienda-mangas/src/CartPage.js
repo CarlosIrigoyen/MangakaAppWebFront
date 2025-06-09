@@ -3,50 +3,75 @@ import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
 import { Button, Image } from 'react-bootstrap';
 
-const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL ||
+const CLOUDINARY_BASE_URL =
+  process.env.REACT_APP_CLOUDINARY_URL ||
   'https://res.cloudinary.com/TU_CLOUD_NAME/image/upload';
 
 const CartPage = () => {
   const { cart, updateCartItem, clearCart, removeCartItem } = useContext(CartContext);
   const navigate = useNavigate();
 
-  const totalAmount = cart.reduce(
-    (sum, item) => sum + item.precio * item.quantity,
-    0
-  );
+  const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
 
   const handleIncrease = (item) => {
-    if (item.quantity < item.stock) updateCartItem(item.id, item.quantity + 1);
+    if (item.quantity < item.stock) {
+      updateCartItem(item.id, item.quantity + 1);
+    }
   };
 
   const handleDecrease = (item) => {
-    if (item.quantity > 1) updateCartItem(item.id, item.quantity - 1);
+    if (item.quantity > 1) {
+      updateCartItem(item.id, item.quantity - 1);
+    }
   };
 
-  const handleRemove = (item) => removeCartItem(item.id);
+  const handleRemove = (item) => {
+    removeCartItem(item.id);
+  };
 
   const handleBuy = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/checkout', {
+      if (!token) {
+        alert('Debes iniciar sesión para comprar.');
+        return;
+      }
+
+      const payload = {
+        productos: cart.map(i => ({
+          titulo: i.manga?.titulo || 'Producto sin título',
+          cantidad: i.quantity,
+          precio_unitario: i.precio,
+        })),
+      };
+
+      const response = await fetch('http://localhost:8000/api/mercadopago/preference', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ items: cart.map(i => ({ id: i.id, quantity: i.quantity })) }),
+        body: JSON.stringify(payload),
       });
-      const result = await response.json();
 
-      if (response.ok) {
-        clearCart();
-        navigate('/', { state: { purchaseMessage: '¡Gracias por tu compra!' } });
-      } else {
-        alert(result.message || 'Error al realizar la compra.');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP ${response.status}: ${errorData.message || JSON.stringify(errorData)}`);
       }
+
+      const { sandbox_init_point, init_point } = await response.json();
+
+      const checkoutUrl = sandbox_init_point || init_point;
+      if (!checkoutUrl) {
+        throw new Error('No se recibió una URL de pago válida.');
+      }
+
+      window.location.href = checkoutUrl;
+
     } catch (err) {
-      console.error('Error en compra:', err);
-      alert('Error al realizar la compra.');
+      console.error('Error en createPreference:', err);
+      alert(`No se pudo iniciar el pago: ${err.message || 'Error desconocido'}`);
     }
   };
 
@@ -71,30 +96,75 @@ const CartPage = () => {
             const imageUrl = item.portada?.startsWith('http')
               ? item.portada
               : `${CLOUDINARY_BASE_URL}/${item.portada}`;
+
             return (
-              <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom bg-dark text-white">
-                <Image src={imageUrl} alt={item.manga?.titulo} thumbnail style={{ maxWidth: '80px' }} className="me-md-3 mb-2 mb-md-0" />
+              <div
+                key={item.id}
+                className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom bg-dark text-white"
+              >
+                <Image
+                  src={imageUrl}
+                  alt={item.manga?.titulo}
+                  thumbnail
+                  style={{ maxWidth: '80px' }}
+                  className="me-md-3 mb-2 mb-md-0"
+                />
                 <div className="flex-grow-1">
-                  <h5 className="mb-1">{item.manga?.titulo} - Tomo {item.numero_tomo}</h5>
+                  <h5 className="mb-1">
+                    {item.manga?.titulo} - Tomo {item.numero_tomo}
+                  </h5>
                   <p className="mb-1">Idioma: {item.idioma}</p>
-                  <p className="mb-1">Stock disponible: <strong>{item.stock}</strong></p>
+                  <p className="mb-1">
+                    Stock disponible: <strong>{item.stock}</strong>
+                  </p>
                   <div>
-                    <Button variant="secondary" size="sm" className="me-2" onClick={() => handleDecrease(item)} disabled={item.quantity<=1}>-</Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="me-2"
+                      onClick={() => handleDecrease(item)}
+                      disabled={item.quantity <= 1}
+                    >
+                      –
+                    </Button>
                     <span className="mx-2">{item.quantity}</span>
-                    <Button variant="secondary" size="sm" onClick={() => handleIncrease(item)} disabled={item.quantity>=item.stock}>+</Button>
-                    <Button variant="danger" size="sm" className="ms-2" onClick={()=>handleRemove(item)}>Eliminar</Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleIncrease(item)}
+                      disabled={item.quantity >= item.stock}
+                    >
+                      +
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="ms-2"
+                      onClick={() => handleRemove(item)}
+                    >
+                      Eliminar
+                    </Button>
                   </div>
                 </div>
-                <div className="ms-md-auto text-md-end mt-2 mt-md-0"><strong>${itemTotal.toFixed(2)}</strong></div>
+                <div className="ms-md-auto text-md-end mt-2 mt-md-0">
+                  <strong>${itemTotal.toFixed(2)}</strong>
+                </div>
               </div>
             );
           })}
         </div>
         <div className="p-3 border-top bg-dark">
-          <div className="d-flex justify-content-between align-items-center mb-3"><strong>Total</strong><strong>${totalAmount.toFixed(2)}</strong></div>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <strong>Total</strong>
+            <strong>${totalAmount.toFixed(2)}</strong>
+          </div>
           <div className="d-flex justify-content-end">
-            <Button variant="danger" className="me-2" onClick={clearCart}>Vaciar carrito</Button>
-            <Button variant="primary" onClick={handleBuy}>Comprar</Button>
+            <Button variant="danger" className="me-2" onClick={clearCart}>
+              Vaciar carrito
+            </Button>
+            <Button variant="primary" onClick={handleBuy}>
+              Comprar
+            </Button>
           </div>
         </div>
       </div>

@@ -13,8 +13,7 @@ import {
   Container,
   Form,
   Button,
-  Dropdown,
-  Alert
+  Dropdown
 } from 'react-bootstrap';
 import { FaShoppingCart } from 'react-icons/fa';
 
@@ -33,15 +32,10 @@ const MainApp = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Mensaje tras compra
-  const [purchaseMessage, setPurchaseMessage] = useState('');
-
-  // Estados de modales y usuario
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Tomos y filtros
   const [tomos, setTomos] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,19 +56,18 @@ const MainApp = () => {
   const { cart } = useContext(CartContext);
   const cartCount = cart.length;
 
-  // Carga inicial
   useEffect(() => {
     checkAuth();
     handleFilterChange(currentFilters, 1);
   }, []);
 
-  // Registro
   const handleRegisterSubmit = async (event) => {
     event.preventDefault();
-    const nombre = event.target.elements.formNombre.value;
-    const email = event.target.elements.formEmailRegister.value;
-    const password = event.target.elements.formPasswordRegister.value;
-    const data = { nombre, email, password };
+    const nombre    = event.target.elements.formNombre.value;
+    const direccion = event.target.elements.formDireccion.value;
+    const email     = event.target.elements.formEmailRegister.value;
+    const password  = event.target.elements.formPasswordRegister.value;
+    const data      = { nombre, email, password, direccion };
 
     try {
       const response = await fetch('http://localhost:8000/api/register', {
@@ -95,12 +88,11 @@ const MainApp = () => {
     }
   };
 
-  // Login
   const handleLoginSubmit = async (event) => {
     event.preventDefault();
-    const email = event.target.elements.formEmailLogin.value;
+    const email    = event.target.elements.formEmailLogin.value;
     const password = event.target.elements.formPasswordLogin.value;
-    const data = { email, password };
+    const data     = { email, password };
 
     try {
       const response = await fetch('http://localhost:8000/api/login', {
@@ -121,7 +113,6 @@ const MainApp = () => {
     }
   };
 
-  // Verificar token
   const checkAuth = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -141,7 +132,6 @@ const MainApp = () => {
     }
   };
 
-  // Logout
   const handleLogout = async () => {
     const token = localStorage.getItem('token');
     if (!token) { setUser(null); return; }
@@ -161,7 +151,6 @@ const MainApp = () => {
     }
   };
 
-  // Obtener tomos con filtros
   const handleFilterChange = async (filters, page = 1) => {
     setCurrentFilters(filters);
     const queryParams = new URLSearchParams();
@@ -194,30 +183,17 @@ const MainApp = () => {
   };
 
   const handlePageChange = (page) => handleFilterChange(currentFilters, page);
-  const handleShowInfo = (tomo) => {
+  const handleShowInfo   = (tomo) => {
     setSelectedTomo(tomo);
     setShowInfoModal(true);
   };
-  const handleSearch = () => {
+  const handleSearch     = () => {
     const newFilters = { ...currentFilters, searchText: searchQuery };
     handleFilterChange(newFilters, 1);
   };
 
   return (
     <div className="bg-dark text-white min-vh-100">
-      {/* Alerta de compra */}
-      {purchaseMessage && (
-        <Alert
-          variant="success"
-          dismissible
-          onClose={() => setPurchaseMessage('')}
-          className="m-3"
-        >
-          {purchaseMessage}
-        </Alert>
-      )}
-
-      {/* NAVBAR */}
       <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light shadow">
         <Container fluid>
           <Navbar.Brand as={Link} to="/">
@@ -255,17 +231,9 @@ const MainApp = () => {
             {user ? (
               <>
                 <span className="me-2">Hola, {user.nombre}</span>
-
-                {/* Botón Mis Facturas */}
-                <Button
-                  variant="outline-light"
-                  className="me-2"
-                  as={Link}
-                  to="/facturas"
-                >
+                <Button variant="outline-light" className="me-2" as={Link} to="/facturas">
                   Mis Facturas
                 </Button>
-
                 <Dropdown align="end" className="me-2">
                   <Dropdown.Toggle variant="outline-light">
                     <FaShoppingCart /> {cartCount}
@@ -280,7 +248,6 @@ const MainApp = () => {
                     )}
                   </Dropdown.Menu>
                 </Dropdown>
-
                 <Button variant="danger" onClick={handleLogout}>
                   Cerrar Sesión
                 </Button>
@@ -303,7 +270,6 @@ const MainApp = () => {
         </Container>
       </Navbar>
 
-      {/* CONTENEDOR PRINCIPAL */}
       <div className="d-flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
         <SideBarFilters onFilterChange={(f) => handleFilterChange(f, 1)} />
         <TomoList
@@ -315,7 +281,6 @@ const MainApp = () => {
         />
       </div>
 
-      {/* Modales */}
       <RegisterModal
         show={showRegister}
         onHide={() => setShowRegister(false)}
