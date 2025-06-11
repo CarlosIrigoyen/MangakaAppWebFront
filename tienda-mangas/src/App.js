@@ -27,14 +27,17 @@ import FacturasPage from './FacturasPage';
 import DetalleFacturaPage from './DetalleFacturaPage';
 
 import { CartProvider, CartContext } from './CartContext';
+import { UserProvider, UserContext } from './UserContext'; // ¡IMPORTA UserProvider y UserContext!
 
 const MainApp = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Consume el UserContext para obtener el estado del usuario y las funciones de autenticación
+  const { user, login, logout, loadingUser } = useContext(UserContext); // ¡CAMBIO AQUÍ!
+
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [user, setUser] = useState(null);
 
   const [tomos, setTomos] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -57,7 +60,7 @@ const MainApp = () => {
   const cartCount = cart.length;
 
   useEffect(() => {
-    checkAuth();
+    // La verificación de autenticación (checkAuth) ahora la maneja UserContext
     handleFilterChange(currentFilters, 1);
   }, []);
 
@@ -77,8 +80,7 @@ const MainApp = () => {
       });
       const result = await response.json();
       if (response.ok) {
-        localStorage.setItem('token', result.token);
-        setUser(result.cliente);
+        login(result.cliente, result.token); // ¡USA LA FUNCIÓN login DEL CONTEXTO!
         setShowRegister(false);
       } else {
         console.error(result.errors);
@@ -102,8 +104,7 @@ const MainApp = () => {
       });
       const result = await response.json();
       if (response.ok) {
-        localStorage.setItem('token', result.token);
-        setUser(result.cliente);
+        login(result.cliente, result.token); // ¡USA LA FUNCIÓN login DEL CONTEXTO!
         setShowLogin(false);
       } else {
         console.error(result.errors);
@@ -113,42 +114,9 @@ const MainApp = () => {
     }
   };
 
-  const checkAuth = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    try {
-      const response = await fetch('http://localhost:8000/api/me', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const result = await response.json();
-      if (response.ok) setUser(result);
-      else localStorage.removeItem('token');
-    } catch {
-      localStorage.removeItem('token');
-    }
-  };
-
-  const handleLogout = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) { setUser(null); return; }
-    try {
-      await fetch('http://localhost:8000/api/logout', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-    } catch (error) {
-      console.error('Error en logout:', error);
-    } finally {
-      localStorage.removeItem('token');
-      setUser(null);
-    }
+  // Esta función `handleLogout` ahora solo llama a la función `logout` del UserContext
+  const handleLogout = () => {
+    logout(); // ¡USA LA FUNCIÓN logout DEL CONTEXTO!
   };
 
   const handleFilterChange = async (filters, page = 1) => {
@@ -192,6 +160,15 @@ const MainApp = () => {
     handleFilterChange(newFilters, 1);
   };
 
+  // Puedes mostrar un spinner o mensaje de carga mientras se verifica el usuario
+  if (loadingUser) {
+    return (
+      <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">
+        Cargando usuario...
+      </div>
+    );
+  }
+
   return (
     <div className="bg-dark text-white min-vh-100">
       <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light shadow">
@@ -228,6 +205,7 @@ const MainApp = () => {
           </Form>
 
           <div className="d-flex ms-auto align-items-center">
+
             {user ? (
               <>
                 <span className="me-2">Hola, {user.nombre}</span>
@@ -300,17 +278,20 @@ const MainApp = () => {
   );
 };
 
+// La aplicación se envuelve con los proveedores de contexto necesarios
 const App = () => (
-  <CartProvider>
-    <Router>
-      <Routes>
-        <Route path="/" element={<MainApp />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/facturas" element={<FacturasPage />} />
-        <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
-      </Routes>
-    </Router>
-  </CartProvider>
+  <UserProvider> {/* ¡ENVUELVE TODA LA APP CON UserProvider! */}
+    <CartProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<MainApp />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/facturas" element={<FacturasPage />} />
+          <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
+        </Routes>
+      </Router>
+    </CartProvider>
+  </UserProvider>
 );
 
 export default App;

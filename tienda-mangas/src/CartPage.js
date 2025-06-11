@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
+import { UserContext } from './UserContext'; // ¡IMPORTA UserContext!
 import { Button, Image } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL =
@@ -9,6 +10,7 @@ const CLOUDINARY_BASE_URL =
 
 const CartPage = () => {
   const { cart, updateCartItem, clearCart, removeCartItem } = useContext(CartContext);
+  const { user, loadingUser } = useContext(UserContext); // ¡CONSUME UserContext para obtener 'user' y 'loadingUser'!
   const navigate = useNavigate();
 
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
@@ -31,14 +33,22 @@ const CartPage = () => {
 
   const handleBuy = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      const token = localStorage.getItem('token'); // Todavía necesitas el token para la autorización
+      // Asegúrate de que el usuario esté cargado y exista
+      if (loadingUser || !user || !token) {
         alert('Debes iniciar sesión para comprar.');
+        navigate('/login'); // O redirige a la página de login si lo prefieres
         return;
       }
 
+      // Obtener cliente_id directamente del objeto `user` del contexto
+      const clienteId = user.id;
+
+      // Construir payload incluyendo cliente_id
       const payload = {
+        cliente_id: clienteId, // `clienteId` ya es numérico
         productos: cart.map(i => ({
+          tomo_id: i.id,
           titulo: i.manga?.titulo || 'Producto sin título',
           cantidad: i.quantity,
           precio_unitario: i.precio,
@@ -56,24 +66,41 @@ const CartPage = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`HTTP ${response.status}: ${errorData.message || JSON.stringify(errorData)}`);
+        let errorMsg = `HTTP ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMsg += `: ${errorData.message}`;
+          } else {
+            errorMsg += `: ${JSON.stringify(errorData)}`;
+          }
+        } catch {
+          // No JSON en body
+        }
+        throw new Error(errorMsg);
       }
 
       const { sandbox_init_point, init_point } = await response.json();
-
       const checkoutUrl = sandbox_init_point || init_point;
       if (!checkoutUrl) {
         throw new Error('No se recibió una URL de pago válida.');
       }
 
       window.location.href = checkoutUrl;
-
     } catch (err) {
       console.error('Error en createPreference:', err);
       alert(`No se pudo iniciar el pago: ${err.message || 'Error desconocido'}`);
     }
   };
+
+  // Puedes mostrar un mensaje de carga si el usuario aún no se ha verificado
+  if (loadingUser) {
+    return (
+      <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">
+        Cargando tu sesión...
+      </div>
+    );
+  }
 
   if (!cart.length) {
     return (
