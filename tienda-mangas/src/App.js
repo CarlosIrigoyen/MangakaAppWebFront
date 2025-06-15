@@ -1,7 +1,9 @@
 // src/App.js
 import React, { useState, useEffect, useContext } from 'react';
+import PagoSuccessPage from './PagoSuccessPage';
 import {
   BrowserRouter as Router,
+  
   Routes,
   Route,
   Link,
@@ -286,6 +288,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<MainApp />} />
           <Route path="/cart" element={<CartPage />} />
+            <Route path="/pago/success" element={<PagoSuccessPage />} />
           <Route path="/facturas" element={<FacturasPage />} />
           <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
         </Routes>
