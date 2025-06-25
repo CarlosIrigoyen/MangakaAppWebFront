@@ -16,7 +16,7 @@ const DetalleFacturaPage = () => {
     const fetchFactura = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${REACT_FACTURA}${id}`, {
+        const res = await fetch(`https://mangakaappwebfront-production.up.railway.app/api/mis-facturas/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('No se pudo cargar la factura');

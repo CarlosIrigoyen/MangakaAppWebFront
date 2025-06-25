@@ -1,7 +1,8 @@
 // SidebarFilters.jsx
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-const REACT_FILTERS=process.env.REACT_APP_REACT_FILTERS
+
+const REACT_FILTERS = process.env.REACT_FILTERS
 const SidebarFilters = ({ onFilterChange }) => {
   const [filters, setFilters] = useState({
     author: null,
@@ -31,9 +32,10 @@ const SidebarFilters = ({ onFilterChange }) => {
 
   // Carga de filtros
   useEffect(() => {
+     console.log("→ URL de filtros (env):", REACT_FILTERS);
     async function fetchFilters() {
       try {
-        const resp = await fetch(REACT_FILTERS);
+        const resp = await fetch('https://mangakaappwebfront-production.up.railway.app/api/filters');
         const json = await resp.json();
         setAvailableFilters(json);
       } catch (err) {

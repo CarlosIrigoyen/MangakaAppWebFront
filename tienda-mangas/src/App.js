@@ -79,14 +79,14 @@ const MainApp = () => {
     const data      = { nombre, email, password, direccion };
 
     try {
-      const response = await fetch(REGISTER_URL, {
+      const response = await fetch('https://mangakaappwebfront-production.up.railway.app/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
       const result = await response.json();
       if (response.ok) {
-        login(result.cliente, result.token); // ¡USA LA FUNCIÓN login DEL CONTEXTO!
+        login(result.cliente, result.token);
         setShowRegister(false);
       } else {
         console.error(result.errors);
@@ -103,7 +103,7 @@ const MainApp = () => {
     const data     = { email, password };
 
     try {
-      const response = await fetch(LOGIN_URL, {
+      const response = await fetch('https://mangakaappwebfront-production.up.railway.app/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -142,7 +142,7 @@ const MainApp = () => {
 
     try {
       const response = await fetch(
-        `${TOMOS_URL}?${queryParams.toString()}`,
+        `https://mangakaappwebfront-production.up.railway.app/api/tomos?${queryParams.toString()}`,
       );
       const result = await response.json();
       setTomos(result.data);
