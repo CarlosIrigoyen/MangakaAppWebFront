@@ -37,6 +37,7 @@ const MainApp = () => {
   const REGISTER_URL = process.env.REACT_APP_REGISTER_URL;
   const LOGIN_URL    = process.env.REACT_APP_LOGIN_URL;
   const TOMOS_URL    = process.env.REACT_APP_TOMOS_URL;
+  console.log(REGISTER_URL, LOGIN_URL, TOMOS_URL);
 
   // Consume el UserContext para obtener el estado del usuario y las funciones de autenticación
   const { user, login, logout, loadingUser } = useContext(UserContext); // ¡CAMBIO AQUÍ!
