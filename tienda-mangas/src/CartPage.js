@@ -57,7 +57,7 @@ const CartPage = () => {
         })),
       };
 
-      const response = await fetch('https://mangakaappweb-production.up.railway.app/api/mercadopago/preference', {
+      const response = await fetch('http://localhost:8000/api/mercadopago/preference', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
