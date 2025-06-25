@@ -8,12 +8,12 @@ const FacturasPage = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-
+  const REACT_MIS_FACTURAS = process.env.REACT_MIS_FACTURAS;
   useEffect(() => {
     const obtenerFacturas = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:8000/api/mis-facturas', {
+        const res = await fetch(REACT_MIS_FACTURAS, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Error al obtener facturas');

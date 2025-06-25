@@ -1,6 +1,5 @@
 // src/App.js
 import React, { useState, useEffect, useContext } from 'react';
-import PagoSuccessPage from './PagoSuccessPage';
 import {
   BrowserRouter as Router,
   
@@ -34,6 +33,10 @@ import { UserProvider, UserContext } from './UserContext'; // ¡IMPORTA UserProv
 const MainApp = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  // URLs de la API desde .env.local (o env vars)
+  const REGISTER_URL = process.env.REACT_APP_REGISTER_URL;
+  const LOGIN_URL    = process.env.REACT_APP_LOGIN_URL;
+  const TOMOS_URL    = process.env.REACT_APP_TOMOS_URL;
 
   // Consume el UserContext para obtener el estado del usuario y las funciones de autenticación
   const { user, login, logout, loadingUser } = useContext(UserContext); // ¡CAMBIO AQUÍ!
@@ -75,7 +78,7 @@ const MainApp = () => {
     const data      = { nombre, email, password, direccion };
 
     try {
-      const response = await fetch('http://localhost:8000/api/register', {
+      const response = await fetch(REGISTER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -99,7 +102,7 @@ const MainApp = () => {
     const data     = { email, password };
 
     try {
-      const response = await fetch('http://localhost:8000/api/login', {
+      const response = await fetch(LOGIN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -138,7 +141,7 @@ const MainApp = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/public/tomos?${queryParams.toString()}`
+        `${TOMOS_URL}?${queryParams.toString()}`,
       );
       const result = await response.json();
       setTomos(result.data);
@@ -288,7 +291,6 @@ const App = () => (
         <Routes>
           <Route path="/" element={<MainApp />} />
           <Route path="/cart" element={<CartPage />} />
-            <Route path="/pago/success" element={<PagoSuccessPage />} />
           <Route path="/facturas" element={<FacturasPage />} />
           <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
         </Routes>

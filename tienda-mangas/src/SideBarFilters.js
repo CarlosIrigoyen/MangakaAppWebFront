@@ -1,7 +1,7 @@
 // SidebarFilters.jsx
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-
+const REACT_FILTERS=process.env.REACT_APP_REACT_FILTERS
 const SidebarFilters = ({ onFilterChange }) => {
   const [filters, setFilters] = useState({
     author: null,
@@ -33,7 +33,7 @@ const SidebarFilters = ({ onFilterChange }) => {
   useEffect(() => {
     async function fetchFilters() {
       try {
-        const resp = await fetch('http://localhost:8000/api/filters');
+        const resp = await fetch(REACT_FILTERS);
         const json = await resp.json();
         setAvailableFilters(json);
       } catch (err) {

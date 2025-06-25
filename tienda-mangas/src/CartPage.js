@@ -8,6 +8,9 @@ const CLOUDINARY_BASE_URL =
   process.env.REACT_APP_CLOUDINARY_URL ||
   'https://res.cloudinary.com/TU_CLOUD_NAME/image/upload';
 
+
+
+const REACT_MERCADO_PAGO_PREFERENCE=process.env.REACT_APP_REACT_MERCADO_PAGO_PREFERENCE
 const CartPage = () => {
   const { cart, updateCartItem, clearCart, removeCartItem } = useContext(CartContext);
   const { user, loadingUser } = useContext(UserContext); // ¡CONSUME UserContext para obtener 'user' y 'loadingUser'!
@@ -55,7 +58,7 @@ const CartPage = () => {
         })),
       };
 
-      const response = await fetch('http://localhost:8000/api/mercadopago/preference', {
+      const response = await fetch(REACT_MERCADO_PAGO_PREFERENCE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

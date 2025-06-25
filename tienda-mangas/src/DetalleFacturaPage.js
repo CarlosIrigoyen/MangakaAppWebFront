@@ -11,12 +11,12 @@ const DetalleFacturaPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const facturaRef = useRef();
-
+  const REACT_FACTURA=process.env.REACT_FACTURA;
   useEffect(() => {
     const fetchFactura = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:8000/api/mis-facturas/${id}`, {
+        const res = await fetch(`${REACT_FACTURA}${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('No se pudo cargar la factura');
