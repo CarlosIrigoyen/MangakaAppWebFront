@@ -13,7 +13,7 @@ const FacturasPage = () => {
     const obtenerFacturas = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('https://mangakaappwebfront-production.up.railway.app/api/mis-facturas', {
+        const res = await fetch('https://mangakaappweb-production.up.railway.app/api/mis-facturas', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Error al obtener facturas');

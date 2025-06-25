@@ -23,7 +23,7 @@ export const UserProvider = ({ children }) => {
       }
 
       try {
-        const response = await fetch(REACT_ME, {
+        const response = await fetch('https://mangakaappweb-production.up.railway.app/api/me', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -60,7 +60,7 @@ export const UserProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        await fetch(REACT_LOGOUT, {
+        await fetch('https://mangakaappweb-production.up.railway.app/api/logout', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,

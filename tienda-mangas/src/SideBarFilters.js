@@ -35,7 +35,7 @@ const SidebarFilters = ({ onFilterChange }) => {
      console.log("→ URL de filtros (env):", REACT_FILTERS);
     async function fetchFilters() {
       try {
-        const resp = await fetch('https://mangakaappwebfront-production.up.railway.app/api/filters');
+        const resp = await fetch('https://mangakaappweb-production.up.railway.app/api/filters');
         const json = await resp.json();
         setAvailableFilters(json);
       } catch (err) {
