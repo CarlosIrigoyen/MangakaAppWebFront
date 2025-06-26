@@ -142,7 +142,7 @@ const MainApp = () => {
           <span className="ms-2">Mangaka Baka Shop</span>
         </Navbar.Brand>
 
-        {/* Móvil: buscador, carrito y menú de cuenta en línea */}
+        {/* Móvil: buscador y menú de usuario con carrito dentro */}
         <Nav className="d-lg-none d-flex align-items-center mb-2">
           <Form className="d-flex flex-grow-1 me-2" onSubmit={e => { e.preventDefault(); handleSearch(); }}>
             <Form.Control
@@ -153,21 +153,16 @@ const MainApp = () => {
             />
             <Button variant="outline-light" type="submit" className="ms-2">Buscar</Button>
           </Form>
-          <Dropdown className="me-2 flex-shrink-0">
-            <Dropdown.Toggle variant="outline-light">
-              <FaShoppingCart /> {cartCount}
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              {cartCount === 0
-                ? <Dropdown.ItemText>No hay elementos</Dropdown.ItemText>
-                : <Dropdown.Item as={Link} to="/cart">Ver Carrito</Dropdown.Item>}
-            </Dropdown.Menu>
-          </Dropdown>
           <Dropdown className="flex-shrink-0">
             <Dropdown.Toggle variant="outline-light">
               {user ? user.nombre : 'Cuenta'}
             </Dropdown.Toggle>
             <Dropdown.Menu>
+              {/* Carrito dentro del menú de usuario */}
+              <Dropdown.Item as={Link} to="/cart">
+                <FaShoppingCart /> {cartCount} Carrito
+              </Dropdown.Item>
+              <Dropdown.Divider />
               {!user ? (
                 <>
                   <Dropdown.Item onClick={() => setShowLogin(true)}>Iniciar Sesión</Dropdown.Item>
@@ -235,6 +230,7 @@ const MainApp = () => {
     <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
   </div>
 );
+
 
 };
 
