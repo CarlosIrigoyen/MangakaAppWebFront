@@ -1,9 +1,9 @@
 // SidebarFilters.jsx
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { FiMenu, FiX } from 'react-icons/fi'; // 🔄 importa los íconos
+import { FiMenu, FiX } from 'react-icons/fi';
 
-// Define un objeto de estado inicial reutilizable
+// Estado inicial global de filtros
 const INITIAL_FILTERS = {
   author: null,
   language: null,
@@ -30,14 +30,14 @@ const SidebarFilters = ({ onFilterChange }) => {
     editorials: true,
     price: true,
   });
-
-  // Estado para colapsar el sidebar en pantallas chicas
-  const [collapsed, setCollapsed] = useState(false); // 🔄
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     async function fetchFilters() {
       try {
-        const resp = await fetch('https://mangakaappweb-production.up.railway.app/api/filters');
+        const resp = await fetch(
+          'https://mangakaappweb-production.up.railway.app/api/filters'
+        );
         const json = await resp.json();
         setAvailableFilters(json);
       } catch (err) {
@@ -84,12 +84,10 @@ const SidebarFilters = ({ onFilterChange }) => {
     }
   };
 
-  const applyPrice = () =>
-    updateFilters({ ...filters, applyPriceFilter: 1 });
+  const applyPrice = () => updateFilters({ ...filters, applyPriceFilter: 1 });
   const clearPriceFilter = () =>
     updateFilters({ ...filters, applyPriceFilter: 0, minPrice: '', maxPrice: '' });
 
-  // 🔄 Resetea absolutamente todos los filtros
   const clearAllFilters = () => {
     setFilters(INITIAL_FILTERS);
     onFilterChange({
@@ -115,18 +113,17 @@ const SidebarFilters = ({ onFilterChange }) => {
       "
       style={{ zIndex: 10 }}
     >
-      {/* 🔄 Botón para colapsar/expandir en móvil */}
+      {/* Toggle móvil */}
       <button
         className="btn btn-light d-md-none mb-3"
         onClick={() => setCollapsed(!collapsed)}
       >
-        {collapsed ? <FiMenu size={20}/> : <FiX size={20}/>}
+        {collapsed ? <FiMenu size={20} /> : <FiX size={20} />}
       </button>
 
-      {/* Solo mostramos el contenido si no está colapsado */}
       {!collapsed && (
         <>
-          {/* Campo de búsqueda global */}
+          {/* Búsqueda global */}
           <div className="mb-3">
             <input
               type="text"
@@ -138,9 +135,137 @@ const SidebarFilters = ({ onFilterChange }) => {
           </div>
           <hr />
 
-          {/* -- aquí van las secciones de autores, idiomas, mangas, editoriales, precio (tal como ya las tienes) -- */}
+          {/* Autores */}
+          <div className="mb-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <h6 className="mb-0">Autores</h6>
+              <button
+                className="btn btn-sm btn-light"
+                onClick={() => toggleSection('authors')}
+              >
+                {openSections.authors ? '−' : '+'}
+              </button>
+            </div>
+            {openSections.authors &&
+              availableFilters.authors.map((a) => (
+                <div key={a.id} className="form-check mt-1">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    id={`author-${a.id}`}
+                    name="author"
+                    checked={filters.author === a.id}
+                    onChange={() => handleExclusiveChange('author', a.id)}
+                  />
+                  <label
+                    className="form-check-label ms-1"
+                    htmlFor={`author-${a.id}`}
+                  >
+                    {a.nombre} {a.apellido}
+                  </label>
+                </div>
+              ))}
+          </div>
+          <hr />
 
-          {/* ... (tu código existente de secciones) ... */}
+          {/* Idiomas */}
+          <div className="mb-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <h6 className="mb-0">Idiomas</h6>
+              <button
+                className="btn btn-sm btn-light"
+                onClick={() => toggleSection('languages')}
+              >
+                {openSections.languages ? '−' : '+'}
+              </button>
+            </div>
+            {openSections.languages &&
+              availableFilters.languages.map((lang, i) => (
+                <div key={i} className="form-check mt-1">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    id={`language-${lang}`}
+                    name="language"
+                    checked={filters.language === lang}
+                    onChange={() => handleExclusiveChange('language', lang)}
+                  />
+                  <label
+                    className="form-check-label ms-1"
+                    htmlFor={`language-${lang}`}
+                  >
+                    {lang}
+                  </label>
+                </div>
+              ))}
+          </div>
+          <hr />
+
+          {/* Mangas */}
+          <div className="mb-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <h6 className="mb-0">Mangas</h6>
+              <button
+                className="btn btn-sm btn-light"
+                onClick={() => toggleSection('mangas')}
+              >
+                {openSections.mangas ? '−' : '+'}
+              </button>
+            </div>
+            {openSections.mangas &&
+              availableFilters.mangas.map((m) => (
+                <div key={m.id} className="form-check mt-1">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    id={`manga-${m.id}`}
+                    name="manga"
+                    checked={filters.manga === m.id}
+                    onChange={() => handleExclusiveChange('manga', m.id)}
+                  />
+                  <label
+                    className="form-check-label ms-1"
+                    htmlFor={`manga-${m.id}`}
+                  >
+                    {m.titulo}
+                  </label>
+                </div>
+              ))}
+          </div>
+          <hr />
+
+          {/* Editoriales */}
+          <div className="mb-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <h6 className="mb-0">Editoriales</h6>
+              <button
+                className="btn btn-sm btn-light"
+                onClick={() => toggleSection('editorials')}
+              >
+                {openSections.editorials ? '−' : '+'}
+              </button>
+            </div>
+            {openSections.editorials &&
+              availableFilters.editorials.map((e) => (
+                <div key={e.id} className="form-check mt-1">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    id={`editorial-${e.id}`}
+                    name="editorial"
+                    checked={filters.editorial === e.id}
+                    onChange={() => handleExclusiveChange('editorial', e.id)}
+                  />
+                  <label
+                    className="form-check-label ms-1"
+                    htmlFor={`editorial-${e.id}`}
+                  >
+                    {e.nombre}
+                  </label>
+                </div>
+              ))}
+          </div>
+          <hr />
 
           {/* Precio */}
           <div className="mb-3">
@@ -189,7 +314,10 @@ const SidebarFilters = ({ onFilterChange }) => {
                   >
                     Aplicar
                   </button>
-                  <button className="btn btn-light btn-sm" onClick={clearPriceFilter}>
+                  <button
+                    className="btn btn-light btn-sm"
+                    onClick={clearPriceFilter}
+                  >
                     Limpiar
                   </button>
                 </div>
@@ -197,7 +325,7 @@ const SidebarFilters = ({ onFilterChange }) => {
             )}
           </div>
 
-          {/* 🔄 Botón “Limpiar todos los filtros” */}
+          {/* Limpiar todos */}
           <div className="mt-4">
             <button
               className="btn btn-outline-light w-100"
