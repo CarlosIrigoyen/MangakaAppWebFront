@@ -24,7 +24,7 @@ import InfoModal from './InfoModal';
 import TomoList from './TomoList';
 import CartPage from './CartPage';
 import FacturasPage from './FacturasPage';
-import InvoicePage from './pages/InvoicePage';  // <-- import del detalle de factura
+import InvoicePage from './pages/InvoicePage'; // Detalle de factura
 
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
@@ -36,7 +36,6 @@ const MainApp = () => {
   const { cart } = useContext(CartContext);
   const cartCount = cart.length;
 
-  // Estados y efectos para filtros y modales...
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin]       = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -55,18 +54,17 @@ const MainApp = () => {
     handleFilterChange(currentFilters, 1);
   }, []);
 
-  // Handlers de Register/Login igual que antes...
   const handleRegisterSubmit = async (e) => { /* ... */ };
   const handleLoginSubmit    = async (e) => { /* ... */ };
   const handleLogout         = () => logout();
 
   const handleFilterChange = async (filters, page = 1) => { /* ... */ };
-  const handlePageChange = page => handleFilterChange(currentFilters, page);
-  const handleShowInfo   = tomo => {
+  const handlePageChange   = page => handleFilterChange(currentFilters, page);
+  const handleShowInfo     = tomo => {
     setSelectedTomo(tomo);
     setShowInfoModal(true);
   };
-  const handleSearch     = () => {
+  const handleSearch       = () => {
     handleFilterChange({ ...currentFilters, searchText: searchQuery }, 1);
   };
 
@@ -172,17 +170,10 @@ const App = () => (
     <CartProvider>
       <Router>
         <Routes>
-          {/* Pantalla principal con filtros y listado */}
           <Route path="/" element={<MainApp />} />
-
-          {/* Carrito */}
           <Route path="/cart" element={<CartPage />} />
-
-          {/* Listado de facturas */}
           <Route path="/facturas" element={<FacturasPage />} />
-
-          {/* Detalle de una factura (InvoicePage) */}
-          <Route path="/invoices/:id" element={<InvoicePage />} />
+          <Route path="/facturas/:id" element={<InvoicePage />} />
         </Routes>
       </Router>
     </CartProvider>
@@ -190,3 +181,4 @@ const App = () => (
 );
 
 export default App;
+

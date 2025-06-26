@@ -1,3 +1,4 @@
+// src/CartPage.jsx
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
@@ -62,7 +63,7 @@ const CartPage = () => {
       }
 
       const { factura_id } = await res.json();
-      navigate(`/invoices/${factura_id}`);
+      navigate(`/facturas/${factura_id}`);
     } catch (err) {
       console.error(err);
       alert(`No se pudo completar la compra: ${err.message}`);
@@ -116,7 +117,9 @@ const CartPage = () => {
                     {item.manga?.titulo} - Tomo {item.numero_tomo}
                   </h5>
                   <p className="mb-1">Idioma: {item.idioma}</p>
-                  <p className="mb-1">Stock disponible: <strong>{item.stock}</strong></p>
+                  <p className="mb-1">
+                    Stock disponible: <strong>{item.stock}</strong>
+                  </p>
                   <div>
                     <Button
                       variant="secondary"
