@@ -7,7 +7,7 @@ import {
   useLocation,
   useNavigate
 } from 'react-router-dom';
-import { Navbar, Container, Form, Button, Dropdown } from 'react-bootstrap';
+import { Navbar, Container, Form, Button, Dropdown,Nav } from 'react-bootstrap';
 import { FaShoppingCart } from 'react-icons/fa';
 
 import SideBarFilters from './SideBarFilters';
@@ -133,8 +133,7 @@ const MainApp = () => {
   if (loadingUser) {
     return <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">Cargando usuario...</div>;
   }
-
-  return (
+   return (
     <div className="bg-dark text-white min-vh-100">
       <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light shadow">
         <Container fluid>
@@ -143,27 +142,46 @@ const MainApp = () => {
             <span className="ms-2">Mangaka Baka Shop</span>
           </Navbar.Brand>
 
-          <Form className="d-flex mx-auto" style={{ width: '50%' }} onSubmit={e => { e.preventDefault(); handleSearch(); }}>
-            <Form.Control type="search" placeholder="Buscar" className="me-2"
-                          value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+          {/* Móvil: menú desplegable para usuario y buscador debajo */}
+          <Nav className="d-lg-none align-items-center">
+            <Dropdown>
+              <Dropdown.Toggle variant="outline-light">
+                {user ? user.nombre : 'Cuenta'}
+              </Dropdown.Toggle>
+              <Dropdown.Menu className="w-100 p-2">
+                {!user ? (
+                  <>
+                    <Dropdown.Item onClick={() => setShowLogin(true)}>Iniciar Sesión</Dropdown.Item>
+                    <Dropdown.Item onClick={() => setShowRegister(true)}>Registrarse</Dropdown.Item>
+                  </>
+                ) : (
+                  <>
+                    <Dropdown.Item as={Link} to="/facturas">Mis Facturas</Dropdown.Item>
+                    <Dropdown.Item onClick={handleLogout}>Cerrar Sesión</Dropdown.Item>
+                  </>
+                )}
+              </Dropdown.Menu>
+            </Dropdown>
+            <Form className="d-flex w-100 mt-2" onSubmit={e => { e.preventDefault(); handleSearch(); }}>
+              <Form.Control type="search" placeholder="Buscar" className="me-2" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              <Button variant="outline-light" type="submit">Buscar</Button>
+            </Form>
+          </Nav>
+
+          {/* Escritorio: buscador y controles a la derecha */}
+          <Form className="d-none d-lg-flex mx-auto" style={{ width: '50%' }} onSubmit={e => { e.preventDefault(); handleSearch(); }}>
+            <Form.Control type="search" placeholder="Buscar" className="me-2" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             <Button variant="outline-light" onClick={handleSearch}>Buscar</Button>
           </Form>
-
-          <div className="d-flex ms-auto align-items-center">
+          <div className="d-none d-lg-flex ms-auto align-items-center">
             {user ? (
               <>
                 <span className="me-2">Hola, {user.nombre}</span>
-                <Button variant="outline-light" className="me-2" as={Link} to="/facturas">
-                  Mis Facturas
-                </Button>
+                <Button variant="outline-light" className="me-2" as={Link} to="/facturas">Mis Facturas</Button>
                 <Dropdown align="end" className="me-2">
-                  <Dropdown.Toggle variant="outline-light">
-                    <FaShoppingCart /> {cartCount}
-                  </Dropdown.Toggle>
+                  <Dropdown.Toggle variant="outline-light"><FaShoppingCart /> {cartCount}</Dropdown.Toggle>
                   <Dropdown.Menu>
-                    {cartCount === 0
-                      ? <Dropdown.ItemText>No hay elementos</Dropdown.ItemText>
-                      : <Dropdown.Item as={Link} to="/cart">Ver Carrito</Dropdown.Item>}
+                    {cartCount === 0 ? <Dropdown.ItemText>No hay elementos</Dropdown.ItemText> : <Dropdown.Item as={Link} to="/cart">Ver Carrito</Dropdown.Item>}
                   </Dropdown.Menu>
                 </Dropdown>
                 <Button variant="danger" onClick={handleLogout}>Cerrar Sesión</Button>
@@ -180,13 +198,12 @@ const MainApp = () => {
 
       <div className="d-flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
         <SideBarFilters onFilterChange={f => handleFilterChange(f, 1)} />
-        <TomoList tomos={tomos} pagination={pagination} onPageChange={handlePageChange}
-                  onShowInfo={handleShowInfo} isLoggedIn={!!user} />
+        <TomoList tomos={tomos} pagination={pagination} onPageChange={handlePageChange} onShowInfo={handleShowInfo} isLoggedIn={!!user} />
       </div>
 
       <RegisterModal show={showRegister} onHide={() => setShowRegister(false)} onSubmit={handleRegisterSubmit} />
-      <LoginModal    show={showLogin}    onHide={() => setShowLogin(false)}    onSubmit={handleLoginSubmit} />
-      <InfoModal     show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
+      <LoginModal show={showLogin} onHide={() => setShowLogin(false)} onSubmit={handleLoginSubmit} />
+      <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
     </div>
   );
 };
