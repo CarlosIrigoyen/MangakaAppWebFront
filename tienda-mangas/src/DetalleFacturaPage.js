@@ -57,69 +57,75 @@ const DetalleFacturaPage = () => {
     ? new Date(factura.fecha).toLocaleDateString()
     : '';
   const numeroDigitos = (factura.numero || '').replace(/\D/g, '');
+  const cliente = factura.cliente || {};
 
   return (
-    <div className="invoice-container p-5 bg-white text-dark" style={{ maxWidth: 800, margin: 'auto' }}>
-      <div ref={facturaRef} className="invoice-content">
-
-        {/* Cabecera */}
-        <div className="d-flex justify-content-between align-items-center invoice-header mb-4">
-          <div className="company-info">
-            <img src="/img/Mangaka.png" alt="Logo" width={120} />
-            <h5>Mangaka Baka Shop</h5>
+    <div className="d-flex flex-column min-vh-100 bg-dark text-white">
+      <div className="container flex-grow-1 py-4">
+        <div ref={facturaRef} className="p-4 bg-secondary rounded">
+          {/* Cabecera */}
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex align-items-center">
+              <img src="/img/Mangaka.png" alt="Logo" width={80} className="me-3 rounded-circle" />
+              <h4 className="mb-0">Mangaka Baka Shop</h4>
+            </div>
+            <div className="text-end">
+              <h5 className="text-warning">FACTURA</h5>
+              <p className="mb-1"><strong>Nº:</strong> {numeroDigitos}</p>
+              <p className="mb-0"><strong>Fecha:</strong> {fechaSolo}</p>
+            </div>
           </div>
-          <div className="invoice-meta text-end">
-            <h4 className="text-primary">FACTURA</h4>
-            <p><strong>Nº:</strong> {numeroDigitos}</p>
-            <p><strong>Fecha:</strong> {fechaSolo}</p>
+
+          {/* Cliente */}
+          <div className="mb-4 p-3 bg-dark rounded">
+            <h6 className="text-warning">FACTURAR A:</h6>
+            <p className="mb-0">
+              {cliente.nombre || ''} {cliente.apellido || ''}
+            </p>
           </div>
-        </div>
 
-        {/* Cliente */}
-        <div className="address-block mb-4">
-          <h6 className="bg-primary text-white p-2">FACTURAR A:</h6>
-          <p className="m-2">{factura.cliente?.nombre || ''}</p>
-        </div>
-
-        {/* Detalles */}
-        <Table bordered className="invoice-table">
-          <thead>
-            <tr className="bg-primary text-white">
-              <th>DESCRIPCIÓN</th>
-              <th className="text-center">CANTIDAD</th>
-              <th className="text-end">PRECIO</th>
-              <th className="text-end">IMPORTE</th>
-            </tr>
-          </thead>
-          <tbody>
-            {factura.detalles.map(d => (
-              <tr key={d.tomo_id}>
-                <td>{`${d.titulo} – Tomo ${d.numero_tomo}`}</td>
-                <td className="text-center">{d.cantidad}</td>
-                <td className="text-end">${(+d.precio_unitario).toFixed(2)}</td>
-                <td className="text-end">${(+d.subtotal).toFixed(2)}</td>
+          {/* Detalles */}
+          <Table bordered variant="dark" className="invoice-table">
+            <thead>
+              <tr className="bg-secondary text-white">
+                <th>DESCRIPCIÓN</th>
+                <th className="text-center">CANTIDAD</th>
+                <th className="text-end">PRECIO</th>
+                <th className="text-end">IMPORTE</th>
               </tr>
-            ))}
-          </tbody>
-        </Table>
+            </thead>
+            <tbody>
+              {factura.detalles.map(d => (
+                <tr key={d.tomo_id}>
+                  <td>{`${d.titulo} – Tomo ${d.numero_tomo}`}</td>
+                  <td className="text-center">{d.cantidad}</td>
+                  <td className="text-end">${(+d.precio_unitario).toFixed(2)}</td>
+                  <td className="text-end">${(+d.subtotal).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
 
-        {/* Total */}
-        <div className="d-flex justify-content-end mt-3">
-          <div className="totals-box p-3" style={{ width: 240 }}>
-            <hr />
-            <div className="d-flex justify-content-between fw-bold">
-              <span>Total</span>
-              <span>${(+factura.total).toFixed(2)}</span>
+          {/* Total */}
+          <div className="d-flex justify-content-end mt-3">
+            <div className="p-3 bg-dark rounded" style={{ width: 240 }}>
+              <hr className="border-light" />
+              <div className="d-flex justify-content-between fw-bold">
+                <span>Total</span>
+                <span>${(+factura.total).toFixed(2)}</span>
+              </div>
             </div>
           </div>
         </div>
-
       </div>
 
-      <div className="text-end mt-4">
-        <Button onClick={descargarComoPdf}>Descargar Factura (PDF)</Button>{' '}
-        <Button variant="secondary" onClick={() => navigate('/facturas')}>
-          Volver
+      {/* Botones */}
+      <div className="p-3 bg-dark text-end">
+        <Button variant="secondary" className="me-2" onClick={() => navigate('/')}>
+          Volver al Home
+        </Button>
+        <Button variant="warning" onClick={descargarComoPdf}>
+          Descargar Factura (PDF)
         </Button>
       </div>
     </div>
