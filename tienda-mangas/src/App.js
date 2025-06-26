@@ -134,100 +134,84 @@ const MainApp = () => {
     return <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">Cargando usuario...</div>;
   }
   return (
-  <div className="bg-dark text-white min-vh-100">
-    <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light shadow">
-      <Container fluid>
-        <Navbar.Brand as={Link} to="/">
-          <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
-          <span className="ms-2">Mangaka Baka Shop</span>
-        </Navbar.Brand>
+    <div className="bg-dark text-white min-vh-100">
+      <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light shadow">
+        <Container fluid>
+          <Navbar.Brand as={Link} to="/">
+            <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
+            <span className="ms-2">Mangaka Baka Shop</span>
+          </Navbar.Brand>
 
-        {/* Móvil: buscador y menú desplegable juntos */}
-        <Nav className="d-lg-none d-flex align-items-center w-100 mb-2">
-          <Form className="d-flex flex-grow-1 me-2" onSubmit={e => { e.preventDefault(); handleSearch(); }}>
-            <Form.Control
-              type="search"
-              placeholder="Buscar"
-              className="me-2"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-            <Button variant="outline-light" type="submit">Buscar</Button>
+          {/* Móvil: menú desplegable para usuario y buscador debajo */}
+          {/* Móvil: buscador y menú desplegable juntos */}
+<Nav className="d-lg-none d-flex align-items-center mb-2">
+  <Form className="d-flex flex-grow-1 me-2" onSubmit={e => { e.preventDefault(); handleSearch(); }}>
+    <Form.Control
+      type="search"
+      placeholder="Buscar"
+      value={searchQuery}
+      onChange={e => setSearchQuery(e.target.value)}
+    />
+    <Button variant="outline-light" type="submit" className="ms-2">Buscar</Button>
+  </Form>
+  <Dropdown className="flex-shrink-0">
+    <Dropdown.Toggle variant="outline-light">
+      {user ? user.nombre : 'Cuenta'}
+    </Dropdown.Toggle>
+    <Dropdown.Menu>
+      {!user ? (
+        <>
+          <Dropdown.Item onClick={() => setShowLogin(true)}>Iniciar Sesión</Dropdown.Item>
+          <Dropdown.Item onClick={() => setShowRegister(true)}>Registrarse</Dropdown.Item>
+        </>
+      ) : (
+        <>
+          <Dropdown.Item as={Link} to="/facturas">Mis Facturas</Dropdown.Item>
+          <Dropdown.Item onClick={handleLogout}>Cerrar Sesión</Dropdown.Item>
+        </>
+      )}
+    </Dropdown.Menu>
+  </Dropdown>
+</Nav>
+
+          {/* Escritorio: buscador y controles a la derecha */}
+          <Form className="d-none d-lg-flex mx-auto" style={{ width: '50%' }} onSubmit={e => { e.preventDefault(); handleSearch(); }}>
+            <Form.Control type="search" placeholder="Buscar" className="me-2" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            <Button variant="outline-light" onClick={handleSearch}>Buscar</Button>
           </Form>
-          <Dropdown>
-            <Dropdown.Toggle variant="outline-light">
-              {user ? user.nombre : 'Cuenta'}
-            </Dropdown.Toggle>
-            <Dropdown.Menu className="p-2">
-              {!user ? (
-                <>
-                  <Dropdown.Item onClick={() => setShowLogin(true)}>Iniciar Sesión</Dropdown.Item>
-                  <Dropdown.Item onClick={() => setShowRegister(true)}>Registrarse</Dropdown.Item>
-                </>
-              ) : (
-                <>
-                  <Dropdown.Item as={Link} to="/facturas">Mis Facturas</Dropdown.Item>
-                  <Dropdown.Item onClick={handleLogout}>Cerrar Sesión</Dropdown.Item>
-                </>
-              )}
-            </Dropdown.Menu>
-          </Dropdown>
-        </Nav>
+          <div className="d-none d-lg-flex ms-auto align-items-center">
+            {user ? (
+              <>
+                <span className="me-2">Hola, {user.nombre}</span>
+                <Button variant="outline-light" className="me-2" as={Link} to="/facturas">Mis Facturas</Button>
+                <Dropdown align="end" className="me-2">
+                  <Dropdown.Toggle variant="outline-light"><FaShoppingCart /> {cartCount}</Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    {cartCount === 0 ? <Dropdown.ItemText>No hay elementos</Dropdown.ItemText> : <Dropdown.Item as={Link} to="/cart">Ver Carrito</Dropdown.Item>}
+                  </Dropdown.Menu>
+                </Dropdown>
+                <Button variant="danger" onClick={handleLogout}>Cerrar Sesión</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>Registrarse</Button>
+                <Button variant="secondary" onClick={() => setShowLogin(true)}>Iniciar Sesión</Button>
+              </>
+            )}
+          </div>
+        </Container>
+      </Navbar>
 
-        {/* Escritorio: buscador y controles a la derecha */}
-        <Form className="d-none d-lg-flex mx-auto" style={{ width: '50%' }} onSubmit={e => { e.preventDefault(); handleSearch(); }}>
-          <Form.Control
-            type="search"
-            placeholder="Buscar"
-            className="me-2"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-          <Button variant="outline-light" onClick={handleSearch}>Buscar</Button>
-        </Form>
-        <div className="d-none d-lg-flex ms-auto align-items-center">
-          {user ? (
-            <>
-              <span className="me-2">Hola, {user.nombre}</span>
-              <Button variant="outline-light" className="me-2" as={Link} to="/facturas">Mis Facturas</Button>
-              <Dropdown align="end" className="me-2">
-                <Dropdown.Toggle variant="outline-light">
-                  <FaShoppingCart /> {cartCount}
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  {cartCount === 0
-                    ? <Dropdown.ItemText>No hay elementos</Dropdown.ItemText>
-                    : <Dropdown.Item as={Link} to="/cart">Ver Carrito</Dropdown.Item>}
-                </Dropdown.Menu>
-              </Dropdown>
-              <Button variant="danger" onClick={handleLogout}>Cerrar Sesión</Button>
-            </>
-          ) : (
-            <>
-              <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>Registrarse</Button>
-              <Button variant="secondary" onClick={() => setShowLogin(true)}>Iniciar Sesión</Button>
-            </>
-          )}
-        </div>
-      </Container>
-    </Navbar>
+      <div className="d-flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
+        <SideBarFilters onFilterChange={f => handleFilterChange(f, 1)} />
+        <TomoList tomos={tomos} pagination={pagination} onPageChange={handlePageChange} onShowInfo={handleShowInfo} isLoggedIn={!!user} />
+      </div>
 
-    <div className="d-flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
-      <SideBarFilters onFilterChange={f => handleFilterChange(f, 1)} />
-      <TomoList
-        tomos={tomos}
-        pagination={pagination}
-        onPageChange={handlePageChange}
-        onShowInfo={handleShowInfo}
-        isLoggedIn={!!user}
-      />
+      <RegisterModal show={showRegister} onHide={() => setShowRegister(false)} onSubmit={handleRegisterSubmit} />
+      <LoginModal show={showLogin} onHide={() => setShowLogin(false)} onSubmit={handleLoginSubmit} />
+      <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
     </div>
-
-    <RegisterModal show={showRegister} onHide={() => setShowRegister(false)} onSubmit={handleRegisterSubmit} />
-    <LoginModal show={showLogin} onHide={() => setShowLogin(false)} onSubmit={handleLoginSubmit} />
-    <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
-  </div>
-);
+  );
 
 };
 
