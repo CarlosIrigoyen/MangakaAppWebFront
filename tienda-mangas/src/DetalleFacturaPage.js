@@ -35,19 +35,22 @@ const DetalleFacturaPage = () => {
     fetchFactura();
   }, [id]);
 
-  if (loading)  return <Spinner animation="border" />;
-  if (error)    return <Alert variant="danger">{error}</Alert>;
+  if (loading) return <Spinner animation="border" />;
+  if (error)   return <Alert variant="danger">{error}</Alert>;
   if (!factura) return <Alert variant="warning">Factura no encontrada</Alert>;
 
   const descargarComoPdf = async () => {
-    const canvas = await html2canvas(facturaRef.current, { scale: 2 });
+    const element = facturaRef.current;
+    const canvas = await html2canvas(element, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-    const w = pdf.internal.pageSize.getWidth();
-    const imgH = (canvas.height * w) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 40, 40, w - 80, imgH);
-    const num = (factura.numero || '').replace(/\D/g, '');
-    pdf.save(`Factura-${num}.pdf`);
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 40;
+    const imgWidth = pageWidth - margin * 2;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+    const numeroDigitos = (factura.numero || '').replace(/\D/g, '');
+    pdf.save(`Factura-${numeroDigitos}.pdf`);
   };
 
   const fechaSolo = factura.fecha
@@ -57,25 +60,27 @@ const DetalleFacturaPage = () => {
   const cliente = factura.cliente || {};
 
   return (
-    <div className="page-wrapper">
-      <div className="page-content">
-        <div ref={facturaRef} className="invoice-card">
+    <div className="d-flex flex-column min-vh-100 bg-dark text-white">
+      {/* Contenedor principal igual al CartPage */}
+      <div className="container flex-grow-1 d-flex flex-column py-4">
+        {/* Invoice blanca en su propio recuadro */}
+        <div ref={facturaRef} className="p-4 bg-white text-dark rounded">
           {/* Cabecera */}
-          <div className="invoice-header">
-            <div className="company-info d-flex align-items-center">
-              <img src="/img/Mangaka.png" alt="Logo" width={80} className="me-3" />
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex align-items-center">
+              <img src="/img/Mangaka.png" alt="Logo" width={80} className="me-3 rounded-circle" />
               <h4 className="mb-0">Mangaka Baka Shop</h4>
             </div>
-            <div className="invoice-meta text-end">
-              <h5>FACTURA</h5>
+            <div className="text-end">
+              <h5 className="text-primary">FACTURA</h5>
               <p className="mb-1"><strong>Nº:</strong> {numeroDigitos}</p>
               <p className="mb-0"><strong>Fecha:</strong> {fechaSolo}</p>
             </div>
           </div>
 
-          {/* Facturar A */}
-          <div className="billing-block">
-            <h6>FACTURAR A:</h6>
+          {/* Cliente */}
+          <div className="mb-4 p-3 bg-light rounded">
+            <h6 className="text-primary mb-2">FACTURAR A:</h6>
             <p className="mb-0">
               {cliente.nombre || ''} {cliente.apellido || ''}
             </p>
@@ -84,7 +89,7 @@ const DetalleFacturaPage = () => {
           {/* Detalles */}
           <Table bordered className="invoice-table">
             <thead>
-              <tr>
+              <tr className="bg-primary text-white">
                 <th>DESCRIPCIÓN</th>
                 <th className="text-center">CANTIDAD</th>
                 <th className="text-end">PRECIO</th>
@@ -105,7 +110,7 @@ const DetalleFacturaPage = () => {
 
           {/* Total */}
           <div className="d-flex justify-content-end mt-3">
-            <div className="invoice-total-box">
+            <div className="p-3 bg-light rounded" style={{ width: 240 }}>
               <hr />
               <div className="d-flex justify-content-between fw-bold">
                 <span>Total</span>
@@ -116,8 +121,8 @@ const DetalleFacturaPage = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="page-footer">
+      {/* Footer con botones */}
+      <div className="p-3 bg-dark text-end">
         <Button variant="secondary" className="me-2" onClick={() => navigate('/')}>
           Volver al Home
         </Button>
