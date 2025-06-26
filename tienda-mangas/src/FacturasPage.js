@@ -3,17 +3,19 @@ import React, { useEffect, useState } from 'react';
 import { Table, Button, Spinner, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE = 'https://mangakaappweb-production.up.railway.app/api';
+
 const FacturasPage = () => {
   const [facturas, setFacturas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const REACT_MIS_FACTURAS = process.env.REACT_MIS_FACTURAS;
+
   useEffect(() => {
     const obtenerFacturas = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('https://mangakaappweb-production.up.railway.app/api/mis-facturas', {
+        const res = await fetch(`${API_BASE}/orders/invoices`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Error al obtener facturas');
@@ -49,7 +51,6 @@ const FacturasPage = () => {
           {facturas.map(f => (
             <tr key={f.id}>
               <td>{f.id}</td>
-              {/* Forzamos a número antes de toFixed */}
               <td>${Number(f.total).toFixed(2)}</td>
               <td>{new Date(f.created_at).toLocaleString()}</td>
               <td>
