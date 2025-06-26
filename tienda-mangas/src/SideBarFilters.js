@@ -74,9 +74,6 @@ const SidebarFilters = ({ onFilterChange }) => {
     updateFilters({ ...filters, [field]: updated });
   };
 
-  const handleSearchTextChange = (e) =>
-    updateFilters({ ...filters, searchText: e.target.value });
-
   const handlePriceInputChange = (e) => {
     const { name, value } = e.target;
     if (/^\d*$/.test(value)) {
@@ -122,19 +119,7 @@ const SidebarFilters = ({ onFilterChange }) => {
       </button>
 
       {!collapsed && (
-        <>
-          {/* Búsqueda global */}
-          <div className="mb-3">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Buscar..."
-              value={filters.searchText}
-              onChange={handleSearchTextChange}
-            />
-          </div>
-          <hr />
-
+        <>          
           {/* Autores */}
           <div className="mb-3">
             <div className="d-flex justify-content-between align-items-center">
@@ -157,10 +142,7 @@ const SidebarFilters = ({ onFilterChange }) => {
                     checked={filters.author === a.id}
                     onChange={() => handleExclusiveChange('author', a.id)}
                   />
-                  <label
-                    className="form-check-label ms-1"
-                    htmlFor={`author-${a.id}`}
-                  >
+                  <label className="form-check-label ms-1" htmlFor={`author-${a.id}`}>
                     {a.nombre} {a.apellido}
                   </label>
                 </div>
@@ -190,12 +172,7 @@ const SidebarFilters = ({ onFilterChange }) => {
                     checked={filters.language === lang}
                     onChange={() => handleExclusiveChange('language', lang)}
                   />
-                  <label
-                    className="form-check-label ms-1"
-                    htmlFor={`language-${lang}`}
-                  >
-                    {lang}
-                  </label>
+                  <label className="form-check-label ms-1" htmlFor={`language-${lang}`}>{lang}</label>
                 </div>
               ))}
           </div>
@@ -223,12 +200,7 @@ const SidebarFilters = ({ onFilterChange }) => {
                     checked={filters.manga === m.id}
                     onChange={() => handleExclusiveChange('manga', m.id)}
                   />
-                  <label
-                    className="form-check-label ms-1"
-                    htmlFor={`manga-${m.id}`}
-                  >
-                    {m.titulo}
-                  </label>
+                  <label className="form-check-label ms-1" htmlFor={`manga-${m.id}`}>{m.titulo}</label>
                 </div>
               ))}
           </div>
@@ -256,12 +228,7 @@ const SidebarFilters = ({ onFilterChange }) => {
                     checked={filters.editorial === e.id}
                     onChange={() => handleExclusiveChange('editorial', e.id)}
                   />
-                  <label
-                    className="form-check-label ms-1"
-                    htmlFor={`editorial-${e.id}`}
-                  >
-                    {e.nombre}
-                  </label>
+                  <label className="form-check-label ms-1" htmlFor={`editorial-${e.id}`}>{e.nombre}</label>
                 </div>
               ))}
           </div>
@@ -271,10 +238,7 @@ const SidebarFilters = ({ onFilterChange }) => {
           <div className="mb-3">
             <div className="d-flex justify-content-between align-items-center">
               <h6 className="mb-0">Precio</h6>
-              <button
-                className="btn btn-sm btn-light"
-                onClick={() => toggleSection('price')}
-              >
+              <button className="btn btn-sm btn-light" onClick={() => toggleSection('price')}>
                 {openSections.price ? '−' : '+'}
               </button>
             </div>
@@ -307,19 +271,8 @@ const SidebarFilters = ({ onFilterChange }) => {
                   />
                 </div>
                 <div className="d-flex justify-content-between">
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={applyPrice}
-                    disabled={!filters.minPrice || !filters.maxPrice}
-                  >
-                    Aplicar
-                  </button>
-                  <button
-                    className="btn btn-light btn-sm"
-                    onClick={clearPriceFilter}
-                  >
-                    Limpiar
-                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={applyPrice} disabled={!filters.minPrice || !filters.maxPrice}>Aplicar</button>
+                  <button className="btn btn-light btn-sm" onClick={clearPriceFilter}>Limpiar</button>
                 </div>
               </>
             )}
@@ -327,12 +280,7 @@ const SidebarFilters = ({ onFilterChange }) => {
 
           {/* Limpiar todos */}
           <div className="mt-4">
-            <button
-              className="btn btn-outline-light w-100"
-              onClick={clearAllFilters}
-            >
-              Limpiar todos los filtros
-            </button>
+            <button className="btn btn-outline-light w-100" onClick={clearAllFilters}>Quitar filtros</button>
           </div>
         </>
       )}
