@@ -1,9 +1,11 @@
-// SidebarFilters.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { FiMenu, FiX } from 'react-icons/fi';
+import { FaShoppingCart } from 'react-icons/fa';
+import { UserContext } from './UserContext';
+import { CartContext } from './CartContext';
 
-// Estado inicial global de filtros
 const INITIAL_FILTERS = {
   author: null,
   language: null,
@@ -15,7 +17,7 @@ const INITIAL_FILTERS = {
   applyPriceFilter: 0,
 };
 
-const SidebarFilters = ({ onFilterChange }) => {
+const SidebarFilters = ({ onFilterChange, setShowLogin, setShowRegister }) => {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [availableFilters, setAvailableFilters] = useState({
     authors: [],
@@ -32,12 +34,34 @@ const SidebarFilters = ({ onFilterChange }) => {
   });
   const [collapsed, setCollapsed] = useState(false);
 
+  const navigate = useNavigate();
+  const { user, logout } = useContext(UserContext);
+  const { cart } = useContext(CartContext);
+  const cartCount = cart.length;
+
+  const isMobile = () => window.innerWidth < 768;
+
+  const handleActionAndCollapse = (callback) => {
+    callback();
+    if (isMobile()) setCollapsed(true);
+  };
+
+  // Reabrir en escritorio
+  useEffect(() => {
+    const onResize = () => {
+      if (!isMobile()) {
+        setCollapsed(false);
+      }
+    };
+    window.addEventListener('resize', onResize);
+    onResize();
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   useEffect(() => {
     async function fetchFilters() {
       try {
-        const resp = await fetch(
-          'https://mangakaappweb-production.up.railway.app/api/filters'
-        );
+        const resp = await fetch('https://mangakaappweb-production.up.railway.app/api/filters');
         const json = await resp.json();
         setAvailableFilters(json);
       } catch (err) {
@@ -67,6 +91,7 @@ const SidebarFilters = ({ onFilterChange }) => {
       transformed.maxPrice = parseFloat(newFilters.maxPrice).toFixed(2);
     }
     onFilterChange(transformed);
+    if (isMobile()) setCollapsed(true);
   };
 
   const handleExclusiveChange = (field, value) => {
@@ -82,8 +107,7 @@ const SidebarFilters = ({ onFilterChange }) => {
   };
 
   const applyPrice = () => updateFilters({ ...filters, applyPriceFilter: 1 });
-  const clearPriceFilter = () =>
-    updateFilters({ ...filters, applyPriceFilter: 0, minPrice: '', maxPrice: '' });
+  const clearPriceFilter = () => updateFilters({ ...filters, applyPriceFilter: 0, minPrice: '', maxPrice: '' });
 
   const clearAllFilters = () => {
     setFilters(INITIAL_FILTERS);
@@ -95,6 +119,7 @@ const SidebarFilters = ({ onFilterChange }) => {
       searchText: '',
       sortBy: 'titulo,numero_tomo',
     });
+    if (isMobile()) setCollapsed(true);
   };
 
   const toggleSection = (sec) =>
@@ -102,12 +127,7 @@ const SidebarFilters = ({ onFilterChange }) => {
 
   return (
     <div
-      className="
-        sidebar
-        bg-secondary text-white p-3
-        vh-100 position-sticky top-0
-        overflow-auto
-      "
+      className="sidebar bg-secondary text-white p-3 vh-100 position-sticky top-0 overflow-auto"
       style={{ zIndex: 10 }}
     >
       {/* Toggle móvil */}
@@ -119,7 +139,46 @@ const SidebarFilters = ({ onFilterChange }) => {
       </button>
 
       {!collapsed && (
-        <>          
+        <>
+          {/* Cuenta + Carrito en móvil (carrito SOLO con user) */}
+          <div className="d-md-none mb-3">
+            <div className="d-flex flex-column align-items-start gap-2">
+              {user ? (
+                <>
+                  <span className="fw-bold">Hola, {user.nombre}</span>
+                  <button
+                    className="btn btn-outline-light btn-sm"
+                    onClick={() => handleActionAndCollapse(() => navigate('/cart'))}
+                  >
+                    <FaShoppingCart className="me-1" /> {cartCount} Carrito
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleActionAndCollapse(logout)}
+                  >
+                    Cerrar Sesión
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleActionAndCollapse(() => setShowRegister(true))}
+                  >
+                    Registrarse
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleActionAndCollapse(() => setShowLogin(true))}
+                  >
+                    Iniciar Sesión
+                  </button>
+                </>
+              )}
+            </div>
+            <hr />
+          </div>
+
           {/* Autores */}
           <div className="mb-3">
             <div className="d-flex justify-content-between align-items-center">
@@ -172,7 +231,9 @@ const SidebarFilters = ({ onFilterChange }) => {
                     checked={filters.language === lang}
                     onChange={() => handleExclusiveChange('language', lang)}
                   />
-                  <label className="form-check-label ms-1" htmlFor={`language-${lang}`}>{lang}</label>
+                  <label className="form-check-label ms-1" htmlFor={`language-${lang}`}>
+                    {lang}
+                  </label>
                 </div>
               ))}
           </div>
@@ -200,7 +261,9 @@ const SidebarFilters = ({ onFilterChange }) => {
                     checked={filters.manga === m.id}
                     onChange={() => handleExclusiveChange('manga', m.id)}
                   />
-                  <label className="form-check-label ms-1" htmlFor={`manga-${m.id}`}>{m.titulo}</label>
+                  <label className="form-check-label ms-1" htmlFor={`manga-${m.id}`}>
+                    {m.titulo}
+                  </label>
                 </div>
               ))}
           </div>
@@ -228,7 +291,9 @@ const SidebarFilters = ({ onFilterChange }) => {
                     checked={filters.editorial === e.id}
                     onChange={() => handleExclusiveChange('editorial', e.id)}
                   />
-                  <label className="form-check-label ms-1" htmlFor={`editorial-${e.id}`}>{e.nombre}</label>
+                  <label className="form-check-label ms-1" htmlFor={`editorial-${e.id}`}>
+                    {e.nombre}
+                  </label>
                 </div>
               ))}
           </div>
@@ -238,7 +303,10 @@ const SidebarFilters = ({ onFilterChange }) => {
           <div className="mb-3">
             <div className="d-flex justify-content-between align-items-center">
               <h6 className="mb-0">Precio</h6>
-              <button className="btn btn-sm btn-light" onClick={() => toggleSection('price')}>
+              <button
+                className="btn btn-sm btn-light"
+                onClick={() => toggleSection('price')}
+              >
                 {openSections.price ? '−' : '+'}
               </button>
             </div>
@@ -271,16 +339,26 @@ const SidebarFilters = ({ onFilterChange }) => {
                   />
                 </div>
                 <div className="d-flex justify-content-between">
-                  <button className="btn btn-primary btn-sm" onClick={applyPrice} disabled={!filters.minPrice || !filters.maxPrice}>Aplicar</button>
-                  <button className="btn btn-light btn-sm" onClick={clearPriceFilter}>Limpiar</button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={applyPrice}
+                    disabled={!filters.minPrice || !filters.maxPrice}
+                  >
+                    Aplicar
+                  </button>
+                  <button className="btn btn-light btn-sm" onClick={clearPriceFilter}>
+                    Limpiar
+                  </button>
                 </div>
               </>
             )}
           </div>
 
-          {/* Limpiar todos */}
+          {/* Quitar filtros */}
           <div className="mt-4">
-            <button className="btn btn-outline-light w-100" onClick={clearAllFilters}>Quitar filtros</button>
+            <button className="btn btn-outline-light w-100" onClick={clearAllFilters}>
+              Quitar filtros
+            </button>
           </div>
         </>
       )}
@@ -290,6 +368,8 @@ const SidebarFilters = ({ onFilterChange }) => {
 
 SidebarFilters.propTypes = {
   onFilterChange: PropTypes.func.isRequired,
+  setShowLogin: PropTypes.func.isRequired,
+  setShowRegister: PropTypes.func.isRequired,
 };
 
 export default SidebarFilters;
