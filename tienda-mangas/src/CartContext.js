@@ -12,7 +12,7 @@ export const CartProvider = ({ children }) => {
 
   // Cada vez que el carrito cambie, se guarda en localStorage
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
+    sessionStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
   const addToCart = (item) => {

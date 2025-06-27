@@ -1,68 +1,98 @@
-// src/CartPage.jsx
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
-import { UserContext } from './UserContext';
+import { UserContext } from './UserContext'; // ¡IMPORTA UserContext!
 import { Button, Image } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL =
-  'https://mangakaappweb-production.up.railway.app/' + 
-  'storage'; // Ajusta si usas Cloudinary o tu propio storage
+  process.env.REACT_APP_CLOUDINARY_URL
 
 const CartPage = () => {
   const { cart, updateCartItem, clearCart, removeCartItem } = useContext(CartContext);
-  const { user, loadingUser } = useContext(UserContext);
+  const { user, loadingUser } = useContext(UserContext); // ¡CONSUME UserContext para obtener 'user' y 'loadingUser'!
   const navigate = useNavigate();
 
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
 
-  const handleIncrease = item => {
+  const handleIncrease = (item) => {
     if (item.quantity < item.stock) {
       updateCartItem(item.id, item.quantity + 1);
     }
   };
 
-  const handleDecrease = item => {
+  const handleDecrease = (item) => {
     if (item.quantity > 1) {
       updateCartItem(item.id, item.quantity - 1);
     }
   };
 
-  const handleRemove = item => {
+  const handleRemove = (item) => {
     removeCartItem(item.id);
   };
 
   const handleBuy = async () => {
-    const token = localStorage.getItem('token');
-    if (loadingUser || !user || !token) {
-      alert('Debes iniciar sesión para comprar.');
-      navigate('/login');
-      return;
-    }
-
     try {
-      const res = await fetch(
-        'https://mangakaappweb-production.up.railway.app/api/orders/checkout',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            items: cart.map(i => ({ id: i.id, quantity: i.quantity })),
-          }),
+      const token = localStorage.getItem('token'); // Todavía necesitas el token para la autorización
+      // Asegúrate de que el usuario esté cargado y exista
+      if (loadingUser || !user || !token) {
+        alert('Debes iniciar sesión para comprar.');
+        navigate('/login'); // O redirige a la página de login si lo prefieres
+        return;
+      }
+
+      // Obtener cliente_id directamente del objeto `user` del contexto
+      const clienteId = user.id;
+
+      // Construir payload incluyendo cliente_id
+      const payload = {
+        cliente_id: clienteId, // `clienteId` ya es numérico
+        productos: cart.map(i => ({
+          tomo_id: i.id,
+          titulo: i.manga?.titulo || 'Producto sin título',
+          cantidad: i.quantity,
+          precio_unitario: i.precio,
+        })),
+      };
+
+      const response = await fetch('https://mangakaappweb-production.up.railway.app/api/mercadopago/preference', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let errorMsg = `HTTP ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMsg += `: ${errorData.message}`;
+          } else {
+            errorMsg += `: ${JSON.stringify(errorData)}`;
+          }
+        } catch {
+          // No JSON en body
         }
-      );
-      if (!res.ok) throw new Error(await res.text());
-      const { factura_id } = await res.json();
-      clearCart();
-      navigate(`/facturas/${factura_id}`);
-    } catch (e) {
-      alert('Error al crear la factura: ' + e.message);
+        throw new Error(errorMsg);
+      }
+
+      const { sandbox_init_point, init_point } = await response.json();
+      const checkoutUrl = sandbox_init_point || init_point;
+      if (!checkoutUrl) {
+        throw new Error('No se recibió una URL de pago válida.');
+      }
+
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      console.error('Error en createPreference:', err);
+      alert(`No se pudo iniciar el pago: ${err.message || 'Error desconocido'}`);
     }
   };
 
+  // Puedes mostrar un mensaje de carga si el usuario aún no se ha verificado
   if (loadingUser) {
     return (
       <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">
@@ -88,6 +118,7 @@ const CartPage = () => {
         <h2 className="mb-4 text-center">Carrito de Compras</h2>
         <div className="overflow-auto flex-grow-1 bg-dark p-3 rounded">
           {cart.map(item => {
+            const itemTotal = item.precio * item.quantity;
             const imageUrl = item.portada?.startsWith('http')
               ? item.portada
               : `${CLOUDINARY_BASE_URL}/${item.portada}`;
@@ -142,7 +173,7 @@ const CartPage = () => {
                   </div>
                 </div>
                 <div className="ms-md-auto text-md-end mt-2 mt-md-0">
-                  <strong>${(item.precio * item.quantity).toFixed(2)}</strong>
+                  <strong>${itemTotal.toFixed(2)}</strong>
                 </div>
               </div>
             );
