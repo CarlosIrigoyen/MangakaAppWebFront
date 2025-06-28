@@ -1,16 +1,20 @@
 // src/DetalleFacturaPage.js
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Table, Spinner, Alert, Button } from 'react-bootstrap';
+import { Table, Spinner, Alert, Button, Container } from 'react-bootstrap';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { UserContext } from './UserContext';
+import { CartContext } from './CartContext';
 import './DetalleFacturaPage.css';
 
-const API_BASE = 'https://mangakaappweb-production.up.railway.app/api';
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 const DetalleFacturaPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, loadingUser } = useContext(UserContext);
+  const { clearCart } = useContext(CartContext);
   const [factura, setFactura] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,12 +22,21 @@ const DetalleFacturaPage = () => {
 
   useEffect(() => {
     const fetchFactura = async () => {
+      if (loadingUser) return;
+      if (!user) {
+        navigate('/');
+        return;
+      }
+      setLoading(true);
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(`${API_BASE}/orders/invoices/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
-        if (!res.ok) throw new Error('No se pudo cargar la factura');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setFactura(data);
       } catch (e) {
@@ -33,11 +46,7 @@ const DetalleFacturaPage = () => {
       }
     };
     fetchFactura();
-  }, [id]);
-
-  if (loading) return <Spinner animation="border" />;
-  if (error)   return <Alert variant="danger">{error}</Alert>;
-  if (!factura) return <Alert variant="warning">Factura no encontrada</Alert>;
+  }, [id, user, loadingUser, navigate]);
 
   const descargarComoPdf = async () => {
     const element = facturaRef.current;
@@ -49,23 +58,56 @@ const DetalleFacturaPage = () => {
     const imgWidth = pageWidth - margin * 2;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
-    const numeroDigitos = (factura.numero || '').replace(/\D/g, '');
+    // Limitar número de factura a 6 dígitos
+    const numeroDigitos = (factura.numero || '').replace(/\D/g, '').slice(0, 6);
     pdf.save(`Factura-${numeroDigitos}.pdf`);
   };
+
+  const volverHome = () => {
+    clearCart();
+    navigate('/');
+  };
+
+  if (loadingUser || loading) {
+    return (
+      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+        <Spinner animation="border" />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="p-4">
+        <Alert variant="danger">{error}</Alert>
+        <Button variant="secondary" className="mt-3" onClick={volverHome}>
+          Volver al Home
+        </Button>
+      </Container>
+    );
+  }
+
+  if (!factura) {
+    return (
+      <Container className="p-4">
+        <Alert variant="warning">Factura no encontrada</Alert>
+        <Button variant="secondary" className="mt-3" onClick={volverHome}>
+          Volver al Home
+        </Button>
+      </Container>
+    );
+  }
 
   const fechaSolo = factura.fecha
     ? new Date(factura.fecha).toLocaleDateString()
     : '';
-  const numeroDigitos = (factura.numero || '').replace(/\D/g, '');
-  const cliente = factura.cliente || {};
+  // Obtener primeros 6 dígitos para mostrar
+  const numeroMostrar = String(factura.numero).replace(/\D/g, '').slice(0, 6);
 
   return (
     <div className="d-flex flex-column min-vh-100 bg-dark text-white">
-      {/* Contenedor principal igual al CartPage */}
       <div className="container flex-grow-1 d-flex flex-column py-4">
-        {/* Invoice blanca en su propio recuadro */}
         <div ref={facturaRef} className="p-4 bg-white text-dark rounded">
-          {/* Cabecera */}
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div className="d-flex align-items-center">
               <img src="/img/Mangaka.png" alt="Logo" width={80} className="me-3 rounded-circle" />
@@ -73,20 +115,18 @@ const DetalleFacturaPage = () => {
             </div>
             <div className="text-end">
               <h5 className="text-primary">FACTURA</h5>
-              <p className="mb-1"><strong>Nº:</strong> {numeroDigitos}</p>
+              <p className="mb-1"><strong>Nº:</strong> {numeroMostrar}</p>
               <p className="mb-0"><strong>Fecha:</strong> {fechaSolo}</p>
             </div>
           </div>
 
-          {/* Cliente */}
           <div className="mb-4 p-3 bg-light rounded">
             <h6 className="text-primary mb-2">FACTURAR A:</h6>
             <p className="mb-0">
-              {cliente.nombre || ''} {cliente.apellido || ''}
+              {factura.cliente?.nombre || ''} {factura.cliente?.apellido || ''}
             </p>
           </div>
 
-          {/* Detalles */}
           <Table bordered className="invoice-table">
             <thead>
               <tr className="bg-primary text-white">
@@ -108,7 +148,6 @@ const DetalleFacturaPage = () => {
             </tbody>
           </Table>
 
-          {/* Total */}
           <div className="d-flex justify-content-end mt-3">
             <div className="p-3 bg-light rounded" style={{ width: 240 }}>
               <hr />
@@ -121,9 +160,8 @@ const DetalleFacturaPage = () => {
         </div>
       </div>
 
-      {/* Footer con botones */}
       <div className="p-3 bg-dark text-end">
-        <Button variant="secondary" className="me-2" onClick={() => navigate('/')}>
+        <Button variant="secondary" className="me-2" onClick={volverHome}>
           Volver al Home
         </Button>
         <Button variant="primary" onClick={descargarComoPdf}>

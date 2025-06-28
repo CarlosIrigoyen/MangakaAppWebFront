@@ -9,7 +9,7 @@ import {
 } from 'react-router-dom';
 import { Navbar, Container, Form, Button, Dropdown,Nav } from 'react-bootstrap';
 import { FaShoppingCart } from 'react-icons/fa';
-
+import SuccessPage from './SuccessPage';
 import SideBarFilters from './SideBarFilters';
 import RegisterModal    from './RegisterModal';
 import LoginModal       from './LoginModal';
@@ -22,10 +22,9 @@ import DetalleFacturaPage from './DetalleFacturaPage';
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
 
-const API_BASE       = 'https://mangakaappweb-production.up.railway.app/api';
-const REGISTER_URL   = 'https://mangakaappweb-production.up.railway.app/api/register';
-const LOGIN_URL      = 'https://mangakaappweb-production.up.railway.app/api/login';
-const TOMOS_URL      = 'https://mangakaappweb-production.up.railway.app/api/public/tomos';
+const REGISTER_URL   = 'http://localhost:8000/api/register';
+const LOGIN_URL      = 'http://localhost:8000/api/login';
+const TOMOS_URL      = 'http://localhost:8000/api/public/tomos';
 
 const MainApp = () => {
   const location = useLocation();
@@ -163,9 +162,6 @@ const MainApp = () => {
           {user ? (
             <>
               <span className="me-2">Hola, {user.nombre}</span>
-              <Button variant="outline-light" className="me-2" as={Link} to="/facturas">
-                Mis Facturas
-              </Button>
               <Dropdown align="end" className="me-2">
                 <Dropdown.Toggle variant="outline-light">
                   <FaShoppingCart /> {cartCount}
@@ -237,6 +233,7 @@ const App = () => (
           <Route path="/cart" element={<CartPage />} />
           <Route path="/facturas" element={<FacturasPage />} />
           <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
+            <Route path="/checkout/success" element={<SuccessPage />} />
         </Routes>
       </Router>
     </CartProvider>

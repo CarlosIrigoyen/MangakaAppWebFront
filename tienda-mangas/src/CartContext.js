@@ -1,35 +1,44 @@
-// CartContext.js
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { UserContext } from './UserContext';
 
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  // Al iniciar, se verifica si hay un carrito guardado en localStorage
-  const [cart, setCart] = useState(() => {
-    const savedCart = localStorage.getItem('cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+  const { user, loadingUser } = useContext(UserContext);
+  const storageKey = user ? `cart_user_${user.id}` : 'cart_guest';
 
-  // Cada vez que el carrito cambie, se guarda en localStorage
+  // Cart state starts empty until user loading completes
+  const [cart, setCart] = useState([]);
+
+  // Load cart from localStorage once user loading ends or when storageKey changes
   useEffect(() => {
-    sessionStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+    if (loadingUser) return;
+    const saved = localStorage.getItem(storageKey);
+    setCart(saved ? JSON.parse(saved) : []);
+  }, [loadingUser, storageKey]);
+
+  // Persist cart to localStorage when it changes and after user loading completes
+  useEffect(() => {
+    if (loadingUser) return;
+    localStorage.setItem(storageKey, JSON.stringify(cart));
+  }, [cart, storageKey, loadingUser]);
 
   const addToCart = (item) => {
-    // Ejemplo de cómo agregar un ítem, evitando duplicados
     if (!cart.find(cartItem => cartItem.id === item.id)) {
       setCart([...cart, { ...item, quantity: 1 }]);
     }
   };
 
   const updateCartItem = (itemId, quantity) => {
-    const updatedCart = cart.map(item => item.id === itemId ? { ...item, quantity } : item);
-    setCart(updatedCart);
+    setCart(cart.map(item =>
+      item.id === itemId
+        ? { ...item, quantity }
+        : item
+    ));
   };
 
   const removeCartItem = (itemId) => {
-    const updatedCart = cart.filter(item => item.id !== itemId);
-    setCart(updatedCart);
+    setCart(cart.filter(item => item.id !== itemId));
   };
 
   const clearCart = () => {
