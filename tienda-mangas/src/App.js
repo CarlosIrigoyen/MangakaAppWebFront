@@ -22,9 +22,9 @@ import DetalleFacturaPage from './DetalleFacturaPage';
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
 
-const REGISTER_URL   = 'http://localhost:8000/api/register';
-const LOGIN_URL      = 'http://localhost:8000/api/login';
-const TOMOS_URL      = 'http://localhost:8000/api/public/tomos';
+const REGISTER_URL   = 'https://mangakaappweb-production.up.railway.app/api/register';
+const LOGIN_URL      = 'https://mangakaappweb-production.up.railway.app/api/login';
+const TOMOS_URL      = 'https://mangakaappweb-production.up.railway.app/api/public/tomos';
 
 const MainApp = () => {
   const location = useLocation();

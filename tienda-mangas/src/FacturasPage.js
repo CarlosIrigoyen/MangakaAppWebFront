@@ -9,6 +9,7 @@ import { CartContext } from './CartContext';
 import './DetalleFacturaPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const API_URL='https://mangakaappweb-production.up.railway.app/api'
 
 const FacturasPage = () => {
   const { user, loadingUser } = useContext(UserContext);
@@ -29,7 +30,7 @@ const FacturasPage = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const resList = await fetch(`${API_BASE}/orders/invoices`, {
+        const resList = await fetch(`${API_URL}/orders/invoices`, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
         if (!resList.ok) throw new Error(`HTTP ${resList.status}`);
@@ -39,7 +40,7 @@ const FacturasPage = () => {
           return;
         }
         const ultima = list[0];
-        const resDet = await fetch(`${API_BASE}/orders/invoices/${ultima.id}`, {
+        const resDet = await fetch(`${API_URL}/orders/invoices/${ultima.id}`, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
         if (!resDet.ok) throw new Error(`HTTP ${resDet.status}`);

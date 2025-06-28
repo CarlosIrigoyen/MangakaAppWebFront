@@ -17,6 +17,7 @@ const INITIAL_FILTERS = {
   applyPriceFilter: 0,
 };
 const REACT_FILTERS= 'http://localhost:8000/api/filters'
+const REACT_URL_FILTERS='https://mangakaappweb-production.up.railway.app/api/filters'
 const SidebarFilters = ({ onFilterChange, setShowLogin, setShowRegister }) => {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [availableFilters, setAvailableFilters] = useState({
@@ -61,7 +62,7 @@ const SidebarFilters = ({ onFilterChange, setShowLogin, setShowRegister }) => {
   useEffect(() => {
     async function fetchFilters() {
       try {
-        const resp = await fetch(REACT_FILTERS);
+        const resp = await fetch(REACT_URL_FILTERS);
         const json = await resp.json();
         setAvailableFilters(json);
       } catch (err) {

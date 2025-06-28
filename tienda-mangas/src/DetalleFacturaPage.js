@@ -9,6 +9,7 @@ import { CartContext } from './CartContext';
 import './DetalleFacturaPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const API_URL='https://mangakaappweb-production.up.railway.app/api'
 
 const DetalleFacturaPage = () => {
   const { id } = useParams();
@@ -30,7 +31,7 @@ const DetalleFacturaPage = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${API_BASE}/orders/invoices/${id}`, {
+        const res = await fetch(`${API_URL}/orders/invoices/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',

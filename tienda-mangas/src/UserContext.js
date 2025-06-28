@@ -6,6 +6,8 @@ export const UserContext = createContext();
 
 const REACT_LOGOUT='http://localhost:8000/api/logout'
 const REACT_ME= 'http://localhost:8000/api/me'
+const REACT_URL_LOGOUT='https://mangakaappweb-production.up.railway.app/api/logout'
+const REACT_URL_ME='https://mangakaappweb-production.up.railway.app/api/me'
 // Define el proveedor del contexto de usuario
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -24,7 +26,7 @@ export const UserProvider = ({ children }) => {
       }
 
       try {
-        const response = await fetch(REACT_ME, {
+        const response = await fetch(REACT_URL_ME, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -61,7 +63,7 @@ export const UserProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        await fetch(REACT_LOGOUT, {
+        await fetch(REACT_URL_LOGOUT, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
