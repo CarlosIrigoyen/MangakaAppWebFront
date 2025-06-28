@@ -163,9 +163,6 @@ const MainApp = () => {
           {user ? (
             <>
               <span className="me-2">Hola, {user.nombre}</span>
-              <Button variant="outline-light" className="me-2" as={Link} to="/facturas">
-                Mis Facturas
-              </Button>
               <Dropdown align="end" className="me-2">
                 <Dropdown.Toggle variant="outline-light">
                   <FaShoppingCart /> {cartCount}
