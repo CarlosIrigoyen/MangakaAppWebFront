@@ -1,9 +1,9 @@
-// src/pages/CartPage.jsx
+// src/CartPage.js
 
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CartContext } from '../contexts/CartContext';
-import { UserContext } from '../contexts/UserContext';
+import { CartContext } from './CartContext';
+import { UserContext } from './UserContext';
 import { Button, Image } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
@@ -74,7 +74,6 @@ const CartPage = () => {
         throw new Error(errorMsg);
       }
 
-      // Solo usamos init_point, tal como tu controlador lo devuelve
       const { init_point } = await response.json();
       if (!init_point) {
         throw new Error('No se recibió una URL de pago válida.');
