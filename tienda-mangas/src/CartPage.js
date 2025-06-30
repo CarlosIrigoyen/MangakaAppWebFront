@@ -1,15 +1,17 @@
+// src/pages/CartPage.jsx
+
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CartContext } from './CartContext';
-import { UserContext } from './UserContext'; // ¡IMPORTA UserContext!
+import { CartContext } from '../contexts/CartContext';
+import { UserContext } from '../contexts/UserContext';
 import { Button, Image } from 'react-bootstrap';
 
-const CLOUDINARY_BASE_URL =
-  process.env.REACT_APP_CLOUDINARY_URL
+const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
+
 const CartPage = () => {
   const { cart, updateCartItem, clearCart, removeCartItem } = useContext(CartContext);
-  const { user, loadingUser } = useContext(UserContext); // ¡CONSUME UserContext para obtener 'user' y 'loadingUser'!
+  const { user, loadingUser } = useContext(UserContext);
   const navigate = useNavigate();
 
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
@@ -32,20 +34,16 @@ const CartPage = () => {
 
   const handleBuy = async () => {
     try {
-      const token = localStorage.getItem('token'); // Todavía necesitas el token para la autorización
-      // Asegúrate de que el usuario esté cargado y exista
+      const token = localStorage.getItem('token');
       if (loadingUser || !user || !token) {
         alert('Debes iniciar sesión para comprar.');
-        navigate('/login'); // O redirige a la página de login si lo prefieres
+        navigate('/login');
         return;
       }
 
-      // Obtener cliente_id directamente del objeto `user` del contexto
       const clienteId = user.id;
-
-      // Construir payload incluyendo cliente_id
       const payload = {
-        cliente_id: clienteId, // `clienteId` ya es numérico
+        cliente_id: clienteId,
         productos: cart.map(i => ({
           tomo_id: i.id,
           titulo: i.manga?.titulo || 'Producto sin título',
@@ -66,15 +64,12 @@ const CartPage = () => {
 
       if (!response.ok) {
         let errorMsg = `HTTP ${response.status}`;
-        try {
-          const errorData = await response.json();
-          if (errorData.message) {
-            errorMsg += `: ${errorData.message}`;
-          } else {
-            errorMsg += `: ${JSON.stringify(errorData)}`;
-          }
-        } catch {
-          // No JSON en body
+        const errorData = await response.json().catch(() => null);
+        console.error('Detalle del error de la API:', errorData);
+        if (errorData?.message) {
+          errorMsg += `: ${errorData.message}`;
+        } else if (errorData) {
+          errorMsg += `: ${JSON.stringify(errorData)}`;
         }
         throw new Error(errorMsg);
       }
@@ -92,7 +87,6 @@ const CartPage = () => {
     }
   };
 
-  // Puedes mostrar un mensaje de carga si el usuario aún no se ha verificado
   if (loadingUser) {
     return (
       <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">
