@@ -74,13 +74,13 @@ const CartPage = () => {
         throw new Error(errorMsg);
       }
 
-      const { sandbox_init_point, init_point } = await response.json();
-      const checkoutUrl = sandbox_init_point || init_point;
-      if (!checkoutUrl) {
+      // Solo usamos init_point, tal como tu controlador lo devuelve
+      const { init_point } = await response.json();
+      if (!init_point) {
         throw new Error('No se recibió una URL de pago válida.');
       }
 
-      window.location.href = checkoutUrl;
+      window.location.href = init_point;
     } catch (err) {
       console.error('Error en createPreference:', err);
       alert(`No se pudo iniciar el pago: ${err.message || 'Error desconocido'}`);
