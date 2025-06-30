@@ -3,7 +3,6 @@
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
-import { UserContext } from './UserContext';
 import { Button, Image } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
@@ -11,7 +10,6 @@ const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadop
 
 const CartPage = () => {
   const { cart, updateCartItem, clearCart, removeCartItem } = useContext(CartContext);
-  const { user, loadingUser } = useContext(UserContext);
   const navigate = useNavigate();
 
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
@@ -35,15 +33,15 @@ const CartPage = () => {
   const handleBuy = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (loadingUser || !user || !token) {
+      if (!token) {
         alert('Debes iniciar sesión para comprar.');
         navigate('/login');
         return;
       }
 
-      const clienteId = user.id;
+      // Para pruebas: cliente_id siempre es 1
       const payload = {
-        cliente_id: clienteId,
+        cliente_id: 1,
         productos: cart.map(i => ({
           tomo_id: i.id,
           titulo: i.manga?.titulo || 'Producto sin título',
@@ -85,14 +83,6 @@ const CartPage = () => {
       alert(`No se pudo iniciar el pago: ${err.message || 'Error desconocido'}`);
     }
   };
-
-  if (loadingUser) {
-    return (
-      <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">
-        Cargando tu sesión...
-      </div>
-    );
-  }
 
   if (!cart.length) {
     return (
@@ -192,3 +182,4 @@ const CartPage = () => {
 };
 
 export default CartPage;
+
