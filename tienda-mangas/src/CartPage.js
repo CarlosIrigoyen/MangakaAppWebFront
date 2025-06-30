@@ -6,9 +6,7 @@ import { Button, Image } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL =
   process.env.REACT_APP_CLOUDINARY_URL
-
-const API='http://localhost:8000/api/mercadopago/preference'
-const REACT_MERCADO_PAGO_PREFERENCE='https://mangakaappweb-production.up.railway.app/api/mercadopago/preference'
+const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
 const CartPage = () => {
   const { cart, updateCartItem, clearCart, removeCartItem } = useContext(CartContext);
   const { user, loadingUser } = useContext(UserContext); // ¡CONSUME UserContext para obtener 'user' y 'loadingUser'!

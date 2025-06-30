@@ -16,8 +16,8 @@ const INITIAL_FILTERS = {
   searchText: '',
   applyPriceFilter: 0,
 };
-const REACT_FILTERS= 'http://localhost:8000/api/filters'
-const REACT_URL_FILTERS='https://mangakaappweb-production.up.railway.app/api/filters'
+
+const REACT_URL_FILTERS = `${process.env.REACT_APP_API_URL}/filters`;
 const SidebarFilters = ({ onFilterChange, setShowLogin, setShowRegister }) => {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [availableFilters, setAvailableFilters] = useState({

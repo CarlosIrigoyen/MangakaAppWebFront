@@ -6,8 +6,8 @@ export const UserContext = createContext();
 
 const REACT_LOGOUT='http://localhost:8000/api/logout'
 const REACT_ME= 'http://localhost:8000/api/me'
-const REACT_URL_LOGOUT='https://mangakaappweb-production.up.railway.app/api/logout'
-const REACT_URL_ME='https://mangakaappweb-production.up.railway.app/api/me'
+const REACT_URL_LOGOUT= `${process.env.REACT_APP_API_URL}/logout`;
+const REACT_URL_ME=`${process.env.REACT_APP_API_URL}/me`;
 // Define el proveedor del contexto de usuario
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
