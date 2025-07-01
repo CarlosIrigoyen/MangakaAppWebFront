@@ -1,8 +1,8 @@
 // src/CartPage.js
-
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
+import { UserContext } from './UserContext';
 import { Button, Image } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
@@ -10,6 +10,7 @@ const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadop
 
 const CartPage = () => {
   const { cart, updateCartItem, clearCart, removeCartItem } = useContext(CartContext);
+  const { user } = useContext(UserContext);
   const navigate = useNavigate();
 
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
@@ -39,9 +40,14 @@ const CartPage = () => {
         return;
       }
 
-      // Para pruebas: cliente_id siempre es 1
+      if (!user || !user.id) {
+        alert('Usuario no identificado. Por favor, inicia sesión nuevamente.');
+        navigate('/login');
+        return;
+      }
+
       const payload = {
-        cliente_id: 1, // ← agrega esto según tu lógica o el usuario logueado
+        cliente_id: user.id,
         productos: cart.map(i => ({
           tomo_id: i.id,
           titulo: i.manga?.titulo || 'Producto sin título',
@@ -49,8 +55,10 @@ const CartPage = () => {
           precio_unitario: i.precio,
         })),
       };
+
       console.log('Token:', token);
       console.log('Payload enviado:', payload);
+
       const response = await fetch(REACT_MERCADO_PAGO_PREFERENCE, {
         method: 'POST',
         headers: {
@@ -73,8 +81,8 @@ const CartPage = () => {
         throw new Error(errorMsg);
       }
 
-     const { init_point } = await response.json();
-     if (!init_point) {
+      const { init_point } = await response.json();
+      if (!init_point) {
         throw new Error('No se recibió una URL de pago válida.');
       }
 
@@ -183,4 +191,3 @@ const CartPage = () => {
 };
 
 export default CartPage;
-
