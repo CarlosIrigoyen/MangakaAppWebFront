@@ -41,7 +41,6 @@ const CartPage = () => {
 
       // Para pruebas: cliente_id siempre es 1
       const payload = {
-        cliente_id: 1,
         productos: cart.map(i => ({
           tomo_id: i.id,
           titulo: i.manga?.titulo || 'Producto sin título',
@@ -49,7 +48,8 @@ const CartPage = () => {
           precio_unitario: i.precio,
         })),
       };
-
+      console.log('Token:', token);
+      console.log('Payload enviado:', payload);
       const response = await fetch(REACT_MERCADO_PAGO_PREFERENCE, {
         method: 'POST',
         headers: {
