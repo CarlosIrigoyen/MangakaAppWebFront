@@ -72,10 +72,10 @@ const CartPage = () => {
         throw new Error(errorMsg);
       }
 
-      const { init_point } = await response.json();
-      if (!init_point) {
-        throw new Error('No se recibió una URL de pago válida.');
-      }
+    //  const { init_point } = await response.json();
+    // if (!init_point) {
+     //   throw new Error('No se recibió una URL de pago válida.');
+   //   }
 
       window.location.href = init_point;
     } catch (err) {
