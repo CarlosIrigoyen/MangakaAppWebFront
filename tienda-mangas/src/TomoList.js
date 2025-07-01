@@ -48,6 +48,7 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
                       <Card.Text>
                         Precio: ${parseFloat(tomo.precio).toFixed(0)}
                       </Card.Text>
+                      <Card.Text>Stock: {tomo.stock}</Card.Text>
                       {/* aquí permitimos wrap y un pequeño gap para que los botones bajen de línea */}
                       <div className="mt-auto d-flex justify-content-center flex-wrap gap-2">
                         {isLoggedIn && (
