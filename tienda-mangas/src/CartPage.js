@@ -41,6 +41,7 @@ const CartPage = () => {
 
       // Para pruebas: cliente_id siempre es 1
       const payload = {
+        cliente_id: 1, // ← agrega esto según tu lógica o el usuario logueado
         productos: cart.map(i => ({
           tomo_id: i.id,
           titulo: i.manga?.titulo || 'Producto sin título',
