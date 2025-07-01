@@ -18,6 +18,8 @@ import TomoList         from './TomoList';
 import CartPage         from './CartPage';
 import FacturasPage     from './FacturasPage';
 import DetalleFacturaPage from './DetalleFacturaPage';
+import FailurePage from './FailurePage';
+import PendingPage from './PendingPage';
 
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
@@ -233,7 +235,10 @@ const App = () => (
           <Route path="/cart" element={<CartPage />} />
           <Route path="/facturas" element={<FacturasPage />} />
           <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
-            <Route path="/checkout/success" element={<SuccessPage />} />
+          <Route path="/checkout/success" element={<SuccessPage />} />
+          <Route path="/checkout/failure" element={<FailurePage />} />
+          <Route path="/checkout/pending" element={<PendingPage />} />
+
         </Routes>
       </Router>
     </CartProvider>
