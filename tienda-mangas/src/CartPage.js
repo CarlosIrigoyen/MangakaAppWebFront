@@ -269,7 +269,6 @@ const CartPage = () => {
             <h5>¿Estás seguro de que quieres vaciar tu carrito?</h5>
             <p className="text-muted">
               Se eliminarán {cart.length} producto{cart.length !== 1 ? 's' : ''} de tu carrito.
-              {user}
             </p>
           </div>
         </Modal.Body>
