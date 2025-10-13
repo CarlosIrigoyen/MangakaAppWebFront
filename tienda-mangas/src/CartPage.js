@@ -1,8 +1,8 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
 import { UserContext } from './UserContext';
-import { Button, Image, Alert, Modal } from 'react-bootstrap';
+import { Button, Image, Alert, Modal, Spinner } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
@@ -14,6 +14,23 @@ const CartPage = () => {
 
   // Estado para el modal de vaciar carrito
   const [showClearCartModal, setShowClearCartModal] = useState(false);
+
+  // Estados añadidos para el delay / feedback de compra
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showRedirectModal, setShowRedirectModal] = useState(false);
+  const [showBackLink, setShowBackLink] = useState(false);
+
+  // refs para timers para limpiarlos en unmount
+  const backLinkTimerRef = useRef(null);
+  const redirectTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      // cleanup timers
+      if (backLinkTimerRef.current) clearTimeout(backLinkTimerRef.current);
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
 
@@ -46,16 +63,20 @@ const CartPage = () => {
 
   const handleBuy = async () => {
     try {
+      setIsProcessing(true);
+
       const token = localStorage.getItem('token');
       if (!token) {
         alert('Debes iniciar sesión para comprar.');
         navigate('/login');
+        setIsProcessing(false);
         return;
       }
 
       if (!user || !user.id) {
         alert('Usuario no identificado. Por favor, inicia sesión nuevamente.');
         navigate('/login');
+        setIsProcessing(false);
         return;
       }
 
@@ -63,6 +84,7 @@ const CartPage = () => {
       const itemsSinStock = cart.filter(item => item.quantity > item.stock);
       if (itemsSinStock.length > 0) {
         alert('Algunos productos en tu carrito no tienen suficiente stock disponible. Por favor, ajusta las cantidades.');
+        setIsProcessing(false);
         return;
       }
 
@@ -70,6 +92,7 @@ const CartPage = () => {
       const itemsCantidadCero = cart.filter(item => item.quantity <= 0);
       if (itemsCantidadCero.length > 0) {
         alert('Algunos productos en tu carrito tienen cantidad inválida.');
+        setIsProcessing(false);
         return;
       }
 
@@ -85,6 +108,10 @@ const CartPage = () => {
 
       console.log('Token:', token);
       console.log('Payload enviado:', payload);
+
+      // Mostrar modal de redirección/procesando
+      setShowRedirectModal(true);
+      setShowBackLink(false);
 
       const response = await fetch(REACT_MERCADO_PAGO_PREFERENCE, {
         method: 'POST',
@@ -113,13 +140,28 @@ const CartPage = () => {
         throw new Error('No se recibió una URL de pago válida.');
       }
 
-      // LIMPIAR CARRITO DESPUÉS DE COMPRA EXITOSA
-      await clearCartAfterPurchase();
-      
-      window.location.href = init_point;
+      // Mostrar el botón "Volver a la Tienda" tras un delay (ej. 2000ms)
+      backLinkTimerRef.current = setTimeout(() => {
+        setShowBackLink(true);
+      }, 2000);
+
+      // Después de un pequeño delay (ej. 3000ms) limpiamos carrito y redirigimos al init_point
+      redirectTimerRef.current = setTimeout(async () => {
+        try {
+          await clearCartAfterPurchase(); // no bloqueante visualmente
+        } catch (e) {
+          console.warn('Error al limpiar carrito:', e);
+        }
+        window.location.href = init_point;
+      }, 3000);
+
     } catch (err) {
       console.error('Error en createPreference:', err);
       alert(`No se pudo iniciar el pago: ${err.message || 'Error desconocido'}`);
+      setShowRedirectModal(false);
+      setIsProcessing(false);
+      if (backLinkTimerRef.current) clearTimeout(backLinkTimerRef.current);
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
     }
   };
 
@@ -142,11 +184,11 @@ const CartPage = () => {
       <div className="d-flex flex-column min-vh-100 bg-dark text-white">
         <div className="container flex-grow-1 d-flex flex-column py-4">
           <h2 className="mb-4 text-center">Carrito de Compras</h2>
-          
+
           {productosConProblemas.length > 0 && (
             <Alert variant="warning" className="mb-3">
               <Alert.Heading>¡Atención!</Alert.Heading>
-              Algunos productos en tu carrito tienen más cantidad que el stock disponible. 
+              Algunos productos en tu carrito tienen más cantidad que el stock disponible.
               Por favor, ajusta las cantidades antes de proceder con la compra.
             </Alert>
           )}
@@ -221,6 +263,7 @@ const CartPage = () => {
               );
             })}
           </div>
+
           <div className="p-3 border-top bg-dark">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <strong>Total</strong>
@@ -231,18 +274,19 @@ const CartPage = () => {
                 Seguir Comprando
               </Button>
               <div>
-                <Button 
-                  variant="danger" 
-                  className="me-2" 
+                <Button
+                  variant="danger"
+                  className="me-2"
                   onClick={handleClearCart}
                 >
                   Vaciar carrito
                 </Button>
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   onClick={handleBuy}
-                  disabled={productosConProblemas.length > 0}
+                  disabled={productosConProblemas.length > 0 || isProcessing}
                 >
+                  {isProcessing && <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />}
                   Comprar
                 </Button>
               </div>
@@ -281,6 +325,43 @@ const CartPage = () => {
             Sí, vaciar carrito
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Modal de redirección / mensaje con delay */}
+      <Modal show={showRedirectModal} onHide={() => {
+        setShowRedirectModal(false);
+        // cancelar timers si el usuario cierra manualmente
+        if (backLinkTimerRef.current) clearTimeout(backLinkTimerRef.current);
+        if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+        setIsProcessing(false);
+      }} centered>
+        <Modal.Header className="bg-dark text-white">
+          <Modal.Title>Procesando pago</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="bg-dark text-white text-center">
+          <p>Iniciando pago con MercadoPago. Serás redirigido en breve...</p>
+          <div className="my-2">
+            <Spinner animation="border" role="status" />
+          </div>
+          {showBackLink ? (
+            <div className="mt-3">
+              <Button variant="outline-light" onClick={() => {
+                setShowRedirectModal(false);
+                // limpiar timers y llevar al usuario a la tienda
+                if (backLinkTimerRef.current) clearTimeout(backLinkTimerRef.current);
+                if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+                setIsProcessing(false);
+                navigate('/');
+              }}>
+                Volver a la Tienda
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-3">
+              <small className="text-muted">El botón "Volver a la Tienda" aparecerá en breve...</small>
+            </div>
+          )}
+        </Modal.Body>
       </Modal>
     </>
   );
