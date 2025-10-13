@@ -1,15 +1,14 @@
-// src/CartPage.js
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
 import { UserContext } from './UserContext';
-import { Button, Image } from 'react-bootstrap';
+import { Button, Image, Alert } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
 
 const CartPage = () => {
-  const { cart, updateCartItem, clearCart, removeCartItem } = useContext(CartContext);
+  const { cart, updateCartItem, clearCartAfterPurchase, removeCartItem } = useContext(CartContext);
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
 
@@ -18,6 +17,8 @@ const CartPage = () => {
   const handleIncrease = (item) => {
     if (item.quantity < item.stock) {
       updateCartItem(item.id, item.quantity + 1);
+    } else {
+      alert(`No hay suficiente stock. Stock disponible: ${item.stock}`);
     }
   };
 
@@ -43,6 +44,20 @@ const CartPage = () => {
       if (!user || !user.id) {
         alert('Usuario no identificado. Por favor, inicia sesión nuevamente.');
         navigate('/login');
+        return;
+      }
+
+      // Verificar que todos los items tengan stock disponible
+      const itemsSinStock = cart.filter(item => item.quantity > item.stock);
+      if (itemsSinStock.length > 0) {
+        alert('Algunos productos en tu carrito no tienen suficiente stock disponible. Por favor, ajusta las cantidades.');
+        return;
+      }
+
+      // Verificar que no haya items con cantidad 0
+      const itemsCantidadCero = cart.filter(item => item.quantity <= 0);
+      if (itemsCantidadCero.length > 0) {
+        alert('Algunos productos en tu carrito tienen cantidad inválida.');
         return;
       }
 
@@ -86,6 +101,9 @@ const CartPage = () => {
         throw new Error('No se recibió una URL de pago válida.');
       }
 
+      // LIMPIAR CARRITO DESPUÉS DE COMPRA EXITOSA
+      await clearCartAfterPurchase();
+      
       window.location.href = init_point;
     } catch (err) {
       console.error('Error en createPreference:', err);
@@ -97,17 +115,29 @@ const CartPage = () => {
     return (
       <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white">
         <h2>Tu carrito está vacío</h2>
-        <Button variant="secondary" className="mt-3" onClick={() => navigate(-1)}>
-          Volver
+        <Button variant="secondary" className="mt-3" onClick={() => navigate('/')}>
+          Volver a la Tienda
         </Button>
       </div>
     );
   }
 
+  // Verificar si hay productos con problemas de stock
+  const productosConProblemas = cart.filter(item => item.quantity > item.stock);
+
   return (
     <div className="d-flex flex-column min-vh-100 bg-dark text-white">
       <div className="container flex-grow-1 d-flex flex-column py-4">
         <h2 className="mb-4 text-center">Carrito de Compras</h2>
+        
+        {productosConProblemas.length > 0 && (
+          <Alert variant="warning" className="mb-3">
+            <Alert.Heading>¡Atención!</Alert.Heading>
+            Algunos productos en tu carrito tienen más cantidad que el stock disponible. 
+            Por favor, ajusta las cantidades antes de proceder con la compra.
+          </Alert>
+        )}
+
         <div className="overflow-auto flex-grow-1 bg-dark p-3 rounded">
           {cart.map(item => {
             const itemTotal = item.precio * item.quantity;
@@ -115,10 +145,14 @@ const CartPage = () => {
               ? item.portada
               : `${CLOUDINARY_BASE_URL}/${item.portada}`;
 
+            const tieneStockSuficiente = item.quantity <= item.stock;
+
             return (
               <div
                 key={item.id}
-                className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom bg-dark text-white"
+                className={`d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom ${
+                  !tieneStockSuficiente ? 'bg-warning bg-opacity-10' : 'bg-dark'
+                } text-white`}
               >
                 <Image
                   src={imageUrl}
@@ -130,6 +164,9 @@ const CartPage = () => {
                 <div className="flex-grow-1">
                   <h5 className="mb-1">
                     {item.manga?.titulo} - Tomo {item.numero_tomo}
+                    {!tieneStockSuficiente && (
+                      <span className="badge bg-danger ms-2">Stock insuficiente</span>
+                    )}
                   </h5>
                   <p className="mb-1">Idioma: {item.idioma}</p>
                   <p className="mb-1">
@@ -176,14 +213,38 @@ const CartPage = () => {
             <strong>Total</strong>
             <strong>${totalAmount.toFixed(2)}</strong>
           </div>
-          <div className="d-flex justify-content-end">
-            <Button variant="danger" className="me-2" onClick={clearCart}>
-              Vaciar carrito
+          <div className="d-flex justify-content-between align-items-center">
+            <Button variant="outline-light" onClick={() => navigate('/')}>
+              Seguir Comprando
             </Button>
-            <Button variant="primary" onClick={handleBuy}>
-              Comprar
-            </Button>
+            <div>
+              <Button 
+                variant="danger" 
+                className="me-2" 
+                onClick={() => {
+                  if (window.confirm('¿Estás seguro de que quieres vaciar el carrito?')) {
+                    clearCartAfterPurchase();
+                  }
+                }}
+              >
+                Vaciar carrito
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={handleBuy}
+                disabled={productosConProblemas.length > 0}
+              >
+                Comprar
+              </Button>
+            </div>
           </div>
+          {productosConProblemas.length > 0 && (
+            <div className="mt-2">
+              <small className="text-warning">
+                No puedes proceder con la compra hasta que ajustes las cantidades de los productos con stock insuficiente.
+              </small>
+            </div>
+          )}
         </div>
       </div>
     </div>
