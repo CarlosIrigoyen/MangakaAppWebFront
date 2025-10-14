@@ -88,7 +88,12 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     if (loadingUser || syncing) return;
     
-    localStorage.setItem(storageKey, JSON.stringify(cart));
+    // Guardar en localStorage con la key actual (depende de user)
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(cart));
+    } catch (e) {
+      console.error('Error guardando carrito en localStorage:', e);
+    }
     
     if (user) {
       syncCartWithDB(cart);
@@ -129,12 +134,47 @@ export const CartProvider = ({ children }) => {
     }));
   };
 
+  // Modificación solicitada: si el carrito tiene 1 elemento, ejecutar clearCart() en lugar de eliminar item
   const removeCartItem = (itemId) => {
+    if (cart.length === 1) {
+      // Ejecutar el clearCart que limpia localStorage y, si hay usuario, limpia en BD
+      clearCart();
+      return;
+    }
+
     setCart(cart.filter(item => item.id !== itemId));
   };
 
-  const clearCart = () => {
+  // clearCart ahora limpia local, localStorage y (si hay usuario) intenta limpiar en BD
+  const clearCart = async () => {
+    // Borramos local inmediatamente
     setCart([]);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (e) {
+      console.error('Error removiendo carrito del localStorage:', e);
+    }
+
+    // Si hay usuario, intentamos limpiar en BD
+    if (user) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${LIMPIAR_CARRITO_URL}/${user.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          // opcional: manejar error, loguear
+          const text = await response.text().catch(() => null);
+          console.warn('clearCart: limpiar carrito en BD devolvió status', response.status, text);
+        }
+      } catch (error) {
+        console.error('Error al limpiar carrito en BD:', error);
+      }
+    }
   };
 
   // Función para limpiar carrito después de compra
@@ -153,7 +193,11 @@ export const CartProvider = ({ children }) => {
       }
     }
     // Limpiar siempre el localStorage
-    localStorage.removeItem(storageKey);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (e) {
+      console.error('Error removing storageKey after purchase:', e);
+    }
     setCart([]);
   };
 
@@ -161,6 +205,10 @@ export const CartProvider = ({ children }) => {
   const syncCartOnLogout = async () => {
     if (user && cart.length > 0) {
       await syncCartWithDB(cart);
+      // despues de guardar en BD podés limpiar localStorage si querés:
+      try {
+        localStorage.removeItem(storageKey);
+      } catch (e) { console.error('Error removing storageKey on logout:', e); }
     }
   };
 
