@@ -1,3 +1,4 @@
+// src/App.js
 import React, { useContext, useState, useEffect } from 'react';
 import {
   BrowserRouter as Router,
@@ -7,8 +8,9 @@ import {
   useLocation,
   useNavigate
 } from 'react-router-dom';
-import { Navbar, Container, Form, Button, Dropdown,Nav } from 'react-bootstrap';
+import { Navbar, Container, Form, Button, Dropdown, Nav } from 'react-bootstrap';
 import { FaShoppingCart } from 'react-icons/fa';
+
 import SuccessPage from './SuccessPage';
 import SideBarFilters from './SideBarFilters';
 import RegisterModal    from './RegisterModal';
@@ -20,6 +22,7 @@ import FacturasPage     from './FacturasPage';
 import DetalleFacturaPage from './DetalleFacturaPage';
 import FailurePage from './FailurePage';
 import PendingPage from './PendingPage';
+import PayPalReturn from './PayPalReturn';
 
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
@@ -53,6 +56,7 @@ const MainApp = () => {
 
   useEffect(() => {
     handleFilterChange(currentFilters, 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Registro
@@ -114,14 +118,20 @@ const MainApp = () => {
     }
     params.append('page', page);
 
-    const res = await fetch(`${TOMOS_URL}?${params.toString()}`);
-    const result = await res.json();
-    setTomos(result.data);
-    setPagination({
-      currentPage: result.current_page,
-      lastPage:    result.last_page,
-      total:       result.total
-    });
+    try {
+      const res = await fetch(`${TOMOS_URL}?${params.toString()}`);
+      const result = await res.json();
+      setTomos(result.data || []);
+      setPagination({
+        currentPage: result.current_page || 1,
+        lastPage:    result.last_page || 1,
+        total:       result.total || 0
+      });
+    } catch (err) {
+      console.error('Error al obtener tomos:', err);
+      setTomos([]);
+      setPagination(null);
+    }
   };
 
   const handlePageChange = (p) => handleFilterChange(currentFilters, p);
@@ -135,95 +145,93 @@ const MainApp = () => {
     return <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">Cargando usuario...</div>;
   }
   return (
-  <div className="bg-dark text-white min-vh-100">
-    <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light shadow">
-      <Container fluid>
-        <Navbar.Brand as={Link} to="/">
-          <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
-          <span className="ms-2">Mangaka Baka Shop</span>
-        </Navbar.Brand>
+    <div className="bg-dark text-white min-vh-100">
+      <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light shadow">
+        <Container fluid>
+          <Navbar.Brand as={Link} to="/">
+            <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
+            <span className="ms-2">Mangaka Baka Shop</span>
+          </Navbar.Brand>
 
-        {/* Buscador escritorio */}
-        <Form
-          className="d-none d-lg-flex mx-auto"
-          style={{ width: '50%' }}
-          onSubmit={e => { e.preventDefault(); handleSearch(); }}
-        >
-          <Form.Control
-            type="search"
-            placeholder="Buscar"
-            className="me-2"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-          <Button variant="outline-light" onClick={handleSearch}>Buscar</Button>
-        </Form>
+          {/* Buscador escritorio */}
+          <Form
+            className="d-none d-lg-flex mx-auto"
+            style={{ width: '50%' }}
+            onSubmit={e => { e.preventDefault(); handleSearch(); }}
+          >
+            <Form.Control
+              type="search"
+              placeholder="Buscar"
+              className="me-2"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            <Button variant="outline-light" onClick={handleSearch}>Buscar</Button>
+          </Form>
 
-        {/* Controles de usuario y carrito en escritorio */}
-        <div className="d-none d-lg-flex ms-auto align-items-center">
-          {user ? (
-            <>
-              <span className="me-2">Hola, {user.nombre}</span>
-              <Dropdown align="end" className="me-2">
-                <Dropdown.Toggle variant="outline-light">
-                  <FaShoppingCart /> {cartCount}
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  {cartCount === 0
-                    ? <Dropdown.ItemText>No hay elementos</Dropdown.ItemText>
-                    : <Dropdown.Item as={Link} to="/cart">Ver Carrito</Dropdown.Item>}
-                </Dropdown.Menu>
-              </Dropdown>
-              <Button variant="danger" onClick={handleLogout}>Cerrar Sesión</Button>
-            </>
-          ) : (
-            <>
-              <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>
-                Registrarse
-              </Button>
-              <Button variant="secondary" onClick={() => setShowLogin(true)}>
-                Iniciar Sesión
-              </Button>
-            </>
-          )}
-        </div>
-      </Container>
-    </Navbar>
+          {/* Controles de usuario y carrito en escritorio */}
+          <div className="d-none d-lg-flex ms-auto align-items-center">
+            {user ? (
+              <>
+                <span className="me-2">Hola, {user.nombre}</span>
+                <Dropdown align="end" className="me-2">
+                  <Dropdown.Toggle variant="outline-light">
+                    <FaShoppingCart /> {cartCount}
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    {cartCount === 0
+                      ? <Dropdown.ItemText>No hay elementos</Dropdown.ItemText>
+                      : <Dropdown.Item as={Link} to="/cart">Ver Carrito</Dropdown.Item>}
+                  </Dropdown.Menu>
+                </Dropdown>
+                <Button variant="danger" onClick={handleLogout}>Cerrar Sesión</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>
+                  Registrarse
+                </Button>
+                <Button variant="secondary" onClick={() => setShowLogin(true)}>
+                  Iniciar Sesión
+                </Button>
+              </>
+            )}
+          </div>
+        </Container>
+      </Navbar>
 
-    <div className="d-flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
-      <SideBarFilters
-        onFilterChange={f => handleFilterChange(f, 1)}
-        setShowLogin={setShowLogin}
-        setShowRegister={setShowRegister}
+      <div className="d-flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
+        <SideBarFilters
+          onFilterChange={f => handleFilterChange(f, 1)}
+          setShowLogin={setShowLogin}
+          setShowRegister={setShowRegister}
+        />
+        <TomoList
+          tomos={tomos}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          onShowInfo={handleShowInfo}
+          isLoggedIn={!!user}
+        />
+      </div>
+
+      <RegisterModal
+        show={showRegister}
+        onHide={() => setShowRegister(false)}
+        onSubmit={handleRegisterSubmit}
       />
-      <TomoList
-        tomos={tomos}
-        pagination={pagination}
-        onPageChange={handlePageChange}
-        onShowInfo={handleShowInfo}
-        isLoggedIn={!!user}
+      <LoginModal
+        show={showLogin}
+        onHide={() => setShowLogin(false)}
+        onSubmit={handleLoginSubmit}
+      />
+      <InfoModal
+        show={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        tomo={selectedTomo}
       />
     </div>
-
-    <RegisterModal
-      show={showRegister}
-      onHide={() => setShowRegister(false)}
-      onSubmit={handleRegisterSubmit}
-    />
-    <LoginModal
-      show={showLogin}
-      onHide={() => setShowLogin(false)}
-      onSubmit={handleLoginSubmit}
-    />
-    <InfoModal
-      show={showInfoModal}
-      onClose={() => setShowInfoModal(false)}
-      tomo={selectedTomo}
-    />
-  </div>
-);
-
-
+  );
 };
 
 const App = () => (
@@ -238,7 +246,7 @@ const App = () => (
           <Route path="/checkout/success" element={<SuccessPage />} />
           <Route path="/checkout/failure" element={<FailurePage />} />
           <Route path="/checkout/pending" element={<PendingPage />} />
-
+          <Route path="/paypal-return" element={<PayPalReturn />} />
         </Routes>
       </Router>
     </CartProvider>
@@ -246,3 +254,4 @@ const App = () => (
 );
 
 export default App;
+
