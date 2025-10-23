@@ -244,7 +244,7 @@ const CartPage = () => {
       <div className="d-flex flex-column min-vh-100 bg-dark text-white">
         <div className="container flex-grow-1 d-flex flex-column py-4">
           <h2 className="mb-4 text-center">Carrito de Compras</h2>
-          
+
           {productosConProblemas.length > 0 && (
             <Alert variant="warning" className="mb-3">
               <Alert.Heading>¡Atención!</Alert.Heading>
@@ -323,13 +323,13 @@ const CartPage = () => {
               );
             })}
           </div>
-          
+
           <div className="p-3 border-top bg-dark">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <strong>Total</strong>
               <strong>${totalAmount.toFixed(2)}</strong>
             </div>
-            
+
             <div className="d-flex justify-content-between align-items-center">
               <Button variant="outline-light" onClick={() => navigate('/')}>
                 Seguir Comprando
@@ -342,7 +342,7 @@ const CartPage = () => {
                 >
                   Vaciar carrito
                 </Button>
-                
+
                 {/* Botones de pago */}
                 <div className="btn-group" role="group">
                   <Button 
@@ -371,7 +371,7 @@ const CartPage = () => {
                       </>
                     )}
                   </Button>
-                  
+
                   <Button 
                     variant="primary" 
                     onClick={handleMercadoPagoBuy}
@@ -400,7 +400,7 @@ const CartPage = () => {
                 </div>
               </div>
             </div>
-            
+
             {productosConProblemas.length > 0 && (
               <div className="mt-2">
                 <small className="text-warning">
@@ -408,7 +408,7 @@ const CartPage = () => {
                 </small>
               </div>
             )}
-            
+
             {/* Información de métodos de pago */}
             <div className="mt-3 p-2 bg-secondary bg-opacity-25 rounded">
               <small className="text-muted">
