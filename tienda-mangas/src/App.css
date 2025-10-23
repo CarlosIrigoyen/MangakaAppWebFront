@@ -36,3 +36,100 @@
     transform: rotate(360deg);
   }
 }
+/* ===== filtros modal estilo MercadoLibre (backdrop + modal) ===== */
+.sfm-backdrop {
+  position: fixed;
+  inset: 56px 0 0 0; /* deja navbar arriba si tienes uno */
+  background: rgba(0,0,0,0.45);
+  z-index: 2040;
+}
+
+.sfm-modal {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(920px, 95%);
+  height: calc(100vh - 80px);
+  background: #fff;
+  color: #222;
+  z-index: 2050;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sfm-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+.sfm-title { font-weight:600; }
+.sfm-close { background:transparent; border:0; color:#333; }
+
+.sfm-body { display:flex; flex:1; overflow:hidden; }
+
+.sfm-left {
+  width: 170px;
+  border-right:1px solid #eee;
+  background: #fafafa;
+  padding: 10px;
+}
+.sfm-tabs { display:flex; flex-direction:column; gap:6px; }
+.sfm-tab {
+  text-align:left;
+  padding:10px 12px;
+  border-radius:8px;
+  border:0;
+  background:transparent;
+  color:#333;
+}
+.sfm-tab.active {
+  background:#f0f8ff;
+  border-left:4px solid #0d6efd;
+  font-weight:600;
+}
+
+.sfm-right { flex:1; overflow:auto; padding: 14px 18px; }
+.sfm-section { max-width: 680px; }
+.sfm-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.sfm-divider { height:1px; background:#eee; margin:12px 0; }
+
+.sfm-list .sfm-item { padding:6px 0; }
+
+.sfm-footer {
+  display:flex;
+  gap:12px;
+  padding: 12px;
+  align-items:center;
+  justify-content:flex-end;
+  border-top:1px solid #eee;
+  background: #fff;
+}
+.sfm-clear { color:#6c757d; border:0; background:transparent; }
+.sfm-apply { min-width:220px; }
+
+@media (max-width: 700px) {
+  .sfm-modal { width: 96%; height: calc(100vh - 56px); top: 56px; }
+  .sfm-left { width: 120px; }
+  .sfm-apply { min-width: 160px; }
+}
+
+/* Floating auth panel (derecha, móvil) */
+.mobile-auth-panel {
+  position: fixed;
+  right: 12px;
+  top: 82px;
+  z-index: 2060;
+  width: 150px;
+}
+@media (max-width: 400px) {
+  .mobile-auth-panel { right: 8px; top: 72px; width: 140px; }
+}
+
+/* button abrir filtros (no pegado al borde) */
+.d-md-none.btn-warning[aria-label="Abrir filtros"] { left: 12px !important; }
