@@ -6,6 +6,7 @@ import { Button, Image, Alert, Modal, Spinner } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
+const REACT_PAYPAL_CREATE_ORDER = `${process.env.REACT_APP_API_URL}/paypal/create-order`;
 
 const CartPage = () => {
   const { cart, updateCartItem, clearCartAfterPurchase, removeCartItem } = useContext(CartContext);
@@ -15,6 +16,7 @@ const CartPage = () => {
   // Estados
   const [showClearCartModal, setShowClearCartModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null); // 'mercadopago' o 'paypal'
 
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
 
@@ -45,53 +47,61 @@ const CartPage = () => {
     setShowClearCartModal(false);
   };
 
-  const handleBuy = async () => {
+  // Función común para validaciones antes del pago
+  const validatePurchase = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Debes iniciar sesión para comprar.');
+      navigate('/login');
+      return false;
+    }
+
+    if (!user || !user.id) {
+      alert('Usuario no identificado. Por favor, inicia sesión nuevamente.');
+      navigate('/login');
+      return false;
+    }
+
+    // Verificar que todos los items tengan stock disponible
+    const itemsSinStock = cart.filter(item => item.quantity > item.stock);
+    if (itemsSinStock.length > 0) {
+      alert('Algunos productos en tu carrito no tienen suficiente stock disponible. Por favor, ajusta las cantidades.');
+      return false;
+    }
+
+    // Verificar que no haya items con cantidad 0
+    const itemsCantidadCero = cart.filter(item => item.quantity <= 0);
+    if (itemsCantidadCero.length > 0) {
+      alert('Algunos productos en tu carrito tienen cantidad inválida.');
+      return false;
+    }
+
+    return true;
+  };
+
+  // Preparar payload común
+  const preparePayload = () => ({
+    cliente_id: user.id,
+    productos: cart.map(i => ({
+      tomo_id: i.id,
+      titulo: i.manga?.titulo || 'Producto sin título',
+      cantidad: i.quantity,
+      precio_unitario: i.precio,
+    })),
+  });
+
+  const handleMercadoPagoBuy = async () => {
+    if (!validatePurchase()) return;
+
     try {
       setProcessingPayment(true);
+      setPaymentMethod('mercadopago');
 
       const token = localStorage.getItem('token');
-      if (!token) {
-        alert('Debes iniciar sesión para comprar.');
-        setProcessingPayment(false);
-        navigate('/login');
-        return;
-      }
-
-      if (!user || !user.id) {
-        alert('Usuario no identificado. Por favor, inicia sesión nuevamente.');
-        setProcessingPayment(false);
-        navigate('/login');
-        return;
-      }
-
-      // Verificar que todos los items tengan stock disponible
-      const itemsSinStock = cart.filter(item => item.quantity > item.stock);
-      if (itemsSinStock.length > 0) {
-        alert('Algunos productos en tu carrito no tienen suficiente stock disponible. Por favor, ajusta las cantidades.');
-        setProcessingPayment(false);
-        return;
-      }
-
-      // Verificar que no haya items con cantidad 0
-      const itemsCantidadCero = cart.filter(item => item.quantity <= 0);
-      if (itemsCantidadCero.length > 0) {
-        alert('Algunos productos en tu carrito tienen cantidad inválida.');
-        setProcessingPayment(false);
-        return;
-      }
-
-      const payload = {
-        cliente_id: user.id,
-        productos: cart.map(i => ({
-          tomo_id: i.id,
-          titulo: i.manga?.titulo || 'Producto sin título',
-          cantidad: i.quantity,
-          precio_unitario: i.precio,
-        })),
-      };
+      const payload = preparePayload();
 
       console.log('Token:', token);
-      console.log('Payload enviado:', payload);
+      console.log('Payload MercadoPago:', payload);
 
       const response = await fetch(REACT_MERCADO_PAGO_PREFERENCE, {
         method: 'POST',
@@ -120,10 +130,11 @@ const CartPage = () => {
         throw new Error('No se recibió una URL de pago válida.');
       }
 
-      // NO limpiar el carrito inmediatamente - solo guardar información temporal
+      // Guardar información temporal
       sessionStorage.setItem('pendingPurchase', JSON.stringify({
         timestamp: new Date().getTime(),
-        cartItems: cart.length
+        cartItems: cart.length,
+        paymentMethod: 'mercadopago'
       }));
 
       // Redirigir inmediatamente a MercadoPago
@@ -133,6 +144,66 @@ const CartPage = () => {
       console.error('Error en createPreference:', err);
       alert(`No se pudo iniciar el pago: ${err.message || 'Error desconocido'}`);
       setProcessingPayment(false);
+      setPaymentMethod(null);
+    }
+  };
+
+  const handlePayPalBuy = async () => {
+    if (!validatePurchase()) return;
+
+    try {
+      setProcessingPayment(true);
+      setPaymentMethod('paypal');
+
+      const token = localStorage.getItem('token');
+      const payload = preparePayload();
+
+      console.log('Payload PayPal:', payload);
+
+      const response = await fetch(REACT_PAYPAL_CREATE_ORDER, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let errorMsg = `HTTP ${response.status}`;
+        const errorData = await response.json().catch(() => null);
+        console.error('Error PayPal:', errorData);
+        if (errorData?.message) {
+          errorMsg += `: ${errorData.message}`;
+        } else if (errorData?.paypal_error) {
+          errorMsg += `: ${JSON.stringify(errorData.paypal_error)}`;
+        } else if (errorData?.error) {
+          errorMsg += `: ${errorData.error}`;
+        }
+        throw new Error(errorMsg);
+      }
+
+      const { approve_url } = await response.json();
+      if (!approve_url) {
+        throw new Error('No se recibió una URL de pago válida de PayPal.');
+      }
+
+      // Guardar información temporal
+      sessionStorage.setItem('pendingPurchase', JSON.stringify({
+        timestamp: new Date().getTime(),
+        cartItems: cart.length,
+        paymentMethod: 'paypal'
+      }));
+
+      // Redirigir a PayPal
+      window.location.href = approve_url;
+
+    } catch (err) {
+      console.error('Error en PayPal:', err);
+      alert(`No se pudo iniciar el pago con PayPal: ${err.message || 'Error desconocido'}`);
+      setProcessingPayment(false);
+      setPaymentMethod(null);
     }
   };
 
@@ -140,11 +211,16 @@ const CartPage = () => {
   if (processingPayment) {
     return (
       <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white">
-        <Spinner animation="border" role="status" className="mb-3">
+        <Spinner animation="border" role="status" className="mb-3" variant="primary">
           <span className="visually-hidden">Procesando pago...</span>
         </Spinner>
-        <h4>Procesando tu pago...</h4>
-        <p className="text-muted">Serás redirigido a MercadoPago en un momento</p>
+        <h4>Procesando tu pago{paymentMethod === 'paypal' ? ' con PayPal' : paymentMethod === 'mercadopago' ? ' con MercadoPago' : ''}...</h4>
+        <p className="text-muted">Serás redirigido en un momento</p>
+        <div className="mt-3">
+          <small className="text-warning">
+            No cierres esta ventana hasta que se complete la redirección
+          </small>
+        </div>
       </div>
     );
   }
@@ -247,11 +323,13 @@ const CartPage = () => {
               );
             })}
           </div>
+          
           <div className="p-3 border-top bg-dark">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <strong>Total</strong>
               <strong>${totalAmount.toFixed(2)}</strong>
             </div>
+            
             <div className="d-flex justify-content-between align-items-center">
               <Button variant="outline-light" onClick={() => navigate('/')}>
                 Seguir Comprando
@@ -264,29 +342,65 @@ const CartPage = () => {
                 >
                   Vaciar carrito
                 </Button>
-                <Button 
-                  variant="primary" 
-                  onClick={handleBuy}
-                  disabled={productosConProblemas.length > 0 || processingPayment}
-                >
-                  {processingPayment ? (
-                    <>
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
-                      />
-                      Procesando...
-                    </>
-                  ) : (
-                    'Comprar'
-                  )}
-                </Button>
+                
+                {/* Botones de pago */}
+                <div className="btn-group" role="group">
+                  <Button 
+                    variant="warning" 
+                    className="me-1"
+                    onClick={handlePayPalBuy}
+                    disabled={productosConProblemas.length > 0 || processingPayment}
+                    title="Pagar con PayPal"
+                  >
+                    {processingPayment && paymentMethod === 'paypal' ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          aria-hidden="true"
+                          className="me-2"
+                        />
+                        PayPal...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fab fa-paypal me-2"></i>
+                        PayPal
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    variant="primary" 
+                    onClick={handleMercadoPagoBuy}
+                    disabled={productosConProblemas.length > 0 || processingPayment}
+                    title="Pagar con MercadoPago"
+                  >
+                    {processingPayment && paymentMethod === 'mercadopago' ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          aria-hidden="true"
+                          className="me-2"
+                        />
+                        MercadoPago...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-credit-card me-2"></i>
+                        MercadoPago
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
+            
             {productosConProblemas.length > 0 && (
               <div className="mt-2">
                 <small className="text-warning">
@@ -294,11 +408,20 @@ const CartPage = () => {
                 </small>
               </div>
             )}
+            
+            {/* Información de métodos de pago */}
+            <div className="mt-3 p-2 bg-secondary bg-opacity-25 rounded">
+              <small className="text-muted">
+                <strong>Métodos de pago disponibles:</strong><br/>
+                • <strong>PayPal:</strong> Acepta tarjetas de crédito/débito y saldo PayPal (modo prueba)<br/>
+                • <strong>MercadoPago:</strong> Acepta transferencias, tarjetas y efectivo (modo prueba)
+              </small>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Modal para vaciar carrito - MENSAJE SIMPLIFICADO */}
+      {/* Modal para vaciar carrito */}
       <Modal show={showClearCartModal} onHide={() => setShowClearCartModal(false)} centered>
         <Modal.Header closeButton className="bg-dark text-white">
           <Modal.Title>Vaciar Carrito</Modal.Title>
@@ -327,4 +450,4 @@ const CartPage = () => {
   );
 };
 
-export default CartPage;
+export default CartPage; 
