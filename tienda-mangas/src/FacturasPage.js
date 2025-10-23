@@ -193,8 +193,72 @@ const FacturasPage = () => {
       </Container>
     );
   }
+  const fechaSolo = factura.fecha ? new Date(factura.fecha).toLocaleDateString() : '';
+  const numeroMostrar = String(factura.numero).replace(/\D/g, '').slice(0, 6);
 
-  // ... (resto del componente igual)
+  return (
+    <div className="d-flex flex-column min-vh-100 bg-dark text-white">
+      <Container className="flex-grow-1 py-4">
+        <Alert variant="success">¡Pago procesado con éxito!</Alert>
+        <div ref={facturaRef} className="p-4 bg-white text-dark rounded invoice-container">
+          {/* Encabezado con logo y meta */}
+          <div className="invoice-header d-flex justify-content-between align-items-center mb-4">
+            <div className="company-info d-flex align-items-center">
+              <img src="/img/Mangaka.png" alt="Logo" width={50} height={50} className="me-3" />
+              <h5 className="m-0">Mangaka Baka Shop</h5>
+            </div>
+            <div className="invoice-meta text-end">
+              <p className="mb-1"><strong>Nº:</strong> {numeroMostrar}</p>
+              <p className="mb-0"><strong>Fecha:</strong> {fechaSolo}</p>
+            </div>
+          </div>
+
+          {/* Bloque Facturar A */}
+          <div className="address-block mb-4">
+            <h6>Facturar A:</h6>
+            <p>{factura.cliente.nombre} {factura.cliente.apellido}</p>
+          </div>
+
+          {/* Tabla de detalles */}
+          <Table bordered className="invoice-table">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th className="text-center">Cantidad</th>
+                <th className="text-end">Precio</th>
+                <th className="text-end">Importe</th>
+              </tr>
+            </thead>
+            <tbody>
+              {factura.detalles.map(d => (
+                <tr key={d.tomo_id}>
+                  <td>{`${d.titulo} – Tomo ${d.numero_tomo}`}</td>
+                  <td className="text-center">{d.cantidad}</td>
+                  <td className="text-end">${(+d.precio_unitario).toFixed(2)}</td>
+                  <td className="text-end">${(+d.subtotal).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+
+          {/* Totales */}
+          <div className="d-flex justify-content-end mt-3">
+            <div className="totals-box p-3">
+              <hr />
+              <div className="d-flex justify-content-between fw-bold">
+                <span>Total</span>
+                <span>${(+factura.total).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Container>
+      <div className="p-3 bg-dark text-end">
+        <Button variant="secondary" className="me-2" onClick={volverHome}>Volver al Home</Button>
+        <Button variant="primary" onClick={descargarComoPdf}>Descargar PDF</Button>
+      </div>
+    </div>
+  );
 };
 
 export default FacturasPage;
