@@ -1,15 +1,15 @@
 // src/FacturasPage.js
 import React, { useEffect, useState, useRef, useContext } from 'react';
-import { Table, Button, Spinner, Alert, Container, Badge } from 'react-bootstrap';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Table, Button, Spinner, Alert, Container } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { UserContext } from './UserContext';
 import { CartContext } from './CartContext';
-
 import './DetalleFacturaPage.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://mangakaappweb-production.up.railway.app/api';
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const API_URL='https://mangakaappweb-production.up.railway.app/api'
 
 const FacturasPage = () => {
   const { user, loadingUser } = useContext(UserContext);
@@ -17,122 +17,43 @@ const FacturasPage = () => {
   const [factura, setFactura] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [processingPayment, setProcessingPayment] = useState(false);
   const facturaRef = useRef();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const fetchFacturaAndProcessPayment = async () => {
+    const fetchUltimaFactura = async () => {
       if (loadingUser) return;
       if (!user) {
         navigate('/');
         return;
       }
       setLoading(true);
-      
       try {
         const token = localStorage.getItem('token');
-        
-        // Verificar si venimos de PayPal con parámetros de éxito
-        const paypalSuccess = searchParams.get('paypal_success');
-        const facturaId = searchParams.get('factura_id');
-        const tokenParam = searchParams.get('token');
-
-        // Si venimos de PayPal exitosamente, procesar el pago
-        if (paypalSuccess === 'true' && facturaId) {
-          setProcessingPayment(true);
-          await processPayPalPayment(facturaId, tokenParam, token);
+        const resList = await fetch(`${API_URL}/orders/invoices`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+        if (!resList.ok) throw new Error(`HTTP ${resList.status}`);
+        const list = await resList.json();
+        if (!list.length) {
+          setFactura(null);
+          return;
         }
-
-        // Obtener la última factura pagada
-        await fetchUltimaFactura(token);
-        
+        const ultima = list[0];
+        const resDet = await fetch(`${API_URL}/orders/invoices/${ultima.id}`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+        if (!resDet.ok) throw new Error(`HTTP ${resDet.status}`);
+        const data = await resDet.json();
+        setFactura(data);
       } catch (e) {
         setError(e.message);
-        console.error('Error en FacturasPage:', e);
       } finally {
         setLoading(false);
-        setProcessingPayment(false);
       }
     };
-
-    fetchFacturaAndProcessPayment();
-  }, [user, loadingUser, navigate, searchParams]);
-
-  const processPayPalPayment = async (facturaId, tokenParam, userToken) => {
-    try {
-      console.log('🔄 Procesando pago PayPal...');
-      
-      // Si tenemos token de PayPal, capturar la orden
-      if (tokenParam) {
-        const response = await fetch(`${API_URL}/paypal/capture-order/${tokenParam}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${userToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error capturando orden PayPal: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log('✅ Orden PayPal capturada:', result);
-      }
-      
-      // También podemos llamar al endpoint de return para mayor seguridad
-      const returnResponse = await fetch(`${API_URL}/paypal/return?token=${tokenParam}&factura_id=${facturaId}`, {
-        headers: {
-          'Authorization': `Bearer ${userToken}`,
-        }
-      });
-      
-      if (!returnResponse.ok) {
-        console.warn('⚠️ No se pudo procesar el return de PayPal, pero continuamos...');
-      }
-      
-    } catch (error) {
-      console.error('❌ Error procesando pago PayPal:', error);
-      // No mostramos error al usuario porque podría ser que el webhook ya procesó el pago
-    }
-  };
-
-  const fetchUltimaFactura = async (token) => {
-    try {
-      const resList = await fetch(`${API_URL}/orders/invoices`, {
-        headers: { 
-          Authorization: `Bearer ${token}`, 
-          'Content-Type': 'application/json' 
-        }
-      });
-      
-      if (!resList.ok) throw new Error(`HTTP ${resList.status}`);
-      
-      const list = await resList.json();
-      if (!list.length) {
-        setFactura(null);
-        return;
-      }
-      
-      const ultima = list[0];
-      const resDet = await fetch(`${API_URL}/orders/invoices/${ultima.id}`, {
-        headers: { 
-          Authorization: `Bearer ${token}`, 
-          'Content-Type': 'application/json' 
-        }
-      });
-      
-      if (!resDet.ok) throw new Error(`HTTP ${resDet.status}`);
-      const data = await resDet.json();
-      setFactura(data);
-      
-    } catch (e) {
-      console.error('Error fetching invoice:', e);
-      // No establecemos error aquí para no interrumpir el flujo
-    }
-  };
+    fetchUltimaFactura();
+  }, [user, loadingUser, navigate]);
 
   const descargarComoPdf = async () => {
     if (!facturaRef.current) return;
@@ -153,46 +74,18 @@ const FacturasPage = () => {
     navigate('/');
   };
 
-  if (processingPayment) {
-    return (
-      <Container className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white">
-        <Spinner animation="border" role="status" className="mb-3" variant="primary">
-          <span className="visually-hidden">Procesando pago...</span>
-        </Spinner>
-        <h4>Procesando tu pago con PayPal...</h4>
-        <p className="text-muted">Estamos confirmando tu pago, por favor espera...</p>
-      </Container>
-    );
-  }
-
   if (loadingUser || loading) {
-    return (
-      <Container className="d-flex justify-content-center align-items-center min-vh-100">
-        <Spinner animation="border" variant="primary" />
-      </Container>
-    );
+    return <Container className="d-flex justify-content-center align-items-center min-vh-100"><Spinner animation="border" /></Container>;
   }
 
   if (error) {
-    return (
-      <Container className="p-4">
-        <Alert variant="danger">
-          <h4>Error al cargar la factura</h4>
-          <p>{error}</p>
-        </Alert>
-        <Button onClick={volverHome}>Volver al Home</Button>
-      </Container>
-    );
+    return <Container className="p-4"><Alert variant="danger">{error}</Alert><Button onClick={volverHome}>Volver al Home</Button></Container>;
   }
 
   if (!factura) {
-    return (
-      <Container className="p-4">
-        <Alert variant="info">No tienes facturas pagadas.</Alert>
-        <Button onClick={volverHome}>Volver al Home</Button>
-      </Container>
-    );
+    return <Container className="p-4"><Alert variant="info">No tienes facturas.</Alert><Button onClick={volverHome}>Volver al Home</Button></Container>;
   }
+
   const fechaSolo = factura.fecha ? new Date(factura.fecha).toLocaleDateString() : '';
   const numeroMostrar = String(factura.numero).replace(/\D/g, '').slice(0, 6);
 
