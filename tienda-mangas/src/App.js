@@ -8,11 +8,12 @@ import {
   useLocation,
   useNavigate
 } from 'react-router-dom';
-import { Navbar, Container, Form, Button, Dropdown, Nav } from 'react-bootstrap';
+import { Navbar, Container, Form, Button, Dropdown } from 'react-bootstrap';
 import { FaShoppingCart } from 'react-icons/fa';
 
 import SuccessPage from './SuccessPage';
 import SideBarFilters from './SideBarFilters';
+import SidebarFiltersModal from './SidebarFiltersModal'; // modal estilo MercadoLibre
 import RegisterModal    from './RegisterModal';
 import LoginModal       from './LoginModal';
 import InfoModal        from './InfoModal';
@@ -48,11 +49,12 @@ const MainApp = () => {
     applyPriceFilter: 0, minPrice: '', maxPrice: ''
   });
 
-  // Estados para modales
+  // Estados para modales y mobile filters
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin]       = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [selectedTomo, setSelectedTomo] = useState(null);
+  const [filtersOpen, setFiltersOpen] = useState(false); // controla modal de filtros en móvil
 
   useEffect(() => {
     handleFilterChange(currentFilters, 1);
@@ -144,14 +146,26 @@ const MainApp = () => {
   if (loadingUser) {
     return <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">Cargando usuario...</div>;
   }
+
   return (
     <div className="bg-dark text-white min-vh-100">
       <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light shadow">
         <Container fluid>
-          <Navbar.Brand as={Link} to="/">
-            <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
-            <span className="ms-2">Mangaka Baka Shop</span>
-          </Navbar.Brand>
+          <div className="d-flex align-items-center">
+            <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
+              <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
+              <span className="ms-2">Mangaka Baka Shop</span>
+            </Navbar.Brand>
+
+            {/* Botón móvil para abrir filtros (visible solo en móvil) */}
+            <button
+              className="btn btn-warning d-md-none ms-2"
+              aria-label="Abrir filtros"
+              onClick={() => setFiltersOpen(true)}
+            >
+              Filtros
+            </button>
+          </div>
 
           {/* Buscador escritorio */}
           <Form
@@ -201,20 +215,35 @@ const MainApp = () => {
       </Navbar>
 
       <div className="d-flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
+        {/* Sidebar desktop (mantengo tu componente original) */}
         <SideBarFilters
           onFilterChange={f => handleFilterChange(f, 1)}
           setShowLogin={setShowLogin}
           setShowRegister={setShowRegister}
         />
+
+        {/* Lista de tomos */}
         <TomoList
           tomos={tomos}
           pagination={pagination}
           onPageChange={handlePageChange}
           onShowInfo={handleShowInfo}
           isLoggedIn={!!user}
+          openCartFromMobile={() => navigate('/cart')}
         />
       </div>
 
+      {/* Modal de filtros estilo MercadoLibre (móvil) */}
+      <SidebarFiltersModal
+        show={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        onFilterChange={(f) => { handleFilterChange(f, 1); setFiltersOpen(false); }}
+        setShowLogin={(v) => { setShowRegister(false); setShowLogin(v); }} // solo para compatibilidad (puedes ajustarlo)
+        setShowRegister={(v) => { setShowLogin(false); setShowRegister(v); }}
+        resultsCount={pagination?.total || 0}
+      />
+
+      {/* Modales existentes */}
       <RegisterModal
         show={showRegister}
         onHide={() => setShowRegister(false)}
