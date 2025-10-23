@@ -8,7 +8,6 @@ import { UserContext } from './UserContext';
 import { CartContext } from './CartContext';
 import './DetalleFacturaPage.css';
 
-// Usa la variable de entorno en build time si está definida
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 const FacturasPage = () => {
@@ -19,68 +18,9 @@ const FacturasPage = () => {
   const [error, setError] = useState(null);
   const facturaRef = useRef();
   const navigate = useNavigate();
-
-  // destructuring para evitar el global `location` (ESLint)
-  const { search } = useLocation();
+  const location = useLocation();
 
   useEffect(() => {
-    const queryParams = new URLSearchParams(search);
-    const paypalOrderId = queryParams.get('token'); // PayPal devuelve ?token=<ORDER_ID>
-
-    const procesarPago = async () => {
-      if (!paypalOrderId) return;
-      const token = localStorage.getItem('token');
-      if (!token) {
-        // si el usuario no está con token, no intentamos capturar (puede ser otro flujo)
-        console.warn('No hay token en localStorage para autenticar la captura PayPal.');
-        return;
-      }
-
-      const endpoints = [
-        `${API_URL}/paypal/capture/${paypalOrderId}`,
-        `${API_URL}/paypal/capture-order/${paypalOrderId}`
-      ];
-
-      for (const endpoint of endpoints) {
-        try {
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          // si no existe la ruta, seguimos intentando el siguiente endpoint
-          if (res.status === 404) continue;
-
-          const body = await res.json().catch(() => ({}));
-
-          if (res.ok) {
-            console.log('Pago capturado OK en:', endpoint, body);
-            // evitar recapturas: borramos el token de la URL
-            try {
-              const newUrl = new URL(window.location.href);
-              newUrl.searchParams.delete('token');
-              window.history.replaceState({}, document.title, newUrl.toString());
-            } catch (err) {
-              // si falla reemplazar historial, no es crítico
-            }
-            return;
-          } else {
-            console.warn('Intento de captura falló en', endpoint, body);
-            // seguimos intentando el siguiente endpoint por compatibilidad
-          }
-        } catch (err) {
-          console.error('Error intentando capturar en', endpoint, err);
-          // seguimos intentando el siguiente endpoint
-        }
-      }
-
-      // Si llegamos aquí, ninguno de los endpoints pudo confirmar la captura
-      setError('No se pudo confirmar el pago en el servidor. Revisa los logs del backend.');
-    };
-
     const fetchUltimaFactura = async () => {
       if (loadingUser) return;
       if (!user) {
@@ -92,14 +32,24 @@ const FacturasPage = () => {
       setError(null);
 
       try {
-        // 1) Intentar procesar captura (si el usuario viene desde PayPal)
-        await procesarPago();
+        // Verificar si viene de PayPal con token
+        const searchParams = new URLSearchParams(location.search);
+        const paypalToken = searchParams.get('token');
 
-        // 2) Pedir la lista de facturas ya pagas
+        // Si viene de PayPal, capturar el pago (esto creará la factura)
+        if (paypalToken) {
+          await capturarPagoPayPal(paypalToken);
+        }
+
+        // Cargar facturas del usuario
         const token = localStorage.getItem('token');
         const resList = await fetch(`${API_URL}/orders/invoices`, {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+          headers: { 
+            Authorization: `Bearer ${token}`, 
+            'Content-Type': 'application/json' 
+          }
         });
+        
         if (!resList.ok) {
           throw new Error(`HTTP ${resList.status} fetching invoices`);
         }
@@ -110,26 +60,59 @@ const FacturasPage = () => {
           return;
         }
 
+        // Cargar detalle de la última factura
         const ultima = list[0];
         const resDet = await fetch(`${API_URL}/orders/invoices/${ultima.id}`, {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+          headers: { 
+            Authorization: `Bearer ${token}`, 
+            'Content-Type': 'application/json' 
+          }
         });
+        
         if (!resDet.ok) {
           throw new Error(`HTTP ${resDet.status} fetching invoice detail`);
         }
+        
         const data = await resDet.json();
         setFactura(data);
-      } catch (e) {
-        console.error(e);
-        setError(typeof e === 'string' ? e : (e.message || 'Error al obtener facturas'));
+      } catch (err) {
+        console.error(err);
+        setError(err.message || 'Error al obtener facturas');
       } finally {
         setLoading(false);
       }
     };
 
     fetchUltimaFactura();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loadingUser, navigate, search]);
+  }, [user, loadingUser, navigate, location]);
+
+  const capturarPagoPayPal = async (orderId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/paypal/capture-order/${orderId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Error capturando pago PayPal');
+      }
+
+      const result = await response.json();
+      console.log('Pago PayPal capturado y factura creada:', result);
+
+      // Limpiar URL después de capturar
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+
+    } catch (err) {
+      console.error('Error capturando pago PayPal:', err);
+      setError('Error confirmando el pago: ' + err.message);
+    }
+  };
 
   const descargarComoPdf = async () => {
     if (!facturaRef.current) return;
@@ -184,7 +167,6 @@ const FacturasPage = () => {
       <Container className="flex-grow-1 py-4">
         <Alert variant="success">¡Pago procesado con éxito!</Alert>
         <div ref={facturaRef} className="p-4 bg-white text-dark rounded invoice-container">
-          {/* Encabezado con logo y meta */}
           <div className="invoice-header d-flex justify-content-between align-items-center mb-4">
             <div className="company-info d-flex align-items-center">
               <img src="/img/Mangaka.png" alt="Logo" width={50} height={50} className="me-3" />
@@ -196,13 +178,11 @@ const FacturasPage = () => {
             </div>
           </div>
 
-          {/* Bloque Facturar A */}
           <div className="address-block mb-4">
             <h6>Facturar A:</h6>
             <p>{factura.cliente.nombre} {factura.cliente.apellido}</p>
           </div>
 
-          {/* Tabla de detalles */}
           <Table bordered className="invoice-table">
             <thead>
               <tr>
@@ -224,7 +204,6 @@ const FacturasPage = () => {
             </tbody>
           </Table>
 
-          {/* Totales */}
           <div className="d-flex justify-content-end mt-3">
             <div className="totals-box p-3">
               <hr />
