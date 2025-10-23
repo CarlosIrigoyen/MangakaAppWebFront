@@ -62,14 +62,12 @@ const CartPage = () => {
       return false;
     }
 
-    // Verificar que todos los items tengan stock disponible
     const itemsSinStock = cart.filter(item => item.quantity > item.stock);
     if (itemsSinStock.length > 0) {
       alert('Algunos productos en tu carrito no tienen suficiente stock disponible. Por favor, ajusta las cantidades.');
       return false;
     }
 
-    // Verificar que no haya items con cantidad 0
     const itemsCantidadCero = cart.filter(item => item.quantity <= 0);
     if (itemsCantidadCero.length > 0) {
       alert('Algunos productos en tu carrito tienen cantidad inválida.');
@@ -130,16 +128,13 @@ const CartPage = () => {
         throw new Error('No se recibió una URL de pago válida.');
       }
 
-      // Guardar información temporal
       sessionStorage.setItem('pendingPurchase', JSON.stringify({
         timestamp: new Date().getTime(),
         cartItems: cart.length,
         paymentMethod: 'mercadopago'
       }));
 
-      // Redirigir inmediatamente a MercadoPago
       window.location.href = init_point;
-
     } catch (err) {
       console.error('Error en createPreference:', err);
       alert(`No se pudo iniciar el pago: ${err.message || 'Error desconocido'}`);
@@ -189,16 +184,13 @@ const CartPage = () => {
         throw new Error('No se recibió una URL de pago válida de PayPal.');
       }
 
-      // Guardar información temporal
       sessionStorage.setItem('pendingPurchase', JSON.stringify({
         timestamp: new Date().getTime(),
         cartItems: cart.length,
         paymentMethod: 'paypal'
       }));
 
-      // Redirigir a PayPal
       window.location.href = approve_url;
-
     } catch (err) {
       console.error('Error en PayPal:', err);
       alert(`No se pudo iniciar el pago con PayPal: ${err.message || 'Error desconocido'}`);
@@ -214,7 +206,11 @@ const CartPage = () => {
         <Spinner animation="border" role="status" className="mb-3" variant="primary">
           <span className="visually-hidden">Procesando pago...</span>
         </Spinner>
-        <h4>Procesando tu pago{paymentMethod === 'paypal' ? ' con PayPal' : paymentMethod === 'mercadopago' ? ' con MercadoPago' : ''}...</h4>
+        <h4>
+          Procesando tu pago
+          {paymentMethod === 'paypal' ? ' con PayPal' : paymentMethod === 'mercadopago' ? ' con MercadoPago' : ''}
+          ...
+        </h4>
         <p className="text-muted">Serás redirigido en un momento</p>
         <div className="mt-3">
           <small className="text-warning">
@@ -248,7 +244,7 @@ const CartPage = () => {
           {productosConProblemas.length > 0 && (
             <Alert variant="warning" className="mb-3">
               <Alert.Heading>¡Atención!</Alert.Heading>
-              Algunos productos en tu carrito tienen más cantidad que el stock disponible. 
+              Algunos productos en tu carrito tienen más cantidad que el stock disponible.
               Por favor, ajusta las cantidades antes de proceder con la compra.
             </Alert>
           )}
@@ -330,76 +326,84 @@ const CartPage = () => {
               <strong>${totalAmount.toFixed(2)}</strong>
             </div>
 
-            <div className="d-flex justify-content-between align-items-center">
-              <Button variant="outline-light" onClick={() => navigate('/')}>
-                Seguir Comprando
-              </Button>
-              <div>
-                <Button 
-                  variant="danger" 
-                  className="me-2" 
+            {/* --- NUEVA ESTRUCTURA DE BOTONES (responsiva) --- */}
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch gap-2">
+              {/* Fila 1: Seguir comprando + Vaciar carrito */}
+              <div className="d-flex w-100 gap-2 flex-column flex-sm-row">
+                <Button
+                  variant="outline-light"
+                  onClick={() => navigate('/')}
+                  className="w-100 w-md-auto"
+                >
+                  Seguir Comprando
+                </Button>
+                <Button
+                  variant="danger"
+                  className="w-100 w-md-auto"
                   onClick={handleClearCart}
                 >
                   Vaciar carrito
                 </Button>
+              </div>
 
-                {/* Botones de pago */}
-                <div className="btn-group" role="group">
-                  <Button 
-                    variant="warning" 
-                    className="me-1"
-                    onClick={handlePayPalBuy}
-                    disabled={productosConProblemas.length > 0 || processingPayment}
-                    title="Pagar con PayPal"
-                  >
-                    {processingPayment && paymentMethod === 'paypal' ? (
-                      <>
-                        <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          aria-hidden="true"
-                          className="me-2"
-                        />
-                        PayPal...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fab fa-paypal me-2"></i>
-                        PayPal
-                      </>
-                    )}
-                  </Button>
+              {/* Fila 2: Botones de pago */}
+              <div className="d-flex w-100 gap-2 flex-column flex-sm-row justify-content-end">
+                <Button
+                  variant="warning"
+                  className="w-100 w-md-auto"
+                  onClick={handlePayPalBuy}
+                  disabled={productosConProblemas.length > 0 || processingPayment}
+                  title="Pagar con PayPal"
+                >
+                  {processingPayment && paymentMethod === 'paypal' ? (
+                    <>
+                      <Spinner
+                        as="span"
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        aria-hidden="true"
+                        className="me-2"
+                      />
+                      PayPal...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fab fa-paypal me-2"></i>
+                      PayPal
+                    </>
+                  )}
+                </Button>
 
-                  <Button 
-                    variant="primary" 
-                    onClick={handleMercadoPagoBuy}
-                    disabled={productosConProblemas.length > 0 || processingPayment}
-                    title="Pagar con MercadoPago"
-                  >
-                    {processingPayment && paymentMethod === 'mercadopago' ? (
-                      <>
-                        <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          aria-hidden="true"
-                          className="me-2"
-                        />
-                        MercadoPago...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fas fa-credit-card me-2"></i>
-                        MercadoPago
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  variant="primary"
+                  className="w-100 w-md-auto"
+                  onClick={handleMercadoPagoBuy}
+                  disabled={productosConProblemas.length > 0 || processingPayment}
+                  title="Pagar con MercadoPago"
+                >
+                  {processingPayment && paymentMethod === 'mercadopago' ? (
+                    <>
+                      <Spinner
+                        as="span"
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        aria-hidden="true"
+                        className="me-2"
+                      />
+                      MercadoPago...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-credit-card me-2"></i>
+                      MercadoPago
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
+            {/* --- FIN NUEVA ESTRUCTURA DE BOTONES --- */}
 
             {productosConProblemas.length > 0 && (
               <div className="mt-2">
@@ -408,15 +412,6 @@ const CartPage = () => {
                 </small>
               </div>
             )}
-
-            {/* Información de métodos de pago */}
-            <div className="mt-3 p-2 bg-secondary bg-opacity-25 rounded">
-              <small className="text-muted">
-                <strong>Métodos de pago disponibles:</strong><br/>
-                • <strong>PayPal:</strong> Acepta tarjetas de crédito/débito y saldo PayPal (modo prueba)<br/>
-                • <strong>MercadoPago:</strong> Acepta transferencias, tarjetas y efectivo (modo prueba)
-              </small>
-            </div>
           </div>
         </div>
       </div>
@@ -450,4 +445,4 @@ const CartPage = () => {
   );
 };
 
-export default CartPage; 
+export default CartPage;
