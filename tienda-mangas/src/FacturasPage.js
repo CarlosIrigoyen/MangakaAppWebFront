@@ -1,15 +1,15 @@
 // src/FacturasPage.js
 import React, { useEffect, useState, useRef, useContext } from 'react';
 import { Table, Button, Spinner, Alert, Container } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { UserContext } from './UserContext';
 import { CartContext } from './CartContext';
 import './DetalleFacturaPage.css';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-const API_URL='https://mangakaappweb-production.up.railway.app/api'
+// Usa la variable de entorno en build time si está definida
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 const FacturasPage = () => {
   const { user, loadingUser } = useContext(UserContext);
@@ -20,22 +20,65 @@ const FacturasPage = () => {
   const facturaRef = useRef();
   const navigate = useNavigate();
 
+  // destructuring para evitar el global `location` (ESLint)
+  const { search } = useLocation();
+
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
+    const queryParams = new URLSearchParams(search);
     const paypalOrderId = queryParams.get('token'); // PayPal devuelve ?token=<ORDER_ID>
+
     const procesarPago = async () => {
-      if (paypalOrderId) {
+      if (!paypalOrderId) return;
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // si el usuario no está con token, no intentamos capturar (puede ser otro flujo)
+        console.warn('No hay token en localStorage para autenticar la captura PayPal.');
+        return;
+      }
+
+      const endpoints = [
+        `${API_URL}/paypal/capture/${paypalOrderId}`,
+        `${API_URL}/paypal/capture-order/${paypalOrderId}`
+      ];
+
+      for (const endpoint of endpoints) {
         try {
-          const res = await fetch(`${API_URL}/paypal/capture-order/${paypalOrderId}`, {
+          const res = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
           });
-          const data = await res.json();
-          console.log('💰 Pago capturado:', data);
+
+          // si no existe la ruta, seguimos intentando el siguiente endpoint
+          if (res.status === 404) continue;
+
+          const body = await res.json().catch(() => ({}));
+
+          if (res.ok) {
+            console.log('Pago capturado OK en:', endpoint, body);
+            // evitar recapturas: borramos el token de la URL
+            try {
+              const newUrl = new URL(window.location.href);
+              newUrl.searchParams.delete('token');
+              window.history.replaceState({}, document.title, newUrl.toString());
+            } catch (err) {
+              // si falla reemplazar historial, no es crítico
+            }
+            return;
+          } else {
+            console.warn('Intento de captura falló en', endpoint, body);
+            // seguimos intentando el siguiente endpoint por compatibilidad
+          }
         } catch (err) {
-          console.error('❌ Error capturando el pago:', err);
+          console.error('Error intentando capturar en', endpoint, err);
+          // seguimos intentando el siguiente endpoint
         }
       }
+
+      // Si llegamos aquí, ninguno de los endpoints pudo confirmar la captura
+      setError('No se pudo confirmar el pago en el servidor. Revisa los logs del backend.');
     };
 
     const fetchUltimaFactura = async () => {
@@ -44,33 +87,49 @@ const FacturasPage = () => {
         navigate('/');
         return;
       }
+
       setLoading(true);
+      setError(null);
+
       try {
+        // 1) Intentar procesar captura (si el usuario viene desde PayPal)
+        await procesarPago();
+
+        // 2) Pedir la lista de facturas ya pagas
         const token = localStorage.getItem('token');
         const resList = await fetch(`${API_URL}/orders/invoices`, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
-        if (!resList.ok) throw new Error(`HTTP ${resList.status}`);
+        if (!resList.ok) {
+          throw new Error(`HTTP ${resList.status} fetching invoices`);
+        }
+
         const list = await resList.json();
         if (!list.length) {
           setFactura(null);
           return;
         }
+
         const ultima = list[0];
         const resDet = await fetch(`${API_URL}/orders/invoices/${ultima.id}`, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
-        if (!resDet.ok) throw new Error(`HTTP ${resDet.status}`);
+        if (!resDet.ok) {
+          throw new Error(`HTTP ${resDet.status} fetching invoice detail`);
+        }
         const data = await resDet.json();
         setFactura(data);
       } catch (e) {
-        setError(e.message);
+        console.error(e);
+        setError(typeof e === 'string' ? e : (e.message || 'Error al obtener facturas'));
       } finally {
         setLoading(false);
       }
     };
+
     fetchUltimaFactura();
-  }, [user, loadingUser, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loadingUser, navigate, search]);
 
   const descargarComoPdf = async () => {
     if (!facturaRef.current) return;
@@ -92,15 +151,29 @@ const FacturasPage = () => {
   };
 
   if (loadingUser || loading) {
-    return <Container className="d-flex justify-content-center align-items-center min-vh-100"><Spinner animation="border" /></Container>;
+    return (
+      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+        <Spinner animation="border" />
+      </Container>
+    );
   }
 
   if (error) {
-    return <Container className="p-4"><Alert variant="danger">{error}</Alert><Button onClick={volverHome}>Volver al Home</Button></Container>;
+    return (
+      <Container className="p-4">
+        <Alert variant="danger">{error}</Alert>
+        <Button onClick={volverHome}>Volver al Home</Button>
+      </Container>
+    );
   }
 
   if (!factura) {
-    return <Container className="p-4"><Alert variant="info">No tienes facturas.</Alert><Button onClick={volverHome}>Volver al Home</Button></Container>;
+    return (
+      <Container className="p-4">
+        <Alert variant="info">No tienes facturas.</Alert>
+        <Button onClick={volverHome}>Volver al Home</Button>
+      </Container>
+    );
   }
 
   const fechaSolo = factura.fecha ? new Date(factura.fecha).toLocaleDateString() : '';
