@@ -26,6 +26,7 @@ function InfoModal({ show, onClose, tomo }) {
             <Card.Body>
               <Card.Title>{tomo.nombre}</Card.Title>
               <Card.Text>
+   <strong>Titulo:</strong> {tomo.manga.titulo}<br />
                 <strong>Número de Tomo:</strong> {tomo.numero_tomo || 'No disponible'}<br />
                 <strong>Editorial:</strong> {tomo.editorial?.nombre || 'No disponible'}<br />
                 <strong>Formato:</strong> {tomo.formato || 'Tankōbon'}<br />
