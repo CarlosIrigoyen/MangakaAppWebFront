@@ -21,6 +21,23 @@ const FacturasPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const paypalOrderId = queryParams.get('token'); // PayPal devuelve ?token=<ORDER_ID>
+    const procesarPago = async () => {
+      if (paypalOrderId) {
+        try {
+          const res = await fetch(`${API_URL}/paypal/capture-order/${paypalOrderId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          const data = await res.json();
+          console.log('💰 Pago capturado:', data);
+        } catch (err) {
+          console.error('❌ Error capturando el pago:', err);
+        }
+      }
+    };
+
     const fetchUltimaFactura = async () => {
       if (loadingUser) return;
       if (!user) {
