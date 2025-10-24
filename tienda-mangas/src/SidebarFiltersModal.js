@@ -1,20 +1,25 @@
 // SidebarFiltersModal.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import SideBarFilters from './SideBarFilters';
 
 const SidebarFiltersModal = ({ show, onClose, onFilterChange, initialFilters = {} }) => {
   const [localFilters, setLocalFilters] = useState(initialFilters);
+  const openedRef = useRef(false);
 
+  // Cuando show pasa de false -> true, inicializamos localFilters con snapshot
   useEffect(() => {
-    if (show) {
-      // Inicializamos con los filtros del padre cada vez que se abre el modal
+    if (show && !openedRef.current) {
       setLocalFilters(initialFilters || {});
+      openedRef.current = true;
     }
-  }, [show, initialFilters]);
+    if (!show) {
+      // limpiamos la marca para la próxima apertura
+      openedRef.current = false;
+    }
+  }, [show]); // NOTA: intentionally NOT including initialFilters here
 
   const handleApply = () => {
-    // Notificamos al padre solo cuando se aprieta "Aplicar filtros"
     if (typeof onFilterChange === 'function') {
       onFilterChange(localFilters);
     }
@@ -22,7 +27,7 @@ const SidebarFiltersModal = ({ show, onClose, onFilterChange, initialFilters = {
   };
 
   const handleClose = () => {
-    // Restauramos local y cerramos sin aplicar
+    // no re-sincronizamos con parent aquí: descartamos cambios locales
     setLocalFilters(initialFilters || {});
     if (typeof onClose === 'function') onClose();
   };
@@ -42,6 +47,7 @@ const SidebarFiltersModal = ({ show, onClose, onFilterChange, initialFilters = {
       </Modal.Header>
 
       <Modal.Body className="bg-dark text-white">
+        {/* Pasamos el estado local y el setter local; no pasamos initialFilters directo */}
         <SideBarFilters
           filters={localFilters}
           onLocalChange={(f) => setLocalFilters(f)}
