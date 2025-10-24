@@ -163,10 +163,6 @@ const MainApp = () => {
             <span className="ms-2">Mangaka Baka Shop</span>
           </Navbar.Brand>
 
-          {/* Botón móvil para filtros */}
-          <Button variant="primary" className="d-md-none" onClick={() => setShowFiltersModal(true)}>
-            Filtros
-          </Button>
 
           {/* Buscador escritorio */}
           <Form
