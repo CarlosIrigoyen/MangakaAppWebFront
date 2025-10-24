@@ -185,9 +185,9 @@ const MainApp = () => {
             <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
             <span className="ms-2">Mangaka Baka Shop</span>
           </Navbar.Brand>
+          {/* 🔹 Eliminamos el botón hamburguesa, mantenemos solo el contenido del collapse */}
+<Navbar.Collapse id="basic-navbar-nav" className="d-none d-lg-flex">
 
-          <Navbar.Toggle aria-controls="basic-navbar-nav" onClick={() => setNavExpanded(prev => !prev)} />
-          <Navbar.Collapse id="basic-navbar-nav">
             {/* Buscador escritorio */}
             <Form
               className="d-none d-lg-flex mx-auto"
