@@ -1,45 +1,19 @@
 // SidebarFiltersModal.js
-import React, { useEffect, useState, useRef } from 'react';
+import React from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import SideBarFilters from './SideBarFilters';
 
-const SidebarFiltersModal = ({ show, onClose, onFilterChange, initialFilters = {} }) => {
-  const [localFilters, setLocalFilters] = useState(() => ({ ...initialFilters }));
-  const openedRef = useRef(false);
-
-  // Cuando se abre el modal POR PRIMERA VEZ, tomamos un snapshot de initialFilters.
-  // No incluimos initialFilters en deps para evitar reseteos mientras el modal está abierto.
-  useEffect(() => {
-    if (show && !openedRef.current) {
-      setLocalFilters({ ...initialFilters });
-      openedRef.current = true;
-    }
-    if (!show) {
-      openedRef.current = false;
-    }
-  }, [show]);
-
-  // Aplica: NOTIFICAMOS al padre SOLO desde aquí
+const SidebarFiltersModal = ({ show, onClose, onFilterChange }) => {
   const handleApply = () => {
-    if (typeof onFilterChange === 'function') {
-      onFilterChange(localFilters);
-    } else {
-      // si quieres, descomenta para debug:
-      // console.warn('SidebarFiltersModal: onFilterChange no es función');
-    }
-    if (typeof onClose === 'function') onClose();
-  };
-
-  const handleClose = () => {
-    // descartamos cambios locales y cerramos (no aplicamos)
-    setLocalFilters({ ...initialFilters });
-    if (typeof onClose === 'function') onClose();
+    // Aquí podés hacer algo como guardar los filtros aplicados
+    // o simplemente cerrar manualmente el modal
+    onClose();
   };
 
   return (
     <Modal
       show={show}
-      onHide={handleClose}
+      onHide={onClose}
       centered
       size="lg"
       backdrop="static"
@@ -51,20 +25,15 @@ const SidebarFiltersModal = ({ show, onClose, onFilterChange, initialFilters = {
       </Modal.Header>
 
       <Modal.Body className="bg-dark text-white">
-        {/* IMPORTANTE: pasamos sólo onLocalChange al componente de filtros */}
-        <SideBarFilters
-          filters={localFilters}
-          onLocalChange={(f) => {
-            if (f && typeof f === 'object') setLocalFilters(f);
-          }}
-        />
+        {/* 🔹 El componente de filtros sigue activo sin cerrar el modal */}
+        <SideBarFilters onFilterChange={onFilterChange} />
       </Modal.Body>
 
       <Modal.Footer className="bg-dark border-secondary">
-        <Button type="button" variant="secondary" onClick={handleClose}>
+        <Button variant="secondary" onClick={onClose}>
           Cerrar
         </Button>
-        <Button type="button" variant="primary" onClick={handleApply}>
+        <Button variant="primary" onClick={handleApply}>
           Aplicar filtros
         </Button>
       </Modal.Footer>
