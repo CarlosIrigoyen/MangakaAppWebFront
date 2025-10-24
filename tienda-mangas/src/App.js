@@ -1,14 +1,13 @@
 // App.js
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Link,
-  useNavigate,
-  useLocation
+  useNavigate
 } from 'react-router-dom';
-import { Navbar, Container, Form, Button, Dropdown } from 'react-bootstrap';
+import { Navbar, Container, Form, Button } from 'react-bootstrap';
 import { FaShoppingCart, FaUserCircle } from 'react-icons/fa';
 
 import TomoList from './TomoList';
@@ -58,23 +57,20 @@ const MainApp = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [selectedTomo, setSelectedTomo] = useState(null);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
+  const [navExpanded, setNavExpanded] = useState(false);
 
-  // === CARGA INICIAL DE TOMOS ===
-  useEffect(() => {
-    fetchTomos(filters, 1);
-  }, []);
-
-  const fetchTomos = async (filters, page = 1) => {
+  // memoiza fetchTomos para mantener la referencia estable y evitar re-renders innecesarios
+  const fetchTomos = useCallback(async (filtersParam, page = 1) => {
     const params = new URLSearchParams();
-    if (filters.authors.length) params.append('authors', filters.authors.join(','));
-    if (filters.languages.length) params.append('languages', filters.languages.join(','));
-    if (filters.mangas.length) params.append('mangas', filters.mangas.join(','));
-    if (filters.editorials.length) params.append('editorials', filters.editorials.join(','));
-    if (filters.searchText) params.append('search', filters.searchText);
-    if (filters.applyPriceFilter && filters.minPrice && filters.maxPrice) {
+    if (filtersParam.authors?.length) params.append('authors', filtersParam.authors.join(','));
+    if (filtersParam.languages?.length) params.append('languages', filtersParam.languages.join(','));
+    if (filtersParam.mangas?.length) params.append('mangas', filtersParam.mangas.join(','));
+    if (filtersParam.editorials?.length) params.append('editorials', filtersParam.editorials.join(','));
+    if (filtersParam.searchText) params.append('search', filtersParam.searchText);
+    if (filtersParam.applyPriceFilter && filtersParam.minPrice && filtersParam.maxPrice) {
       params.append('applyPriceFilter', 1);
-      params.append('minPrice', filters.minPrice);
-      params.append('maxPrice', filters.maxPrice);
+      params.append('minPrice', filtersParam.minPrice);
+      params.append('maxPrice', filtersParam.maxPrice);
     }
     params.append('page', page);
 
@@ -90,14 +86,32 @@ const MainApp = () => {
     } catch (error) {
       console.error('Error al cargar tomos:', error);
     }
-  };
+  }, []);
+
+  // carga inicial
+  useEffect(() => {
+    fetchTomos(filters, 1);
+  }, [fetchTomos]); // fetchTomos está memoizado
 
   const handlePageChange = (page) => fetchTomos(filters, page);
-  const handleSearch = () => fetchTomos({ ...filters, searchText: searchQuery }, 1);
+
+  const handleSearch = () => {
+    const f = { ...filters, searchText: searchQuery };
+    setFilters(f);
+    fetchTomos(f, 1);
+    setNavExpanded(false);
+  };
+
   const handleShowInfo = (tomo) => {
     setSelectedTomo(tomo);
     setShowInfoModal(true);
   };
+
+  // handler que recibe los filtros cuando el usuario aprieta "Aplicar filtros" en el modal
+  const handleFilterChange = useCallback((f) => {
+    setFilters(f);
+    fetchTomos(f, 1);
+  }, [fetchTomos]);
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
@@ -144,6 +158,7 @@ const MainApp = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+    setNavExpanded(false);
   };
 
   if (loadingUser) {
@@ -156,58 +171,67 @@ const MainApp = () => {
 
   return (
     <div className="bg-dark text-white min-vh-100">
-      <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light">
+      <Navbar
+        bg="dark"
+        variant="dark"
+        expand="lg"
+        expanded={navExpanded}
+        onToggle={() => setNavExpanded(prev => !prev)}
+        className="border-bottom border-light"
+      >
         <Container fluid>
-          <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
+          <Navbar.Brand as={Link} to="/" className="d-flex align-items-center" onClick={() => setNavExpanded(false)}>
             <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
             <span className="ms-2">Mangaka Baka Shop</span>
           </Navbar.Brand>
 
+          <Navbar.Toggle aria-controls="basic-navbar-nav" onClick={() => setNavExpanded(prev => !prev)} />
+          <Navbar.Collapse id="basic-navbar-nav">
+            {/* Buscador escritorio */}
+            <Form
+              className="d-none d-lg-flex mx-auto"
+              style={{ width: '50%' }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSearch();
+              }}
+            >
+              <Form.Control
+                type="search"
+                placeholder="Buscar"
+                className="me-2"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Button type="button" variant="outline-light" onClick={handleSearch}>
+                Buscar
+              </Button>
+            </Form>
 
-          {/* Buscador escritorio */}
-          <Form
-            className="d-none d-lg-flex mx-auto"
-            style={{ width: '50%' }}
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSearch();
-            }}
-          >
-            <Form.Control
-              type="search"
-              placeholder="Buscar"
-              className="me-2"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Button variant="outline-light" onClick={handleSearch}>
-              Buscar
-            </Button>
-          </Form>
-
-          {/* Controles escritorio */}
-          <div className="d-none d-lg-flex align-items-center">
-            {user ? (
-              <>
-                <span className="me-2">Hola, {user.nombre}</span>
-                <Button variant="outline-light" as={Link} to="/cart">
-                  <FaShoppingCart /> {cartCount}
-                </Button>
-                <Button variant="danger" className="ms-2" onClick={handleLogout}>
-                  Cerrar Sesión
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>
-                  Registro
-                </Button>
-                <Button variant="secondary" onClick={() => setShowLogin(true)}>
-                  Login
-                </Button>
-              </>
-            )}
-          </div>
+            {/* Controles escritorio */}
+            <div className="d-none d-lg-flex align-items-center ms-auto">
+              {user ? (
+                <>
+                  <span className="me-2">Hola, {user.nombre}</span>
+                  <Button type="button" variant="outline-light" as={Link} to="/cart" onClick={() => setNavExpanded(false)}>
+                    <FaShoppingCart /> {cartCount}
+                  </Button>
+                  <Button type="button" variant="danger" className="ms-2" onClick={() => { handleLogout(); }}>
+                    Cerrar Sesión
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" variant="primary" className="me-2" onClick={() => { setShowRegister(true); }}>
+                    Registro
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => { setShowLogin(true); }}>
+                    Login
+                  </Button>
+                </>
+              )}
+            </div>
+          </Navbar.Collapse>
         </Container>
       </Navbar>
 
@@ -215,7 +239,9 @@ const MainApp = () => {
         {/* SIDEBAR ESCRITORIO */}
         <div className="d-none d-md-block">
           <SideBarFilters
+            filters={filters}
             onFilterChange={(f) => {
+              // modo desktop: aplica al instante
               setFilters(f);
               fetchTomos(f, 1);
             }}
@@ -229,7 +255,7 @@ const MainApp = () => {
               <FaUserCircle size={26} className="me-2" />
               <strong>{user ? `Hola, ${user.nombre}` : 'Bienvenido'}</strong>
             </div>
-            <Button size="sm" variant="light" onClick={() => navigate('/cart')}>
+            <Button type="button" size="sm" variant="light" onClick={() => { navigate('/cart'); setNavExpanded(false); }}>
               <FaShoppingCart /> {cartCount}
             </Button>
           </div>
@@ -237,19 +263,19 @@ const MainApp = () => {
           <div className="d-flex justify-content-center gap-2">
             {!user ? (
               <>
-                <Button size="sm" variant="primary" onClick={() => setShowRegister(true)}>
+                <Button type="button" size="sm" variant="primary" onClick={() => setShowRegister(true)}>
                   Registro
                 </Button>
-                <Button size="sm" variant="outline-light" onClick={() => setShowLogin(true)}>
+                <Button type="button" size="sm" variant="outline-light" onClick={() => setShowLogin(true)}>
                   Login
                 </Button>
               </>
             ) : (
-              <Button size="sm" variant="danger" onClick={handleLogout}>
+              <Button type="button" size="sm" variant="danger" onClick={handleLogout}>
                 Salir
               </Button>
             )}
-            <Button size="sm" variant="warning" onClick={() => setShowFiltersModal(true)}>
+            <Button type="button" size="sm" variant="warning" onClick={() => setShowFiltersModal(true)}>
               Filtros
             </Button>
           </div>
@@ -267,15 +293,12 @@ const MainApp = () => {
         </div>
       </div>
 
-      {/* MODAL DE FILTROS */}
+      {/* MODAL DE FILTROS: pasamos initialFilters para inicializar el modal */}
       <SidebarFiltersModal
         show={showFiltersModal}
         onClose={() => setShowFiltersModal(false)}
-        onFilterChange={(f) => {
-          setFilters(f);
-          fetchTomos(f, 1);
-          
-        }}
+        onFilterChange={handleFilterChange}
+        initialFilters={filters}
       />
 
       {/* MODALES LOGIN / REGISTER / INFO */}
@@ -314,5 +337,3 @@ const App = () => (
 );
 
 export default App;
-
-
