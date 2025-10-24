@@ -1,70 +1,129 @@
-// SidebarFiltersModal.js
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
-import SideBarFilters from './SideBarFilters';
+import SideBarFiltersContent from './SideBarFiltersContent';
 
-/**
- * Modal de filtros: solo muestra los controles de filtrado.
- * No incluye botones de login, logout ni registro.
- * El modal aplica los filtros al presionar "Aplicar filtros".
- */
-const SidebarFiltersModal = ({ show, onClose, onFilterChange, initialFilters = {} }) => {
-  const [localFilters, setLocalFilters] = useState(() => ({ ...initialFilters }));
-  const openedRef = useRef(false);
+const INITIAL_FILTERS = {
+  author: null,
+  language: null,
+  manga: null,
+  editorial: null,
+  minPrice: '',
+  maxPrice: '',
+  searchText: '',
+  applyPriceFilter: 0,
+};
 
-  // Cuando se abre el modal, inicializamos una copia local de los filtros actuales.
+const REACT_URL_FILTERS = `${process.env.REACT_APP_API_URL}/filters`;
+
+const SidebarFiltersModal = ({ show, onClose, onApplyFilters }) => {
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const [availableFilters, setAvailableFilters] = useState({
+    authors: [],
+    languages: [],
+    mangas: [],
+    editorials: [],
+  });
+  const [openSections, setOpenSections] = useState({
+    authors: true,
+    languages: true,
+    mangas: true,
+    editorials: true,
+    price: true,
+  });
+
+  // 🔹 Cargar filtros disponibles desde el backend
   useEffect(() => {
-    if (show && !openedRef.current) {
-      setLocalFilters({ ...initialFilters });
-      openedRef.current = true;
+    async function fetchFilters() {
+      try {
+        const response = await fetch(REACT_URL_FILTERS);
+        const json = await response.json();
+        setAvailableFilters(json);
+      } catch (error) {
+        console.error('Error cargando filtros:', error);
+      }
     }
-    if (!show) {
-      openedRef.current = false;
-    }
-  }, [show, initialFilters]);
+    fetchFilters();
+  }, []);
 
-  // Aplicar los filtros: notificamos al padre (App.js)
-  const handleApply = () => {
-    if (typeof onFilterChange === 'function') {
-      onFilterChange(localFilters);
-    }
-    if (typeof onClose === 'function') onClose();
+  // 🔹 Funciones de interacción
+  const handleExclusiveChange = (field, value) => {
+    const updatedValue = filters[field] === value ? null : value;
+    setFilters({ ...filters, [field]: updatedValue });
   };
 
-  // Cerrar modal sin aplicar
-  const handleClose = () => {
-    setLocalFilters({ ...initialFilters });
-    if (typeof onClose === 'function') onClose();
+  const handlePriceInputChange = (e) => {
+    const { name, value } = e.target;
+    if (/^\d*$/.test(value)) setFilters({ ...filters, [name]: value });
+  };
+
+  const applyPrice = () => setFilters({ ...filters, applyPriceFilter: 1 });
+  const clearPriceFilter = () =>
+    setFilters({ ...filters, applyPriceFilter: 0, minPrice: '', maxPrice: '' });
+
+  const clearAllFilters = () => setFilters(INITIAL_FILTERS);
+
+  const toggleSection = (section) =>
+    setOpenSections({ ...openSections, [section]: !openSections[section] });
+
+  // 🔹 Aplicar filtros y cerrar modal
+  const handleApply = () => {
+    const transformedFilters = {
+      authors: filters.author ? [filters.author] : [],
+      languages: filters.language ? [filters.language] : [],
+      mangas: filters.manga ? [filters.manga] : [],
+      editorials: filters.editorial ? [filters.editorial] : [],
+      searchText: filters.searchText,
+      sortBy: 'titulo,numero_tomo',
+    };
+
+    if (
+      filters.applyPriceFilter === 1 &&
+      filters.minPrice !== '' &&
+      filters.maxPrice !== ''
+    ) {
+      transformedFilters.applyPriceFilter = 1;
+      transformedFilters.minPrice = parseFloat(filters.minPrice).toFixed(2);
+      transformedFilters.maxPrice = parseFloat(filters.maxPrice).toFixed(2);
+    }
+
+    if (onApplyFilters && typeof onApplyFilters === 'function') {
+      onApplyFilters(transformedFilters);
+    }
+
+    onClose(); // cerrar el modal
   };
 
   return (
     <Modal
       show={show}
-      onHide={handleClose}
+      onHide={onClose}
       centered
       size="lg"
       backdrop="static"
       fullscreen="sm-down"
       className="filters-modal"
     >
-      {/* Header */}
       <Modal.Header closeButton className="bg-dark text-white border-secondary">
         <Modal.Title>Filtros</Modal.Title>
       </Modal.Header>
 
-      {/* Cuerpo del modal: solo los filtros */}
       <Modal.Body className="bg-dark text-white">
-        <SideBarFilters
-          filters={localFilters}
-          onLocalChange={(f) => {
-            if (f && typeof f === 'object') setLocalFilters(f);
-          }}
+        {/* 🔹 Solo filtros, sin botones de sesión */}
+        <SideBarFiltersContent
+          filters={filters}
+          availableFilters={availableFilters}
+          openSections={openSections}
+          toggleSection={toggleSection}
+          handleExclusiveChange={handleExclusiveChange}
+          handlePriceInputChange={handlePriceInputChange}
+          applyPrice={applyPrice}
+          clearPriceFilter={clearPriceFilter}
+          clearAllFilters={clearAllFilters}
         />
       </Modal.Body>
 
-      {/* Footer con botones de acción */}
       <Modal.Footer className="bg-dark border-secondary">
-        <Button variant="secondary" onClick={handleClose}>
+        <Button variant="secondary" onClick={onClose}>
           Cerrar
         </Button>
         <Button variant="primary" onClick={handleApply}>
