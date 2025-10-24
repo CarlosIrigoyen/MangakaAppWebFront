@@ -1,19 +1,36 @@
 // SidebarFiltersModal.js
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import SideBarFilters from './SideBarFilters';
 
-const SidebarFiltersModal = ({ show, onClose, onFilterChange }) => {
+const SidebarFiltersModal = ({ show, onClose, onFilterChange, initialFilters = {} }) => {
+  const [localFilters, setLocalFilters] = useState(initialFilters);
+
+  useEffect(() => {
+    if (show) {
+      // Inicializamos con los filtros del padre cada vez que se abre el modal
+      setLocalFilters(initialFilters || {});
+    }
+  }, [show, initialFilters]);
+
   const handleApply = () => {
-    // Aquí podés hacer algo como guardar los filtros aplicados
-    // o simplemente cerrar manualmente el modal
-    onClose();
+    // Notificamos al padre solo cuando se aprieta "Aplicar filtros"
+    if (typeof onFilterChange === 'function') {
+      onFilterChange(localFilters);
+    }
+    if (typeof onClose === 'function') onClose();
+  };
+
+  const handleClose = () => {
+    // Restauramos local y cerramos sin aplicar
+    setLocalFilters(initialFilters || {});
+    if (typeof onClose === 'function') onClose();
   };
 
   return (
     <Modal
       show={show}
-      onHide={onClose}
+      onHide={handleClose}
       centered
       size="lg"
       backdrop="static"
@@ -25,15 +42,17 @@ const SidebarFiltersModal = ({ show, onClose, onFilterChange }) => {
       </Modal.Header>
 
       <Modal.Body className="bg-dark text-white">
-        {/* 🔹 El componente de filtros sigue activo sin cerrar el modal */}
-        <SideBarFilters onFilterChange={onFilterChange} />
+        <SideBarFilters
+          filters={localFilters}
+          onLocalChange={(f) => setLocalFilters(f)}
+        />
       </Modal.Body>
 
       <Modal.Footer className="bg-dark border-secondary">
-        <Button variant="secondary" onClick={onClose}>
+        <Button type="button" variant="secondary" onClick={handleClose}>
           Cerrar
         </Button>
-        <Button variant="primary" onClick={handleApply}>
+        <Button type="button" variant="primary" onClick={handleApply}>
           Aplicar filtros
         </Button>
       </Modal.Footer>
