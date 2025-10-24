@@ -215,30 +215,34 @@ const MainApp = () => {
       </Navbar>
 
       <div className="d-flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
-        {/* Sidebar desktop (mantengo tu componente original) */}
-        <SideBarFilters
-          onFilterChange={f => handleFilterChange(f, 1)}
-          setShowLogin={setShowLogin}
-          setShowRegister={setShowRegister}
-        />
+        {/* Sidebar desktop: oculto en pantallas móviles */}
+        <div className="d-none d-md-block">
+          <SideBarFilters
+            onFilterChange={f => handleFilterChange(f, 1)}
+            setShowLogin={setShowLogin}
+            setShowRegister={setShowRegister}
+          />
+        </div>
 
-        {/* Lista de tomos */}
-        <TomoList
-          tomos={tomos}
-          pagination={pagination}
-          onPageChange={handlePageChange}
-          onShowInfo={handleShowInfo}
-          isLoggedIn={!!user}
-          openCartFromMobile={() => navigate('/cart')}
-        />
+        {/* Lista de tomos (ocupa todo el ancho en móvil, y el espacio restante en desktop) */}
+        <div className="flex-grow-1">
+          <TomoList
+            tomos={tomos}
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onShowInfo={handleShowInfo}
+            isLoggedIn={!!user}
+            openCartFromMobile={() => navigate('/cart')}
+          />
+        </div>
       </div>
 
-      {/* Modal de filtros estilo MercadoLibre (móvil) */}
+      {/* Modal de filtros estilo MercadoLibre (móvil y opcional en escritorio) */}
       <SidebarFiltersModal
         show={filtersOpen}
         onClose={() => setFiltersOpen(false)}
         onFilterChange={(f) => { handleFilterChange(f, 1); setFiltersOpen(false); }}
-        setShowLogin={(v) => { setShowRegister(false); setShowLogin(v); }} // solo para compatibilidad (puedes ajustarlo)
+        setShowLogin={(v) => { setShowRegister(false); setShowLogin(v); }} // sólo para compatibilidad
         setShowRegister={(v) => { setShowLogin(false); setShowRegister(v); }}
         resultsCount={pagination?.total || 0}
       />
@@ -283,4 +287,3 @@ const App = () => (
 );
 
 export default App;
-
