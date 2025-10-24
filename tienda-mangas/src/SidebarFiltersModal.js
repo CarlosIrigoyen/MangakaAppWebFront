@@ -1,18 +1,26 @@
-import React, { useEffect, useState } from 'react';
+// SidebarFiltersModal.jsx
+import React, { useEffect, useState, useContext } from 'react';
 import PropTypes from 'prop-types';
 import { FiX } from 'react-icons/fi';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaShoppingCart, FaUserCircle } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { UserContext } from './UserContext';
+import { CartContext } from './CartContext';
 
 const API_FILTERS = `${process.env.REACT_APP_API_URL}/filters`;
 
 const SidebarFiltersModal = ({
   show,
   onClose,
-  onFilterChange,     // función que espera los filtros transformados (igual que tu handleFilterChange)
+  onFilterChange,
   setShowLogin,
   setShowRegister,
-  resultsCount = 0    // opcional: cantidad que se muestra en el botón "Ver X resultados"
+  resultsCount = 0
 }) => {
+  const navigate = useNavigate();
+  const { user, logout } = useContext(UserContext);
+  const { cart } = useContext(CartContext);
+
   const [availableFilters, setAvailableFilters] = useState({
     authors: [], languages: [], mangas: [], editorials: []
   });
@@ -28,7 +36,7 @@ const SidebarFiltersModal = ({
     searchText: ''
   });
 
-  const [activeTab, setActiveTab] = useState('Destacados'); // nombre de tab activo
+  const [activeTab, setActiveTab] = useState('Destacados'); // controla la vista derecha
 
   useEffect(() => {
     async function fetchFilters() {
@@ -94,50 +102,79 @@ const SidebarFiltersModal = ({
     <>
       <div className="sfm-backdrop" onClick={onClose} />
 
-      <div className="sfm-modal" role="dialog" aria-modal="true">
+      <div className="sfm-modal" role="dialog" aria-modal="true" aria-label="Filtros">
         <div className="sfm-header">
-          <div className="sfm-title">Filtros</div>
-          <button className="btn sfm-close" onClick={onClose}><FiX size={18} /></button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <FaSearch />
+            <div className="sfm-title">Filtros</div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button className="btn sfm-close" onClick={onClose}><FiX size={18} /></button>
+          </div>
         </div>
 
         <div className="sfm-body">
+          {/* Left tabs */}
           <aside className="sfm-left">
-            {/* Tabs verticales */}
             <nav className="sfm-tabs">
               <button className={`sfm-tab ${activeTab === 'Destacados' ? 'active' : ''}`} onClick={() => setActiveTab('Destacados')}>Destacados</button>
               <button className={`sfm-tab ${activeTab === 'Categorias' ? 'active' : ''}`} onClick={() => setActiveTab('Categorias')}>Categorías</button>
               <button className={`sfm-tab ${activeTab === 'Condicion' ? 'active' : ''}`} onClick={() => setActiveTab('Condicion')}>Condición</button>
-              <button className={`sfm-tab ${activeTab === 'Mejores' ? 'active' : ''}`} onClick={() => setActiveTab('Mejores')}>Mejores vendedores</button>
               <button className={`sfm-tab ${activeTab === 'Precio' ? 'active' : ''}`} onClick={() => setActiveTab('Precio')}>Precio</button>
-              <button className={`sfm-tab ${activeTab === 'Cuotas' ? 'active' : ''}`} onClick={() => setActiveTab('Cuotas')}>Cuotas</button>
-              <button className={`sfm-tab ${activeTab === 'Envios' ? 'active' : ''}`} onClick={() => setActiveTab('Envios')}>Envíos</button>
-              <button className={`sfm-tab ${activeTab === 'Retiro' ? 'active' : ''}`} onClick={() => setActiveTab('Retiro')}>Retiro gratis</button>
+              <button className={`sfm-tab ${activeTab === 'Autores' ? 'active' : ''}`} onClick={() => setActiveTab('Autores')}>Autores</button>
+              <button className={`sfm-tab ${activeTab === 'Idiomas' ? 'active' : ''}`} onClick={() => setActiveTab('Idiomas')}>Idiomas</button>
+              <button className={`sfm-tab ${activeTab === 'Editoriales' ? 'active' : ''}`} onClick={() => setActiveTab('Editoriales')}>Editoriales</button>
             </nav>
           </aside>
 
+          {/* Right content */}
           <section className="sfm-right">
-            {/* Cada sección — muestra según activeTab */}
+            {/* --- PANEL SUPERIOR: Bienvenida + Carrito + Auth (visible en modal también) --- */}
+            <div className="mb-3 p-2 bg-light rounded" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <FaUserCircle size={28} />
+                <div>
+                  {user ? <div className="fw-bold">Hola, {user.nombre}</div> : <div className="fw-bold">Bienvenido</div>}
+                  <small className="text-muted">{cart.length} artículos en el carrito</small>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                {user ? (
+                  <>
+                    <button
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => { onClose(); navigate('/cart'); }}
+                    >
+                      <FaShoppingCart /> Carrito ({cart.length})
+                    </button>
+                    <button className="btn btn-sm btn-danger" onClick={() => { logout(); onClose(); }}>
+                      Cerrar sesión
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn btn-primary btn-sm" onClick={() => { setShowRegister(true); }}>
+                      Registrarse
+                    </button>
+                    <button className="btn btn-outline-secondary btn-sm" onClick={() => { setShowLogin(true); }}>
+                      Iniciar sesión
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* CONTENIDO SEGÚN TAB */}
             {activeTab === 'Destacados' && (
               <div className="sfm-section">
                 <h6>Destacados</h6>
-                <div className="sfm-row">
-                  <label className="sfm-switch">
-                    <input type="checkbox" disabled /> {/* ejemplo: puede ser funcional */}
-                    <span>Mejor precio en cuotas</span>
-                  </label>
-                </div>
-
-                <div className="sfm-row">
-                  <label className="sfm-switch">
-                    <input type="checkbox" disabled />
-                    <span>Enviado por FULL</span>
-                  </label>
-                </div>
+                <p className="small text-muted">Opciones destacadas. (puedes añadir switches reales aquí)</p>
 
                 <div className="sfm-divider" />
 
-                <h6>Categorías</h6>
-                {/* usamos availableFilters.mangas como ejemplo de categorías */}
+                <h6>Categorías (Mangas)</h6>
                 <div className="sfm-list">
                   {availableFilters.mangas && availableFilters.mangas.map(m => (
                     <div key={m.id} className="form-check sfm-item">
@@ -145,6 +182,22 @@ const SidebarFiltersModal = ({
                         checked={filters.manga === m.id}
                         onChange={() => toggleExclusive('manga', m.id)} />
                       <label className="form-check-label" htmlFor={`m-${m.id}`}>{m.titulo}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Categorias' && (
+              <div className="sfm-section">
+                <h6>Categorías</h6>
+                <div className="sfm-list">
+                  {availableFilters.mangas && availableFilters.mangas.map(m => (
+                    <div key={m.id} className="form-check sfm-item">
+                      <input className="form-check-input" type="radio" name="manga2" id={`m2-${m.id}`}
+                        checked={filters.manga === m.id}
+                        onChange={() => toggleExclusive('manga', m.id)} />
+                      <label className="form-check-label" htmlFor={`m2-${m.id}`}>{m.titulo}</label>
                     </div>
                   ))}
                 </div>
@@ -169,24 +222,56 @@ const SidebarFiltersModal = ({
               </div>
             )}
 
-            {activeTab === 'Categorias' && (
+            {activeTab === 'Autores' && (
               <div className="sfm-section">
-                <h6>Categorías</h6>
+                <h6>Autores</h6>
                 <div className="sfm-list">
-                  {availableFilters.mangas && availableFilters.mangas.map(m => (
-                    <div key={m.id} className="form-check sfm-item">
-                      <input className="form-check-input" type="radio" name="manga2" id={`m2-${m.id}`}
-                        checked={filters.manga === m.id}
-                        onChange={() => toggleExclusive('manga', m.id)} />
-                      <label className="form-check-label" htmlFor={`m2-${m.id}`}>{m.titulo}</label>
+                  {availableFilters.authors && availableFilters.authors.map(a => (
+                    <div key={a.id} className="form-check sfm-item">
+                      <input className="form-check-input" type="radio" name="author" id={`a-${a.id}`}
+                        checked={filters.author === a.id}
+                        onChange={() => toggleExclusive('author', a.id)} />
+                      <label className="form-check-label" htmlFor={`a-${a.id}`}>{a.nombre} {a.apellido}</label>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* placeholder sections (Condicion, Mejores, etc) */}
-            {['Condicion','Mejores','Cuotas','Envios','Retiro','Mejores'].includes(activeTab) && (
+            {activeTab === 'Idiomas' && (
+              <div className="sfm-section">
+                <h6>Idiomas</h6>
+                <div className="sfm-list">
+                  {availableFilters.languages && availableFilters.languages.map((lang, idx) => (
+                    <div key={idx} className="form-check sfm-item">
+                      <input className="form-check-input" type="radio" name="language" id={`lang-${idx}`}
+                        checked={filters.language === lang}
+                        onChange={() => toggleExclusive('language', lang)} />
+                      <label className="form-check-label" htmlFor={`lang-${idx}`}>{lang}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Editoriales' && (
+              <div className="sfm-section">
+                <h6>Editoriales</h6>
+                <div className="sfm-list">
+                  {availableFilters.editorials && availableFilters.editorials.map(e => (
+                    <div key={e.id} className="form-check sfm-item">
+                      <input className="form-check-input" type="radio" name="editorial" id={`ed-${e.id}`}
+                        checked={filters.editorial === e.id}
+                        onChange={() => toggleExclusive('editorial', e.id)} />
+                      <label className="form-check-label" htmlFor={`ed-${e.id}`}>{e.nombre}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* placeholder para secciones pequeñas */}
+            {['Condicion','Mejores','Cuotas','Envios','Retiro'].includes(activeTab) && (
               <div className="sfm-section">
                 <h6>{activeTab}</h6>
                 <p className="small text-muted">Opciones de {activeTab} (aquí podés agregar controles similares)</p>
@@ -216,3 +301,4 @@ SidebarFiltersModal.propTypes = {
 };
 
 export default SidebarFiltersModal;
+
