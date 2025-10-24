@@ -59,7 +59,7 @@ const MainApp = () => {
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [navExpanded, setNavExpanded] = useState(false);
 
-  // memoiza fetchTomos para mantener la referencia estable y evitar re-renders innecesarios
+  // fetchTomos memoizado para referencia estable
   const fetchTomos = useCallback(async (filtersParam, page = 1) => {
     const params = new URLSearchParams();
     if (filtersParam.authors?.length) params.append('authors', filtersParam.authors.join(','));
@@ -107,7 +107,7 @@ const MainApp = () => {
     setShowInfoModal(true);
   };
 
-  // handler que recibe los filtros cuando el usuario aprieta "Aplicar filtros" en el modal
+  // handler que recibe filtros desde el modal (cuando el usuario aprieta "Aplicar filtros")
   const handleFilterChange = useCallback((f) => {
     setFilters(f);
     fetchTomos(f, 1);
@@ -236,12 +236,12 @@ const MainApp = () => {
       </Navbar>
 
       <div className="d-flex flex-column flex-md-row" style={{ minHeight: 'calc(100vh - 56px)' }}>
-        {/* SIDEBAR ESCRITORIO */}
+        {/* SIDEBAR ESCRITORIO (opcional: puede aplicar al instante o usar su propio "Aplicar") */}
         <div className="d-none d-md-block">
           <SideBarFilters
             filters={filters}
             onFilterChange={(f) => {
-              // modo desktop: aplica al instante
+              // EN DESKTOP: si quieres aplicar al instante, aquí se hace
               setFilters(f);
               fetchTomos(f, 1);
             }}
@@ -293,11 +293,11 @@ const MainApp = () => {
         </div>
       </div>
 
-      {/* MODAL DE FILTROS: pasamos initialFilters para inicializar el modal */}
+      {/* MODAL DE FILTROS: el modal aplica los filtros al apretar "Aplicar filtros" */}
       <SidebarFiltersModal
         show={showFiltersModal}
         onClose={() => setShowFiltersModal(false)}
-        onFilterChange={handleFilterChange}
+        onFilterChange={handleFilterChange} // <- el modal llamará a esta función
         initialFilters={filters}
       />
 
