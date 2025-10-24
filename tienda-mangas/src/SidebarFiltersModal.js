@@ -4,31 +4,35 @@ import { Modal, Button } from 'react-bootstrap';
 import SideBarFilters from './SideBarFilters';
 
 const SidebarFiltersModal = ({ show, onClose, onFilterChange, initialFilters = {} }) => {
-  const [localFilters, setLocalFilters] = useState(initialFilters);
+  const [localFilters, setLocalFilters] = useState(() => ({ ...initialFilters }));
   const openedRef = useRef(false);
 
-  // Cuando show pasa de false -> true, inicializamos localFilters con snapshot
+  // Cuando se abre el modal POR PRIMERA VEZ, tomamos un snapshot de initialFilters.
+  // No incluimos initialFilters en deps para evitar reseteos mientras el modal está abierto.
   useEffect(() => {
     if (show && !openedRef.current) {
-      setLocalFilters(initialFilters || {});
+      setLocalFilters({ ...initialFilters });
       openedRef.current = true;
     }
     if (!show) {
-      // limpiamos la marca para la próxima apertura
       openedRef.current = false;
     }
-  }, [show]); // NOTA: intentionally NOT including initialFilters here
+  }, [show]);
 
+  // Aplica: NOTIFICAMOS al padre SOLO desde aquí
   const handleApply = () => {
     if (typeof onFilterChange === 'function') {
       onFilterChange(localFilters);
+    } else {
+      // si quieres, descomenta para debug:
+      // console.warn('SidebarFiltersModal: onFilterChange no es función');
     }
     if (typeof onClose === 'function') onClose();
   };
 
   const handleClose = () => {
-    // no re-sincronizamos con parent aquí: descartamos cambios locales
-    setLocalFilters(initialFilters || {});
+    // descartamos cambios locales y cerramos (no aplicamos)
+    setLocalFilters({ ...initialFilters });
     if (typeof onClose === 'function') onClose();
   };
 
@@ -47,10 +51,12 @@ const SidebarFiltersModal = ({ show, onClose, onFilterChange, initialFilters = {
       </Modal.Header>
 
       <Modal.Body className="bg-dark text-white">
-        {/* Pasamos el estado local y el setter local; no pasamos initialFilters directo */}
+        {/* IMPORTANTE: pasamos sólo onLocalChange al componente de filtros */}
         <SideBarFilters
           filters={localFilters}
-          onLocalChange={(f) => setLocalFilters(f)}
+          onLocalChange={(f) => {
+            if (f && typeof f === 'object') setLocalFilters(f);
+          }}
         />
       </Modal.Body>
 
