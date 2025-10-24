@@ -5,22 +5,22 @@ import {
   Routes,
   Route,
   Link,
-  useLocation,
-  useNavigate
+  useNavigate,
+  useLocation
 } from 'react-router-dom';
 import { Navbar, Container, Form, Button, Dropdown } from 'react-bootstrap';
 import { FaShoppingCart, FaUserCircle } from 'react-icons/fa';
 
-import SuccessPage from './SuccessPage';
+import TomoList from './TomoList';
 import SideBarFilters from './SideBarFilters';
-import SidebarFiltersModal from './SidebarFiltersModal'; // modal estilo MercadoLibre (reemplazado)
-import RegisterModal    from './RegisterModal';
-import LoginModal       from './LoginModal';
-import InfoModal        from './InfoModal';
-import TomoList         from './TomoList';
-import CartPage         from './CartPage';
-import FacturasPage     from './FacturasPage';
+import SidebarFiltersModal from './SidebarFiltersModal';
+import RegisterModal from './RegisterModal';
+import LoginModal from './LoginModal';
+import InfoModal from './InfoModal';
+import CartPage from './CartPage';
+import FacturasPage from './FacturasPage';
 import DetalleFacturaPage from './DetalleFacturaPage';
+import SuccessPage from './SuccessPage';
 import FailurePage from './FailurePage';
 import PendingPage from './PendingPage';
 import PayPalReturn from './PayPalReturn';
@@ -29,103 +29,48 @@ import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
 
 const REGISTER_URL = `${process.env.REACT_APP_API_URL}/register`;
-const LOGIN_URL    = `${process.env.REACT_APP_API_URL}/login`;
-const TOMOS_URL    = `${process.env.REACT_APP_API_URL}/public/tomos`;
+const LOGIN_URL = `${process.env.REACT_APP_API_URL}/login`;
+const TOMOS_URL = `${process.env.REACT_APP_API_URL}/public/tomos`;
 
 const MainApp = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const { user, login, logout, loadingUser } = useContext(UserContext);
   const { cart } = useContext(CartContext);
   const cartCount = cart.length;
 
-  // Estados para filtros y listado de tomos
-  const [tomos, setTomos]               = useState([]);
-  const [pagination, setPagination]     = useState(null);
-  const [searchQuery, setSearchQuery]   = useState('');
-  const [currentFilters, setCurrentFilters] = useState({
-    authors: [], languages: [], mangas: [], editorials: [],
-    searchText: '', sortBy: 'titulo,numero_tomo',
-    applyPriceFilter: 0, minPrice: '', maxPrice: ''
+  const [tomos, setTomos] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    authors: [],
+    languages: [],
+    mangas: [],
+    editorials: [],
+    searchText: '',
+    sortBy: 'titulo,numero_tomo',
+    applyPriceFilter: 0,
+    minPrice: '',
+    maxPrice: ''
   });
 
-  // Estados para modales y mobile filters
   const [showRegister, setShowRegister] = useState(false);
-  const [showLogin, setShowLogin]       = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [selectedTomo, setSelectedTomo] = useState(null);
-  const [filtersOpen, setFiltersOpen] = useState(false); // controla modal de filtros en móvil
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
 
+  // === CARGA INICIAL DE TOMOS ===
   useEffect(() => {
-    // carga inicial
-    handleFilterChange(currentFilters, 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchTomos(filters, 1);
   }, []);
 
-  // Registro
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    const nombre    = e.target.elements.formNombre.value;
-    const direccion = e.target.elements.formDireccion.value;
-    const email     = e.target.elements.formEmailRegister.value;
-    const password  = e.target.elements.formPasswordRegister.value;
-
-    try {
-      const res = await fetch(REGISTER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({ nombre, email, password, direccion })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        login(data.cliente, data.token);
-        setShowRegister(false);
-      } else {
-        console.error('Register error', data);
-      }
-    } catch (err) {
-      console.error('Register fetch error', err);
-    }
-  };
-
-  // Login
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    const email    = e.target.elements.formEmailLogin.value;
-    const password = e.target.elements.formPasswordLogin.value;
-
-    try {
-      const res = await fetch(LOGIN_URL, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        login(data.cliente, data.token);
-        setShowLogin(false);
-      } else {
-        console.error('Login error', data);
-      }
-    } catch (err) {
-      console.error('Login fetch error', err);
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  // Filtrar tomos (usa la API pública)
-  const handleFilterChange = async (filters, page = 1) => {
-    setCurrentFilters(filters);
+  const fetchTomos = async (filters, page = 1) => {
     const params = new URLSearchParams();
-    if (filters.authors && filters.authors.length)   params.append('authors', filters.authors.join(','));
-    if (filters.languages && filters.languages.length) params.append('languages', filters.languages.join(','));
-    if (filters.mangas && filters.mangas.length)    params.append('mangas', filters.mangas.join(','));
-    if (filters.editorials && filters.editorials.length)params.append('editorials', filters.editorials.join(','));
-    if (filters.searchText)       params.append('search', filters.searchText);
+    if (filters.authors.length) params.append('authors', filters.authors.join(','));
+    if (filters.languages.length) params.append('languages', filters.languages.join(','));
+    if (filters.mangas.length) params.append('mangas', filters.mangas.join(','));
+    if (filters.editorials.length) params.append('editorials', filters.editorials.join(','));
+    if (filters.searchText) params.append('search', filters.searchText);
     if (filters.applyPriceFilter && filters.minPrice && filters.maxPrice) {
       params.append('applyPriceFilter', 1);
       params.append('minPrice', filters.minPrice);
@@ -135,91 +80,134 @@ const MainApp = () => {
 
     try {
       const res = await fetch(`${TOMOS_URL}?${params.toString()}`);
-      const result = await res.json();
-      setTomos(result.data || []);
+      const data = await res.json();
+      setTomos(data.data || []);
       setPagination({
-        currentPage: result.current_page || 1,
-        lastPage:    result.last_page || 1,
-        total:       result.total || 0
+        currentPage: data.current_page || 1,
+        lastPage: data.last_page || 1,
+        total: data.total || 0
       });
-    } catch (err) {
-      console.error('Error al obtener tomos:', err);
-      setTomos([]);
-      setPagination(null);
+    } catch (error) {
+      console.error('Error al cargar tomos:', error);
     }
   };
 
-  const handlePageChange = (p) => handleFilterChange(currentFilters, p);
-  const handleShowInfo   = (tomo) => {
+  const handlePageChange = (page) => fetchTomos(filters, page);
+  const handleSearch = () => fetchTomos({ ...filters, searchText: searchQuery }, 1);
+  const handleShowInfo = (tomo) => {
     setSelectedTomo(tomo);
     setShowInfoModal(true);
   };
-  const handleSearch     = () => handleFilterChange({ ...currentFilters, searchText: searchQuery }, 1);
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    const nombre = e.target.formNombre.value;
+    const direccion = e.target.formDireccion.value;
+    const email = e.target.formEmailRegister.value;
+    const password = e.target.formPasswordRegister.value;
+    try {
+      const res = await fetch(REGISTER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, email, password, direccion })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        login(data.cliente, data.token);
+        setShowRegister(false);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    const email = e.target.formEmailLogin.value;
+    const password = e.target.formPasswordLogin.value;
+    try {
+      const res = await fetch(LOGIN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        login(data.cliente, data.token);
+        setShowLogin(false);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   if (loadingUser) {
-    return <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark text-white">Cargando usuario...</div>;
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100 bg-dark text-white">
+        Cargando usuario...
+      </div>
+    );
   }
 
   return (
     <div className="bg-dark text-white min-vh-100">
-      <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light shadow">
+      <Navbar bg="dark" variant="dark" expand="lg" className="border-bottom border-light">
         <Container fluid>
-          <div className="d-flex align-items-center">
-            <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
-              <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
-              <span className="ms-2">Mangaka Baka Shop</span>
-            </Navbar.Brand>
+          <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
+            <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
+            <span className="ms-2">Mangaka Baka Shop</span>
+          </Navbar.Brand>
 
-            {/* Botón móvil para abrir filtros (visible solo en móvil) */}
-            <button
-              className="btn btn-warning d-md-none ms-2"
-              aria-label="Abrir filtros"
-              onClick={() => setFiltersOpen(true)}
-            >
-              Filtros
-            </button>
-          </div>
+          {/* Botón móvil para filtros */}
+          <Button variant="primary" className="d-md-none" onClick={() => setShowFiltersModal(true)}>
+            Filtros
+          </Button>
 
           {/* Buscador escritorio */}
           <Form
             className="d-none d-lg-flex mx-auto"
             style={{ width: '50%' }}
-            onSubmit={e => { e.preventDefault(); handleSearch(); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearch();
+            }}
           >
             <Form.Control
               type="search"
               placeholder="Buscar"
               className="me-2"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <Button variant="outline-light" onClick={handleSearch}>Buscar</Button>
+            <Button variant="outline-light" onClick={handleSearch}>
+              Buscar
+            </Button>
           </Form>
 
-          {/* Controles de usuario y carrito en escritorio */}
-          <div className="d-none d-lg-flex ms-auto align-items-center">
+          {/* Controles escritorio */}
+          <div className="d-none d-lg-flex align-items-center">
             {user ? (
               <>
                 <span className="me-2">Hola, {user.nombre}</span>
-                <Dropdown align="end" className="me-2">
-                  <Dropdown.Toggle variant="outline-light">
-                    <FaShoppingCart /> {cartCount}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    {cartCount === 0
-                      ? <Dropdown.ItemText>No hay elementos</Dropdown.ItemText>
-                      : <Dropdown.Item as={Link} to="/cart">Ver Carrito</Dropdown.Item>}
-                  </Dropdown.Menu>
-                </Dropdown>
-                <Button variant="danger" onClick={handleLogout}>Cerrar Sesión</Button>
+                <Button variant="outline-light" as={Link} to="/cart">
+                  <FaShoppingCart /> {cartCount}
+                </Button>
+                <Button variant="danger" className="ms-2" onClick={handleLogout}>
+                  Cerrar Sesión
+                </Button>
               </>
             ) : (
               <>
                 <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>
-                  Registrarse
+                  Registro
                 </Button>
                 <Button variant="secondary" onClick={() => setShowLogin(true)}>
-                  Iniciar Sesión
+                  Login
                 </Button>
               </>
             )}
@@ -227,73 +215,74 @@ const MainApp = () => {
         </Container>
       </Navbar>
 
-      <div className="d-flex" style={{ minHeight: 'calc(100vh - 56px)' }}>
-        {/* SIDEBAR DESKTOP: se muestra solo en md+ */}
+      <div className="d-flex flex-column flex-md-row" style={{ minHeight: 'calc(100vh - 56px)' }}>
+        {/* SIDEBAR ESCRITORIO */}
         <div className="d-none d-md-block">
           <SideBarFilters
-            onFilterChange={f => handleFilterChange(f, 1)}
-            setShowLogin={setShowLogin}
-            setShowRegister={setShowRegister}
+            onFilterChange={(f) => {
+              setFilters(f);
+              fetchTomos(f, 1);
+            }}
           />
         </div>
 
-        {/* PANEL MÓVIL COMPACTO: visible solo en móvil (xs-sm) */}
-        <div className="d-md-none p-2" style={{ width: '100%' }}>
-          <div className="d-flex align-items-center justify-content-between bg-secondary text-white p-2 rounded shadow-sm">
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <FaUserCircle size={24} />
-              <div style={{ lineHeight: 1 }}>
-                <div className="fw-bold">{user ? `Hola, ${user.nombre}` : 'Bienvenido'}</div>
-                <small className="text-light">{cart.length} en carrito</small>
-              </div>
+        {/* SECCIÓN MÓVIL */}
+        <div className="d-md-none p-3 bg-secondary text-white shadow-sm">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <div className="d-flex align-items-center">
+              <FaUserCircle size={26} className="me-2" />
+              <strong>{user ? `Hola, ${user.nombre}` : 'Bienvenido'}</strong>
             </div>
+            <Button size="sm" variant="light" onClick={() => navigate('/cart')}>
+              <FaShoppingCart /> {cartCount}
+            </Button>
+          </div>
 
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn btn-sm btn-outline-light" onClick={() => navigate('/cart')}>
-                <FaShoppingCart /> {cart.length}
-              </button>
-              {user ? (
-                <button className="btn btn-sm btn-danger" onClick={() => { handleLogout(); }}>
-                  Salir
-                </button>
-              ) : (
-                <>
-                  <button className="btn btn-sm btn-primary" onClick={() => setShowRegister(true)}>Registro</button>
-                  <button className="btn btn-sm btn-outline-light" onClick={() => setShowLogin(true)}>Login</button>
-                </>
-              )}
-              {/* Botón que abre el modal de filtros */}
-              <button className="btn btn-warning btn-sm d-md-none" aria-label="Abrir filtros" onClick={() => setFiltersOpen(true)}>
-                Filtros
-              </button>
-            </div>
+          <div className="d-flex justify-content-center gap-2">
+            {!user ? (
+              <>
+                <Button size="sm" variant="primary" onClick={() => setShowRegister(true)}>
+                  Registro
+                </Button>
+                <Button size="sm" variant="outline-light" onClick={() => setShowLogin(true)}>
+                  Login
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" variant="danger" onClick={handleLogout}>
+                Salir
+              </Button>
+            )}
+            <Button size="sm" variant="warning" onClick={() => setShowFiltersModal(true)}>
+              Filtros
+            </Button>
           </div>
         </div>
 
-        {/* LISTA DE TOMOS: ocupa todo el espacio restante */}
-        <div className="flex-grow-1">
+        {/* LISTA DE TOMOS */}
+        <div className="flex-grow-1 p-2">
           <TomoList
             tomos={tomos}
             pagination={pagination}
             onPageChange={handlePageChange}
             onShowInfo={handleShowInfo}
             isLoggedIn={!!user}
-            openCartFromMobile={() => navigate('/cart')}
           />
         </div>
       </div>
 
-      {/* Modal de filtros (centrado en desktop, fullscreen en móvil) */}
+      {/* MODAL DE FILTROS */}
       <SidebarFiltersModal
-        show={filtersOpen}
-        onClose={() => setFiltersOpen(false)}
-        onFilterChange={(f) => { handleFilterChange(f, 1); setFiltersOpen(false); }}
-        setShowLogin={(v) => { setShowRegister(false); setShowLogin(v); }}
-        setShowRegister={(v) => { setShowLogin(false); setShowRegister(v); }}
-        resultsCount={pagination?.total || 0}
+        show={showFiltersModal}
+        onClose={() => setShowFiltersModal(false)}
+        onFilterChange={(f) => {
+          setFilters(f);
+          fetchTomos(f, 1);
+          setShowFiltersModal(false);
+        }}
       />
 
-      {/* Modales de auth e info */}
+      {/* MODALES LOGIN / REGISTER / INFO */}
       <RegisterModal
         show={showRegister}
         onHide={() => setShowRegister(false)}
@@ -304,11 +293,7 @@ const MainApp = () => {
         onHide={() => setShowLogin(false)}
         onSubmit={handleLoginSubmit}
       />
-      <InfoModal
-        show={showInfoModal}
-        onClose={() => setShowInfoModal(false)}
-        tomo={selectedTomo}
-      />
+      <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
     </div>
   );
 };
@@ -318,7 +303,7 @@ const App = () => (
     <CartProvider>
       <Router>
         <Routes>
-          <Route path="/*" element={<MainApp />} />
+          <Route path="/" element={<MainApp />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/facturas" element={<FacturasPage />} />
           <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
@@ -333,4 +318,5 @@ const App = () => (
 );
 
 export default App;
+
 
