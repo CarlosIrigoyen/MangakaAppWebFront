@@ -131,4 +131,31 @@
   .sfm-left { width: 120px; }
   .sfm-apply { min-width: 160px; }
 }
+/* ========================================================= */
+/* === ESTILOS PARA EL MODAL DE FILTROS (actualizado) === */
+/* ========================================================= */
+
+.filters-modal .modal-content {
+  background-color: #212529 !important;
+  color: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.filters-modal .modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Móvil: modal ocupa toda la pantalla */
+@media (max-width: 768px) {
+  .filters-modal .modal-dialog {
+    margin: 0;
+    height: 100%;
+  }
+  .filters-modal .modal-content {
+    height: 100%;
+    border-radius: 0;
+  }
+}
 
