@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { FiMenu, FiX, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiMenu, FiX } from 'react-icons/fi';
 import { FaShoppingCart, FaUserCircle } from 'react-icons/fa';
 import { UserContext } from './UserContext';
 import { CartContext } from './CartContext';
+import SideBarFiltersContent from './SideBarFiltersContent';
 
 const INITIAL_FILTERS = {
   author: null,
@@ -141,7 +142,7 @@ const SidebarFilters = ({ onFilterChange, setShowLogin, setShowRegister }) => {
 
       {!collapsed && (
         <>
-          {/* ====== PANEL SUPERIOR MOVIL (tipo Mercado Libre) ====== */}
+          {/* ====== PANEL SUPERIOR (USUARIO / SESIÓN) ====== */}
           <div className="d-md-none mb-3 bg-dark p-3 rounded shadow-sm">
             <div className="d-flex align-items-center mb-2">
               <FaUserCircle size={28} className="me-2 text-warning" />
@@ -187,171 +188,18 @@ const SidebarFilters = ({ onFilterChange, setShowLogin, setShowRegister }) => {
             </div>
           </div>
 
-          {/* ====== SECCIONES DE FILTROS ====== */}
-          {[
-            { key: 'authors', label: 'Autores', items: availableFilters.authors },
-            { key: 'languages', label: 'Idiomas', items: availableFilters.languages },
-            { key: 'mangas', label: 'Mangas', items: availableFilters.mangas },
-            { key: 'editorials', label: 'Editoriales', items: availableFilters.editorials },
-          ].map(({ key, label, items }) => (
-            <div key={key} className="mb-2 border-bottom border-light pb-2">
-              <button
-                className="btn btn-sm btn-dark w-100 d-flex justify-content-between align-items-center"
-                onClick={() => toggleSection(key)}
-              >
-                <span>{label}</span>
-                {openSections[key] ? <FiChevronUp /> : <FiChevronDown />}
-              </button>
-              <div
-                className={`mt-2 ps-2 ${
-                  openSections[key] ? 'd-block animate__animated animate__fadeIn' : 'd-none'
-                }`}
-              >
-                {items.length === 0 && (
-                  <small className="text-light">Sin opciones</small>
-                )}
-                {key === 'authors' &&
-                  items.map((a) => (
-                    <div key={a.id} className="form-check mt-1">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        id={`author-${a.id}`}
-                        name="author"
-                        checked={filters.author === a.id}
-                        onChange={() => handleExclusiveChange('author', a.id)}
-                      />
-                      <label
-                        className="form-check-label ms-1"
-                        htmlFor={`author-${a.id}`}
-                      >
-                        {a.nombre} {a.apellido}
-                      </label>
-                    </div>
-                  ))}
-                {key === 'languages' &&
-                  items.map((lang, i) => (
-                    <div key={i} className="form-check mt-1">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        id={`language-${lang}`}
-                        name="language"
-                        checked={filters.language === lang}
-                        onChange={() => handleExclusiveChange('language', lang)}
-                      />
-                      <label
-                        className="form-check-label ms-1"
-                        htmlFor={`language-${lang}`}
-                      >
-                        {lang}
-                      </label>
-                    </div>
-                  ))}
-                {key === 'mangas' &&
-                  items.map((m) => (
-                    <div key={m.id} className="form-check mt-1">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        id={`manga-${m.id}`}
-                        name="manga"
-                        checked={filters.manga === m.id}
-                        onChange={() => handleExclusiveChange('manga', m.id)}
-                      />
-                      <label
-                        className="form-check-label ms-1"
-                        htmlFor={`manga-${m.id}`}
-                      >
-                        {m.titulo}
-                      </label>
-                    </div>
-                  ))}
-                {key === 'editorials' &&
-                  items.map((e) => (
-                    <div key={e.id} className="form-check mt-1">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        id={`editorial-${e.id}`}
-                        name="editorial"
-                        checked={filters.editorial === e.id}
-                        onChange={() => handleExclusiveChange('editorial', e.id)}
-                      />
-                      <label
-                        className="form-check-label ms-1"
-                        htmlFor={`editorial-${e.id}`}
-                      >
-                        {e.nombre}
-                      </label>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ))}
-
-          {/* ====== FILTRO PRECIO ====== */}
-          <div className="mb-3 border-bottom border-light pb-3">
-            <button
-              className="btn btn-sm btn-dark w-100 d-flex justify-content-between align-items-center"
-              onClick={() => toggleSection('price')}
-            >
-              <span>Precio</span>
-              {openSections.price ? <FiChevronUp /> : <FiChevronDown />}
-            </button>
-            {openSections.price && (
-              <div className="mt-2">
-                <div className="mb-2">
-                  <label className="form-label">Mínimo</label>
-                  <input
-                    type="number"
-                    name="minPrice"
-                    min="0"
-                    step="1"
-                    className="form-control form-control-sm"
-                    placeholder="Ej: 100"
-                    value={filters.minPrice}
-                    onChange={handlePriceInputChange}
-                  />
-                </div>
-                <div className="mb-2">
-                  <label className="form-label">Máximo</label>
-                  <input
-                    type="number"
-                    name="maxPrice"
-                    min="0"
-                    step="1"
-                    className="form-control form-control-sm"
-                    placeholder="Ej: 500"
-                    value={filters.maxPrice}
-                    onChange={handlePriceInputChange}
-                  />
-                </div>
-                <div className="d-flex justify-content-between">
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={applyPrice}
-                    disabled={!filters.minPrice || !filters.maxPrice}
-                  >
-                    Aplicar
-                  </button>
-                  <button className="btn btn-light btn-sm" onClick={clearPriceFilter}>
-                    Limpiar
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Quitar filtros */}
-          <div className="mt-4">
-            <button
-              className="btn btn-outline-light w-100"
-              onClick={clearAllFilters}
-            >
-              Quitar filtros
-            </button>
-          </div>
+          {/* ====== FILTROS ====== */}
+          <SideBarFiltersContent
+            filters={filters}
+            availableFilters={availableFilters}
+            openSections={openSections}
+            toggleSection={toggleSection}
+            handleExclusiveChange={handleExclusiveChange}
+            handlePriceInputChange={handlePriceInputChange}
+            applyPrice={applyPrice}
+            clearPriceFilter={clearPriceFilter}
+            clearAllFilters={clearAllFilters}
+          />
         </>
       )}
     </div>
