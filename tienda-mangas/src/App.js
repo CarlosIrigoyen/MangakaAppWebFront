@@ -274,7 +274,7 @@ const MainApp = () => {
         onFilterChange={(f) => {
           setFilters(f);
           fetchTomos(f, 1);
-          setShowFiltersModal(false);
+          
         }}
       />
 
