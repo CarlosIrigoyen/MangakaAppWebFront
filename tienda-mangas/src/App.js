@@ -11,8 +11,8 @@ import { Navbar, Container, Form, Button } from 'react-bootstrap';
 import { FaShoppingCart, FaUserCircle } from 'react-icons/fa';
 
 import TomoList from './TomoList';
-import SidebarFilters from './SideBarFilters'; // sidebar completo (usuario + filtros)
-import SidebarFiltersModal from './SidebarFiltersModal'; // modal que muestra solo SideBarFiltersContent
+import SidebarFilters from './SideBarFilters';
+import SidebarFiltersModal from './SidebarFiltersModal';
 import RegisterModal from './RegisterModal';
 import LoginModal from './LoginModal';
 import InfoModal from './InfoModal';
@@ -59,7 +59,7 @@ const MainApp = () => {
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [navExpanded, setNavExpanded] = useState(false);
 
-  // fetchTomos memoizado para referencia estable
+  // Carga de tomos
   const fetchTomos = useCallback(async (filtersParam = {}, page = 1) => {
     const params = new URLSearchParams();
     if (filtersParam.authors?.length) params.append('authors', filtersParam.authors.join(','));
@@ -88,10 +88,9 @@ const MainApp = () => {
     }
   }, []);
 
-  // Carga inicial
   useEffect(() => {
     fetchTomos(filters, 1);
-  }, [fetchTomos]); // fetchTomos está memoizado
+  }, [fetchTomos]);
 
   const handlePageChange = (page) => fetchTomos(filters, page);
 
@@ -107,8 +106,6 @@ const MainApp = () => {
     setShowInfoModal(true);
   };
 
-  // handler que aplica filtros globalmente (lo llama el modal con onApplyFilters
-  // y también lo puede llamar el sidebar en escritorio si el usuario usa esa UI)
   const handleFilterChange = useCallback((f) => {
     setFilters(f);
     fetchTomos(f, 1);
@@ -172,72 +169,117 @@ const MainApp = () => {
 
   return (
     <div className="bg-dark text-white min-vh-100">
+      {/* NAVBAR ESCRITORIO */}
       <Navbar
         bg="dark"
         variant="dark"
         expand="lg"
         expanded={navExpanded}
         onToggle={() => setNavExpanded(prev => !prev)}
-        className="border-bottom border-light"
+        className="border-bottom border-light d-none d-lg-flex"
       >
         <Container fluid>
-          <Navbar.Brand as={Link} to="/" className="d-flex align-items-center" onClick={() => setNavExpanded(false)}>
+          <Navbar.Brand as={Link} to="/" onClick={() => setNavExpanded(false)}>
             <img src="/img/Mangaka.png" alt="Logo" width="40" height="40" className="rounded-circle" />
             <span className="ms-2">Mangaka Baka Shop</span>
           </Navbar.Brand>
-          {/* 🔹 Eliminamos el botón hamburguesa, mantenemos solo el contenido del collapse */}
-<Navbar.Collapse id="basic-navbar-nav" className="d-none d-lg-flex">
 
-            {/* Buscador escritorio */}
-            <Form
-              className="d-none d-lg-flex mx-auto"
-              style={{ width: '50%' }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSearch();
-              }}
-            >
-              <Form.Control
-                type="search"
-                placeholder="Buscar"
-                className="me-2"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Button type="button" variant="outline-light" onClick={handleSearch}>
-                Buscar
-              </Button>
-            </Form>
+          <Form
+            className="mx-auto"
+            style={{ width: '50%' }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearch();
+            }}
+          >
+            <Form.Control
+              type="search"
+              placeholder="Buscar"
+              className="me-2"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Button type="button" variant="outline-light" onClick={handleSearch}>
+              Buscar
+            </Button>
+          </Form>
 
-            {/* Controles escritorio */}
-            <div className="d-none d-lg-flex align-items-center ms-auto">
-              {user ? (
-                <>
-                  <span className="me-2">Hola, {user.nombre}</span>
-                  <Button type="button" variant="outline-light" as={Link} to="/cart" onClick={() => setNavExpanded(false)}>
-                    <FaShoppingCart /> {cartCount}
-                  </Button>
-                  <Button type="button" variant="danger" className="ms-2" onClick={() => { handleLogout(); }}>
-                    Cerrar Sesión
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button type="button" variant="primary" className="me-2" onClick={() => { setShowRegister(true); }}>
-                    Registro
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={() => { setShowLogin(true); }}>
-                    Login
-                  </Button>
-                </>
-              )}
-            </div>
-          </Navbar.Collapse>
+          <div className="ms-auto d-flex align-items-center">
+            {user ? (
+              <>
+                <span className="me-2">Hola, {user.nombre}</span>
+                <Button type="button" variant="outline-light" as={Link} to="/cart">
+                  <FaShoppingCart /> {cartCount}
+                </Button>
+                <Button type="button" variant="danger" className="ms-2" onClick={handleLogout}>
+                  Cerrar Sesión
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>
+                  Registro
+                </Button>
+                <Button variant="secondary" onClick={() => setShowLogin(true)}>
+                  Login
+                </Button>
+              </>
+            )}
+          </div>
         </Container>
       </Navbar>
 
+      {/* BARRA MÓVIL FIJA */}
+      <div
+        className="d-md-none p-3 bg-secondary text-white shadow-sm"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1050,
+        }}
+      >
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <div className="d-flex align-items-center">
+            <FaUserCircle size={26} className="me-2" />
+            <strong>{user ? `Hola, ${user.nombre}` : 'Bienvenido'}</strong>
+          </div>
+          {user && (
+            <Button
+              type="button"
+              size="sm"
+              variant="light"
+              onClick={() => navigate('/cart')}
+            >
+              <FaShoppingCart /> {cartCount}
+            </Button>
+          )}
+        </div>
+
+        <div className="d-flex justify-content-center gap-2">
+          {!user ? (
+            <>
+              <Button size="sm" variant="primary" onClick={() => setShowRegister(true)}>
+                Registro
+              </Button>
+              <Button size="sm" variant="outline-light" onClick={() => setShowLogin(true)}>
+                Login
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" variant="danger" onClick={handleLogout}>
+              Salir
+            </Button>
+          )}
+          <Button size="sm" variant="warning" onClick={() => setShowFiltersModal(true)}>
+            Filtros
+          </Button>
+        </div>
+      </div>
+
       <div className="d-flex flex-column flex-md-row" style={{ minHeight: 'calc(100vh - 56px)' }}>
-        {/* SIDEBAR ESCRITORIO (sidebar completo con usuario + filtros) */}
+        {/* SIDEBAR ESCRITORIO */}
         <div className="d-none d-md-block">
           <SidebarFilters
             onFilterChange={handleFilterChange}
@@ -246,41 +288,8 @@ const MainApp = () => {
           />
         </div>
 
-        {/* SECCIÓN MÓVIL: parte superior y botón filtros */}
-        <div className="d-md-none p-3 bg-secondary text-white shadow-sm">
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <div className="d-flex align-items-center">
-              <FaUserCircle size={26} className="me-2" />
-              <strong>{user ? `Hola, ${user.nombre}` : 'Bienvenido'}</strong>
-            </div>
-            <Button type="button" size="sm" variant="light" onClick={() => { navigate('/cart'); setNavExpanded(false); }}>
-              <FaShoppingCart /> {cartCount}
-            </Button>
-          </div>
-
-          <div className="d-flex justify-content-center gap-2">
-            {!user ? (
-              <>
-                <Button type="button" size="sm" variant="primary" onClick={() => setShowRegister(true)}>
-                  Registro
-                </Button>
-                <Button type="button" size="sm" variant="outline-light" onClick={() => setShowLogin(true)}>
-                  Login
-                </Button>
-              </>
-            ) : (
-              <Button type="button" size="sm" variant="danger" onClick={handleLogout}>
-                Salir
-              </Button>
-            )}
-            <Button type="button" size="sm" variant="warning" onClick={() => setShowFiltersModal(true)}>
-              Filtros
-            </Button>
-          </div>
-        </div>
-
         {/* LISTA DE TOMOS */}
-        <div className="flex-grow-1 p-2">
+        <div className="flex-grow-1 p-2" style={{ paddingTop: '90px' }}>
           <TomoList
             tomos={tomos}
             pagination={pagination}
@@ -291,24 +300,15 @@ const MainApp = () => {
         </div>
       </div>
 
-      {/* MODAL DE FILTROS: el modal aplica los filtros al apretar "Aplicar filtros" */}
+      {/* MODALES */}
       <SidebarFiltersModal
         show={showFiltersModal}
         onClose={() => setShowFiltersModal(false)}
-        onApplyFilters={handleFilterChange} // el modal llamará a esta función con los filtros transformados
+        onApplyFilters={handleFilterChange}
       />
 
-      {/* MODALES LOGIN / REGISTER / INFO */}
-      <RegisterModal
-        show={showRegister}
-        onHide={() => setShowRegister(false)}
-        onSubmit={handleRegisterSubmit}
-      />
-      <LoginModal
-        show={showLogin}
-        onHide={() => setShowLogin(false)}
-        onSubmit={handleLoginSubmit}
-      />
+      <RegisterModal show={showRegister} onHide={() => setShowRegister(false)} onSubmit={handleRegisterSubmit} />
+      <LoginModal show={showLogin} onHide={() => setShowLogin(false)} onSubmit={handleLoginSubmit} />
       <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
     </div>
   );
