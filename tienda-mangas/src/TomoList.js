@@ -15,6 +15,64 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
     );
   }
 
+  // 🔹 Función auxiliar para calcular las páginas visibles
+  const renderPaginationItems = () => {
+    const total = pagination.lastPage;
+    const current = pagination.currentPage;
+    const pages = [];
+
+    // Mostrar máximo 4 páginas visibles + primera + última si aplica
+    const visiblePages = 4;
+
+    let start = Math.max(1, current - Math.floor(visiblePages / 2));
+    let end = start + visiblePages - 1;
+
+    if (end > total) {
+      end = total;
+      start = Math.max(1, end - visiblePages + 1);
+    }
+
+    // Primera página
+    if (start > 1) {
+      pages.push(
+        <Pagination.Item key={1} onClick={() => onPageChange(1)} className="border border-light">
+          1
+        </Pagination.Item>
+      );
+      if (start > 2) {
+        pages.push(<Pagination.Ellipsis key="start-ellipsis" disabled className="text-white" />);
+      }
+    }
+
+    // Páginas visibles intermedias
+    for (let i = start; i <= end; i++) {
+      pages.push(
+        <Pagination.Item
+          key={i}
+          active={i === current}
+          onClick={() => onPageChange(i)}
+          className="border border-light"
+        >
+          {i}
+        </Pagination.Item>
+      );
+    }
+
+    // Última página
+    if (end < total) {
+      if (end < total - 1) {
+        pages.push(<Pagination.Ellipsis key="end-ellipsis" disabled className="text-white" />);
+      }
+      pages.push(
+        <Pagination.Item key={total} onClick={() => onPageChange(total)} className="border border-light">
+          {total}
+        </Pagination.Item>
+      );
+    }
+
+    return pages;
+  };
+
   return (
     <div className="container my-4">
       <Card className="shadow-sm rounded mb-4">
@@ -24,7 +82,6 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
             {data.map((tomo) => {
               const isInCart = cart.some((item) => item.id === tomo.id);
               return (
-                // añadimos style minWidth: 0 para que este flex-item pueda encoger
                 <div
                   key={tomo.id}
                   className="col-md-3 mb-4 d-flex"
@@ -32,7 +89,6 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
                 >
                   <Card
                     className="w-100 h-100 shadow-sm text-white bg-secondary border border-light"
-                    // también puede ir aquí el minWidth si prefieres
                     style={{ minWidth: 0 }}
                   >
                     <Card.Img
@@ -45,11 +101,8 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
                       <Card.Title>
                         {tomo.manga?.titulo} Tomo {tomo.numero_tomo} — {tomo.idioma}
                       </Card.Title>
-                      <Card.Text>
-                        Precio: ${parseFloat(tomo.precio).toFixed(0)}
-                      </Card.Text>
+                      <Card.Text>Precio: ${parseFloat(tomo.precio).toFixed(0)}</Card.Text>
                       <Card.Text>Stock: {tomo.stock}</Card.Text>
-                      {/* aquí permitimos wrap y un pequeño gap para que los botones bajen de línea */}
                       <div className="mt-auto d-flex justify-content-center flex-wrap gap-2">
                         {isLoggedIn && (
                           <Button
@@ -77,16 +130,21 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
         <Card className="shadow-sm rounded border border-light">
           <Card.Body className="d-flex justify-content-center py-3 bg-dark">
             <Pagination className="mb-0">
-              {[...Array(pagination.lastPage)].map((_, i) => (
-                <Pagination.Item
-                  key={i + 1}
-                  active={i + 1 === pagination.currentPage}
-                  onClick={() => onPageChange(i + 1)}
-                  className="border border-light"
-                >
-                  {i + 1}
-                </Pagination.Item>
-              ))}
+              {/* 🔹 Botón Anterior (sin texto) */}
+              <Pagination.Prev
+                onClick={() => onPageChange(pagination.currentPage - 1)}
+                disabled={pagination.currentPage === 1}
+                className="border border-light"
+              />
+
+              {renderPaginationItems()}
+
+              {/* 🔹 Botón Siguiente (sin texto) */}
+              <Pagination.Next
+                onClick={() => onPageChange(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.lastPage}
+                className="border border-light"
+              />
             </Pagination>
           </Card.Body>
         </Card>
