@@ -168,6 +168,6 @@
 /* En móvil la barra es más alta → sumamos más espacio */
 @media (max-width: 768px) {
   .main-content {
-    padding-top: 160px !important; /* Ajustado para móvil */
+    padding-top: 260px !important; /* Ajustado para móvil */
   }
 }
