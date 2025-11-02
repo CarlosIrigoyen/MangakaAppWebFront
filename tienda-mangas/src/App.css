@@ -160,14 +160,29 @@
   }
 }
 
-/* El contenedor del contenido principal - SOLUCIÓN CSS SIMPLE */
-.main-content {
-  padding-top: 90px; /* Desktop por defecto */
+/* CONTENEDOR PRINCIPAL CON BARRAS FIJAS */
+.main-content-container {
+  padding-top: 80px; /* Para la barra fija en desktop */
 }
 
-/* En móvil la barra es más alta → sumamos más espacio */
+/* En móvil ajustamos el padding para la barra móvil */
 @media (max-width: 768px) {
-  .main-content {
-    padding-top: 260px !important; /* Ajustado para móvil */
+  .main-content-container {
+    padding-top: 140px !important; /* Para la barra móvil más alta */
   }
+}
+
+/* Sidebar fijo en desktop */
+@media (min-width: 768px) {
+  .sidebar-fixed {
+    position: sticky;
+    top: 80px; /* Debajo de la navbar fija */
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+}
+
+/* El contenido principal */
+.main-content {
+  /* Eliminamos el padding-top anterior ya que lo maneja el contenedor */
 }
