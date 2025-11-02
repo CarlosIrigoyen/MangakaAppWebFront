@@ -1,11 +1,11 @@
-/* DetalleFacturaPage.css - Versión Mobile First */
+/* DetalleFacturaPage.css - Versión con soporte para móvil horizontal */
 
 /* Fondo de la página */
 body {
   background-color: #0e0a0a;
 }
 
-/* Contenedor principal mejorado para móviles */
+/* Contenedor principal */
 .invoice-container {
   font-family: 'Segoe UI', Tahoma, sans-serif;
   color: #333;
@@ -15,10 +15,9 @@ body {
   margin: 1rem auto;
   padding: 1rem;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
-/* Header responsive */
+/* Header */
 .invoice-header {
   border-bottom: 2px solid #0d6efd;
   padding-bottom: 1rem;
@@ -26,13 +25,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  text-align: center;
 }
 
 .company-info {
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
 }
 
 .company-info img {
@@ -47,17 +46,13 @@ body {
   font-size: 1.1rem;
 }
 
-.invoice-meta {
-  text-align: center;
-}
-
 .invoice-meta p {
   margin: 0.3rem 0;
   font-size: 0.9rem;
   color: #333;
 }
 
-/* Bloque Facturar A */
+/* Cliente */
 .address-block {
   border: 1px solid #0d6efd;
   border-radius: 0.25rem;
@@ -79,119 +74,161 @@ body {
   margin: 0.75rem;
   line-height: 1.4;
   color: #333;
-  word-break: break-word;
 }
 
-/* Contenedor de tabla responsive */
-.table-container {
-  overflow-x: auto;
-  margin-bottom: 1rem;
-  -webkit-overflow-scrolling: touch;
-  border: 1px solid #dee2e6;
-  border-radius: 0.375rem;
-}
-
+/* TABLA DESKTOP (lg+) */
 .invoice-table {
-  min-width: 500px;
   width: 100%;
-  font-size: 0.8rem;
-  margin: 0;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
 }
 
 .invoice-table thead th {
   background-color: #0d6efd !important;
   border-color: #0d6efd !important;
-  text-transform: uppercase;
-  font-size: 0.75rem;
   color: #fff;
-  padding: 0.5rem;
-  white-space: nowrap;
+  padding: 0.75rem;
+  text-align: left;
 }
 
 .invoice-table tbody td {
+  padding: 0.75rem;
+  border-color: #dee2e6;
+}
+
+/* TABLA COMPACTA PARA TABLET/MÓVIL HORIZONTAL (md a lg) */
+.invoice-table-compact {
+  width: 100%;
   font-size: 0.8rem;
-  vertical-align: middle;
+  margin-bottom: 1rem;
+}
+
+.invoice-table-compact thead th {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: #fff;
   padding: 0.5rem;
-  word-break: break-word;
+  text-align: left;
+  white-space: nowrap;
 }
 
-/* Columnas específicas para móviles */
-.invoice-table th:nth-child(1),
-.invoice-table td:nth-child(1) {
-  min-width: 150px;
+.invoice-table-compact tbody td {
+  padding: 0.5rem;
+  border-color: #dee2e6;
+  vertical-align: top;
 }
 
-.invoice-table th:nth-child(2),
-.invoice-table td:nth-child(2) {
-  min-width: 70px;
-  text-align: center;
+.product-title-small {
+  font-weight: 600;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  margin-bottom: 0.2rem;
 }
 
-.invoice-table th:nth-child(3),
-.invoice-table td:nth-child(3) {
-  min-width: 80px;
-  text-align: right;
+.product-subtitle {
+  font-size: 0.75rem;
+  color: #6c757d;
+  line-height: 1.2;
 }
 
-.invoice-table th:nth-child(4),
-.invoice-table td:nth-child(4) {
-  min-width: 80px;
-  text-align: right;
+/* PRODUCTOS MÓVIL VERTICAL (< md) */
+.productos-mobile h6 {
+  color: #0d6efd;
+  font-weight: 600;
 }
 
-/* Totales */
-.totals-box {
-  background-color: #f8f9fa;
-  border-radius: 0.25rem;
-  padding: 1rem !important;
-  margin-top: 1rem;
-  min-width: 200px;
+.product-card {
+  border: 1px solid #0d6efd;
+  border-radius: 0.5rem;
 }
 
-.totals-box span {
+.product-card .card-body {
+  padding: 1rem;
+}
+
+.product-info {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.product-title {
+  display: block;
   font-size: 0.9rem;
   color: #333;
+  margin-bottom: 0.25rem;
 }
 
-.totals-box hr {
-  margin: 0.5rem 0;
-  border-top: 1px solid #ddd;
+.product-details {
+  font-size: 0.8rem;
+  color: #6c757d;
 }
 
-/* Botones en móviles */
+.product-prices {
+  font-size: 0.85rem;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.total-row {
+  border-top: 1px solid #e9ecef;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #0d6efd;
+}
+
+/* TOTAL */
+.totals-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid #0d6efd;
+}
+
+.total-final {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #0d6efd;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+}
+
+/* BOTONES */
 .botones-factura {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem;
   background-color: #343a40;
-  position: sticky;
-  bottom: 0;
-  z-index: 1000;
 }
 
 .botones-factura .btn {
   width: 100%;
   margin: 0 !important;
-  font-weight: 600;
 }
 
-/* Media queries para tablets */
-@media (min-width: 576px) {
+/* MEDIA QUERIES MEJORADAS */
+
+/* Móvil horizontal y tablets pequeñas (576px - 767px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
   .invoice-container {
-    padding: 1.5rem;
-    margin: 1.5rem auto;
+    padding: 1.25rem;
   }
   
   .invoice-header {
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
+    text-align: left;
   }
   
   .company-info {
     justify-content: flex-start;
-    text-align: left;
   }
   
   .invoice-meta {
@@ -205,77 +242,120 @@ body {
   
   .botones-factura .btn {
     width: auto;
-    min-width: 150px;
+    min-width: 140px;
   }
 }
 
-/* Media queries para desktop */
-@media (min-width: 768px) {
+/* Tablets (768px - 991px) - MÓVIL HORIZONTAL */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .invoice-container {
+    padding: 1.5rem;
+    margin: 1.5rem auto;
+  }
+  
+  .invoice-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .company-info {
+    justify-content: flex-start;
+  }
+  
+  .invoice-meta {
+    text-align: right;
+  }
+  
+  .company-info h5 {
+    font-size: 1.25rem;
+  }
+  
+  .invoice-meta p {
+    font-size: 1rem;
+  }
+  
+  .botones-factura {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .botones-factura .btn {
+    width: auto;
+    min-width: 160px;
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+  }
+}
+
+/* Desktop (992px+) */
+@media (min-width: 992px) {
   .invoice-container {
     padding: 2rem;
     margin: 2rem auto;
     max-width: 800px;
   }
   
-  .invoice-table {
-    min-width: auto;
-    font-size: 0.875rem;
-  }
-  
-  .invoice-table thead th {
-    font-size: 0.9rem;
-    padding: 0.75rem;
-  }
-  
-  .invoice-table tbody td {
-    font-size: 0.875rem;
-    padding: 0.75rem;
-  }
-  
-  .table-container {
-    overflow-x: visible;
-  }
-}
-
-/* Mejoras para pantallas muy pequeñas */
-@media (max-width: 360px) {
-  .invoice-container {
-    padding: 0.75rem;
-    margin: 0.5rem;
+  .invoice-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    text-align: left;
   }
   
   .company-info {
-    flex-direction: column;
-    text-align: center;
+    justify-content: flex-start;
+  }
+  
+  .invoice-meta {
+    text-align: right;
+  }
+  
+  .botones-factura {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .botones-factura .btn {
+    width: auto;
+    min-width: 180px;
+  }
+}
+
+/* Móviles muy pequeños en horizontal */
+@media (max-width: 575.98px) and (orientation: landscape) {
+  .invoice-container {
+    padding: 0.75rem;
+  }
+  
+  .invoice-header {
+    flex-direction: row;
     gap: 0.5rem;
+  }
+  
+  .company-info {
+    flex: 1;
+  }
+  
+  .invoice-meta {
+    flex: 0 0 auto;
   }
   
   .company-info h5 {
     font-size: 1rem;
   }
   
-  .invoice-table {
-    font-size: 0.75rem;
-    min-width: 450px;
+  .product-card .card-body {
+    padding: 0.75rem;
   }
   
-  .invoice-table thead th {
-    font-size: 0.7rem;
-    padding: 0.4rem;
-  }
-  
-  .invoice-table tbody td {
-    font-size: 0.75rem;
-    padding: 0.4rem;
-  }
-  
-  .invoice-table th:nth-child(1),
-  .invoice-table td:nth-child(1) {
-    min-width: 120px;
+  .product-info {
+    margin-bottom: 0.75rem;
   }
 }
 
-/* Mejora la legibilidad del PDF */
+/* ESTILOS PARA PDF */
 @media print {
   .invoice-container {
     box-shadow: none;
@@ -288,36 +368,34 @@ body {
     display: none;
   }
   
-  .table-container {
-    overflow-x: visible;
-    border: none;
+  /* En PDF, mostrar siempre la tabla desktop */
+  .d-md-none,
+  .d-lg-none {
+    display: none !important;
+  }
+  
+  .d-none.d-lg-block {
+    display: block !important;
+  }
+  
+  .table-responsive {
+    overflow: visible !important;
   }
 }
 
-/* Asegurar que el contenedor principal ocupe toda la altura */
+/* Utilidades */
 .min-vh-100 {
   min-height: 100vh !important;
 }
 
-/* Mejoras de accesibilidad */
-@media (prefers-reduced-motion: reduce) {
-  .btn {
-    transition: none;
-  }
+/* Mejoras de scroll para tablas */
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Alto contraste para mejor accesibilidad */
-@media (prefers-contrast: high) {
-  .invoice-table thead th {
-    background-color: #000 !important;
-    border-color: #000 !important;
-  }
-  
-  .address-block h6 {
-    background-color: #000;
-  }
-  
-  .address-block {
-    border-color: #000;
+/* Optimización para tablets en retrato */
+@media (min-width: 768px) and (max-width: 991.98px) and (orientation: portrait) {
+  .invoice-container {
+    max-width: 95%;
   }
 }
