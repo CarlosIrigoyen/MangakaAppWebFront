@@ -1,5 +1,5 @@
 // App.js
-import React, { useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -276,6 +276,11 @@ const MainApp = () => {
             Filtros
           </Button>
         </div>
+      </div>
+
+      {/* SALTO DE LÍNEA PARA MÓVIL - SOLUCIÓN AL PROBLEMA */}
+      <div className="d-md-none">
+        <br /><br /><br />
       </div>
 
       <div className="d-flex flex-column flex-md-row" style={{ minHeight: 'calc(100vh - 56px)' }}>
