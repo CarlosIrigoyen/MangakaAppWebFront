@@ -1,163 +1,323 @@
-/* DetalleFacturaPage.css */
+/* DetalleFacturaPage.css - Versión Mobile First */
 
 /* Fondo de la página */
 body {
-    background-color: #0e0a0a; /* fondo oscuro general */
+  background-color: #0e0a0a;
+}
+
+/* Contenedor principal mejorado para móviles */
+.invoice-container {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  color: #333;
+  background-color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+  margin: 1rem auto;
+  padding: 1rem;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Header responsive */
+.invoice-header {
+  border-bottom: 2px solid #0d6efd;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.company-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.company-info img {
+  max-width: 40px;
+  height: auto;
+}
+
+.company-info h5 {
+  font-weight: 600;
+  color: #0d6efd;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.invoice-meta {
+  text-align: center;
+}
+
+.invoice-meta p {
+  margin: 0.3rem 0;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+/* Bloque Facturar A */
+.address-block {
+  border: 1px solid #0d6efd;
+  border-radius: 0.25rem;
+  background-color: #e9f5ff;
+  margin-bottom: 1rem;
+}
+
+.address-block h6 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  margin: 0;
+  background-color: #0d6efd;
+  color: #fff;
+  padding: 0.5rem;
+}
+
+.address-block p {
+  font-size: 0.875rem;
+  margin: 0.75rem;
+  line-height: 1.4;
+  color: #333;
+  word-break: break-word;
+}
+
+/* Contenedor de tabla responsive */
+.table-container {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+}
+
+.invoice-table {
+  min-width: 500px;
+  width: 100%;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.invoice-table thead th {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: #fff;
+  padding: 0.5rem;
+  white-space: nowrap;
+}
+
+.invoice-table tbody td {
+  font-size: 0.8rem;
+  vertical-align: middle;
+  padding: 0.5rem;
+  word-break: break-word;
+}
+
+/* Columnas específicas para móviles */
+.invoice-table th:nth-child(1),
+.invoice-table td:nth-child(1) {
+  min-width: 150px;
+}
+
+.invoice-table th:nth-child(2),
+.invoice-table td:nth-child(2) {
+  min-width: 70px;
+  text-align: center;
+}
+
+.invoice-table th:nth-child(3),
+.invoice-table td:nth-child(3) {
+  min-width: 80px;
+  text-align: right;
+}
+
+.invoice-table th:nth-child(4),
+.invoice-table td:nth-child(4) {
+  min-width: 80px;
+  text-align: right;
+}
+
+/* Totales */
+.totals-box {
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  padding: 1rem !important;
+  margin-top: 1rem;
+  min-width: 200px;
+}
+
+.totals-box span {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.totals-box hr {
+  margin: 0.5rem 0;
+  border-top: 1px solid #ddd;
+}
+
+/* Botones en móviles */
+.botones-factura {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: #343a40;
+  position: sticky;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.botones-factura .btn {
+  width: 100%;
+  margin: 0 !important;
+  font-weight: 600;
+}
+
+/* Media queries para tablets */
+@media (min-width: 576px) {
+  .invoice-container {
+    padding: 1.5rem;
+    margin: 1.5rem auto;
   }
   
-  /* Contenedor general */
-  .invoice-container {
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-      color: #333;
-      background-color: #fff; /* factura en blanco para resaltar */
-      border-radius: 0.5rem;
-      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
-      margin: 2rem auto;
-  }
-    
-  /* Contenido interno */
-  .invoice-content {
-    padding: 2rem;
-    background: none;
-  }
-    
-  /* Encabezado */
   .invoice-header {
-    border-bottom: 3px solid #0d6efd;
-    padding-bottom: 1rem;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
   }
-  .company-info h5 {
-    margin-top: 0.5rem;
-    font-weight: 600;
-    color: #0d6efd;
+  
+  .company-info {
+    justify-content: flex-start;
+    text-align: left;
   }
-  .company-info p {
-    display: none; /* ocultamos detalles sobrantes */
+  
+  .invoice-meta {
+    text-align: right;
   }
-  .invoice-meta h4 {
-    margin-bottom: 0.5rem;
-    font-size: 1.5rem;
-    color: #0d6efd;
+  
+  .botones-factura {
+    flex-direction: row;
+    justify-content: space-between;
   }
-  .invoice-meta p {
-    margin: 0.2rem 0;
-    font-size: 0.9rem;
-    color: #333;
+  
+  .botones-factura .btn {
+    width: auto;
+    min-width: 150px;
   }
-    
-  /* Bloque Facturar A */
-  .address-block {
-    border: 1px solid #0d6efd;
-    border-radius: 0.25rem;
-    background-color: #e9f5ff;
+}
+
+/* Media queries para desktop */
+@media (min-width: 768px) {
+  .invoice-container {
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 800px;
   }
-  .address-block h6 {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    margin: 0;
-    background-color: #0d6efd;
-    color: #fff;
-    padding: 0.5rem;
-  }
-  .address-block p {
+  
+  .invoice-table {
+    min-width: auto;
     font-size: 0.875rem;
-    margin: 0.75rem;
-    line-height: 1.4;
-    color: #333;
   }
-    
-  /* Tabla de detalles */
+  
   .invoice-table thead th {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
-    text-transform: uppercase;
     font-size: 0.9rem;
-    color: #fff;
+    padding: 0.75rem;
   }
+  
   .invoice-table tbody td {
     font-size: 0.875rem;
-    vertical-align: middle;
+    padding: 0.75rem;
   }
-    
-  /* Totales */
-  .totals-box {
-    background-color: #f8f9fa;
-    border-radius: 0.25rem;
+  
+  .table-container {
+    overflow-x: visible;
   }
-  .totals-box span {
-    font-size: 0.9rem;
-    color: #333;
+}
+
+/* Mejoras para pantallas muy pequeñas */
+@media (max-width: 360px) {
+  .invoice-container {
+    padding: 0.75rem;
+    margin: 0.5rem;
   }
-  .totals-box hr {
-    margin: 0.5rem 0;
-    border-top: 1px solid #ddd;
+  
+  .company-info {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
   }
-    
-  /* Botón Descargar */
-  button {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
+  
+  .company-info h5 {
+    font-size: 1rem;
   }
-    
-  /* Pie de página oculto (no se usa) */
-  .invoice-footer {
+  
+  .invoice-table {
+    font-size: 0.75rem;
+    min-width: 450px;
+  }
+  
+  .invoice-table thead th {
+    font-size: 0.7rem;
+    padding: 0.4rem;
+  }
+  
+  .invoice-table tbody td {
+    font-size: 0.75rem;
+    padding: 0.4rem;
+  }
+  
+  .invoice-table th:nth-child(1),
+  .invoice-table td:nth-child(1) {
+    min-width: 120px;
+  }
+}
+
+/* Mejora la legibilidad del PDF */
+@media print {
+  .invoice-container {
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  
+  .botones-factura {
     display: none;
   }
-    
-  /* Media queries para adaptación a diferentes tamaños */
-  @media (max-width: 768px) {
-    .invoice-container {
-      margin: 1rem;
-    }
+  
+  .table-container {
+    overflow-x: visible;
+    border: none;
   }
-    
-  @media (max-width: 576px) {
-    .invoice-container {
-      margin: 0.5rem;
-    }
-  }
-    
-  @media (max-width: 320px) {
-    .invoice-container {
-      margin: 0.25rem;
-    }
-  }
-    
-  /* Estilo para el fondo oscuro general */
-  body {
-    background-color: #0e0a0a; /* fondo oscuro general */
-  }
-    
-  /* Estilo para el fondo de la factura */
-  .invoice-container {
-    background-color: #fff; /* factura en blanco para resaltar */
-  }
-    
-  /* Estilo para el fondo de los botones */
-  button {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
-  }
-    
-  /* Estilo para el fondo de la tabla */
-  .invoice-table thead th {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
-  }
-    
-  /* Estilo para el fondo de los totales */
-  .totals-box {
-    background-color: #f8f9fa;
-  }
-    
-  /* Estilo para el fondo del pie de página */
-  .invoice-footer {
-    background-color: #f8f9fa;
-  }
-    
-  /* Estilo para el fondo de la firma */
-  .signature {
-    background-color: #f8f9fa;
-  }
-    
+}
 
+/* Asegurar que el contenedor principal ocupe toda la altura */
+.min-vh-100 {
+  min-height: 100vh !important;
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}
+
+/* Alto contraste para mejor accesibilidad */
+@media (prefers-contrast: high) {
+  .invoice-table thead th {
+    background-color: #000 !important;
+    border-color: #000 !important;
+  }
+  
+  .address-block h6 {
+    background-color: #000;
+  }
+  
+  .address-block {
+    border-color: #000;
+  }
+}
