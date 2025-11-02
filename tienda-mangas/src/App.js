@@ -169,14 +169,16 @@ const MainApp = () => {
 
   return (
     <div className="bg-dark text-white min-vh-100">
-      {/* NAVBAR ESCRITORIO */}
+      {/* NAVBAR ESCRITORIO - AHORA FIJA */}
       <Navbar
         bg="dark"
         variant="dark"
         expand="lg"
+        fixed="top" // Cambiado a fixed para que sea fija en desktop
         expanded={navExpanded}
         onToggle={() => setNavExpanded(prev => !prev)}
         className="border-bottom border-light d-none d-lg-flex"
+        style={{ zIndex: 1040 }} // Aseguramos z-index adecuado
       >
         <Container fluid>
           <Navbar.Brand as={Link} to="/" onClick={() => setNavExpanded(false)}>
@@ -278,14 +280,16 @@ const MainApp = () => {
         </div>
       </div>
 
-      {/* SALTO DE LÍNEA PARA MÓVIL - SOLUCIÓN AL PROBLEMA */}
-      <div className="d-md-none">
-        <br /><br /><br />
-      </div>
-
-      <div className="d-flex flex-column flex-md-row" style={{ minHeight: 'calc(100vh - 56px)' }}>
+      {/* CONTENIDO PRINCIPAL CON MÁRGENES PARA LAS BARRAS FIJAS */}
+      <div 
+        className="d-flex flex-column flex-md-row main-content-container"
+        style={{ 
+          minHeight: 'calc(100vh - 56px)',
+          paddingTop: '80px' // Espacio para la barra fija en desktop
+        }}
+      >
         {/* SIDEBAR ESCRITORIO */}
-        <div className="d-none d-md-block">
+        <div className="d-none d-md-block sidebar-fixed">
           <SidebarFilters
             onFilterChange={handleFilterChange}
             setShowLogin={setShowLogin}
