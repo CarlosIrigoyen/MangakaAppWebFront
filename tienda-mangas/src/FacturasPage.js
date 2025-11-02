@@ -1,6 +1,6 @@
 // src/FacturasPage.js
 import React, { useEffect, useState, useRef, useContext } from 'react';
-import { Table, Button, Spinner, Alert, Container, Card } from 'react-bootstrap';
+import { Table, Button, Spinner, Alert, Container, Card, Row, Col } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -193,27 +193,58 @@ const FacturasPage = () => {
           </div>
 
           {/* Productos - Vista Desktop (Tabla) */}
-          <div className="d-none d-md-block">
-            <Table bordered className="invoice-table">
-              <thead>
-                <tr>
-                  <th>Descripción</th>
-                  <th className="text-center">Cantidad</th>
-                  <th className="text-end">Precio</th>
-                  <th className="text-end">Importe</th>
-                </tr>
-              </thead>
-              <tbody>
-                {factura.detalles.map(d => (
-                  <tr key={d.tomo_id}>
-                    <td>{`${d.titulo} – Tomo ${d.numero_tomo}`}</td>
-                    <td className="text-center">{d.cantidad}</td>
-                    <td className="text-end">${(+d.precio_unitario).toFixed(2)}</td>
-                    <td className="text-end">${(+d.subtotal).toFixed(2)}</td>
+          <div className="d-none d-lg-block">
+            <div className="table-responsive">
+              <Table bordered className="invoice-table">
+                <thead>
+                  <tr>
+                    <th>Descripción</th>
+                    <th className="text-center">Cantidad</th>
+                    <th className="text-end">Precio</th>
+                    <th className="text-end">Importe</th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
+                </thead>
+                <tbody>
+                  {factura.detalles.map(d => (
+                    <tr key={d.tomo_id}>
+                      <td>{`${d.titulo} – Tomo ${d.numero_tomo}`}</td>
+                      <td className="text-center">{d.cantidad}</td>
+                      <td className="text-end">${(+d.precio_unitario).toFixed(2)}</td>
+                      <td className="text-end">${(+d.subtotal).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </div>
+
+          {/* Productos - Vista Tablet Horizontal (Tabla compacta) */}
+          <div className="d-none d-md-block d-lg-none">
+            <div className="table-responsive">
+              <Table bordered size="sm" className="invoice-table-compact">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th className="text-center">Cant</th>
+                    <th className="text-end">Precio</th>
+                    <th className="text-end">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {factura.detalles.map(d => (
+                    <tr key={d.tomo_id}>
+                      <td>
+                        <div className="product-title-small">{d.titulo}</div>
+                        <div className="product-subtitle">Tomo {d.numero_tomo}</div>
+                      </td>
+                      <td className="text-center">{d.cantidad}</td>
+                      <td className="text-end">${(+d.precio_unitario).toFixed(2)}</td>
+                      <td className="text-end">${(+d.subtotal).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
           </div>
 
           {/* Productos - Vista Móvil (Tarjetas) */}
