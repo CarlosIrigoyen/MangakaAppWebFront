@@ -289,7 +289,7 @@ const MainApp = () => {
         </div>
 
         {/* LISTA DE TOMOS */}
-        <div className="flex-grow-1 p-2" style={{ paddingTop: '90px' }}>
+        <div className="main-content flex-grow-1 p-2">
           <TomoList
             tomos={tomos}
             pagination={pagination}
