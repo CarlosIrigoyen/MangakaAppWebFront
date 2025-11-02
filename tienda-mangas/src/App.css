@@ -1,3 +1,5 @@
+/* App.css - Manteniendo tus estilos existentes y agregando mejoras */
+
 .App {
   text-align: center;
 }
@@ -40,7 +42,7 @@
 /* Backdrop y modal centrado sobre pantalla - ocupa todo el viewport */
 .sfm-backdrop {
   position: fixed;
-  inset: 0; /* cubre toda la pantalla */
+  inset: 0;
   background: rgba(0,0,0,0.45);
   z-index: 2040;
 }
@@ -132,6 +134,7 @@
   .sfm-left { width: 120px; }
   .sfm-apply { min-width: 160px; }
 }
+
 /* ========================================================= */
 /* === ESTILOS PARA EL MODAL DE FILTROS (actualizado) === */
 /* ========================================================= */
@@ -162,13 +165,13 @@
 
 /* CONTENEDOR PRINCIPAL CON BARRAS FIJAS */
 .main-content-container {
-  padding-top: 80px; /* Para la barra fija en desktop */
+  padding-top: 80px;
 }
 
 /* En móvil ajustamos el padding para la barra móvil */
 @media (max-width: 768px) {
   .main-content-container {
-    padding-top: 140px !important; /* Para la barra móvil más alta */
+    padding-top: 140px !important;
   }
 }
 
@@ -176,7 +179,7 @@
 @media (min-width: 768px) {
   .sidebar-fixed {
     position: sticky;
-    top: 80px; /* Debajo de la navbar fija */
+    top: 80px;
     height: calc(100vh - 80px);
     overflow-y: auto;
   }
@@ -185,4 +188,29 @@
 /* El contenido principal */
 .main-content {
   /* Eliminamos el padding-top anterior ya que lo maneja el contenedor */
+}
+
+/* Mejoras globales para facturas responsive */
+.container {
+  max-width: 100%;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* Asegurar que las imágenes sean responsive */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mejoras de scroll suave */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevenir zoom en inputs en iOS */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px;
+  }
 }
