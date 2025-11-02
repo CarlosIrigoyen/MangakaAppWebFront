@@ -1,6 +1,6 @@
 // src/FacturasPage.js
 import React, { useEffect, useState, useRef, useContext } from 'react';
-import { Table, Button, Spinner, Alert, Container } from 'react-bootstrap';
+import { Table, Button, Spinner, Alert, Container, Card } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -32,16 +32,13 @@ const FacturasPage = () => {
       setError(null);
 
       try {
-        // Verificar si viene de PayPal con token
         const searchParams = new URLSearchParams(location.search);
         const paypalToken = searchParams.get('token');
 
-        // Si viene de PayPal, capturar el pago (esto creará la factura)
         if (paypalToken) {
           await capturarPagoPayPal(paypalToken);
         }
 
-        // Cargar facturas del usuario
         const token = localStorage.getItem('token');
         const resList = await fetch(`${API_URL}/orders/invoices`, {
           headers: { 
@@ -50,9 +47,7 @@ const FacturasPage = () => {
           }
         });
         
-        if (!resList.ok) {
-          throw new Error(`HTTP ${resList.status} fetching invoices`);
-        }
+        if (!resList.ok) throw new Error(`HTTP ${resList.status} fetching invoices`);
 
         const list = await resList.json();
         if (!list.length) {
@@ -60,7 +55,6 @@ const FacturasPage = () => {
           return;
         }
 
-        // Cargar detalle de la última factura
         const ultima = list[0];
         const resDet = await fetch(`${API_URL}/orders/invoices/${ultima.id}`, {
           headers: { 
@@ -69,9 +63,7 @@ const FacturasPage = () => {
           }
         });
         
-        if (!resDet.ok) {
-          throw new Error(`HTTP ${resDet.status} fetching invoice detail`);
-        }
+        if (!resDet.ok) throw new Error(`HTTP ${resDet.status} fetching invoice detail`);
         
         const data = await resDet.json();
         setFactura(data);
@@ -97,14 +89,11 @@ const FacturasPage = () => {
         }
       });
 
-      if (!response.ok) {
-        throw new Error('Error capturando pago PayPal');
-      }
+      if (!response.ok) throw new Error('Error capturando pago PayPal');
 
       const result = await response.json();
       console.log('Pago PayPal capturado y factura creada:', result);
 
-      // Limpiar URL después de capturar
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
 
@@ -116,16 +105,34 @@ const FacturasPage = () => {
 
   const descargarComoPdf = async () => {
     if (!facturaRef.current) return;
-    const canvas = await html2canvas(facturaRef.current, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const margin = 40;
-    const imgWidth = pageWidth - margin * 2;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
-    const numeroDigitos = String(factura.numero).replace(/\D/g, '').slice(0, 6);
-    pdf.save(`Factura-${numeroDigitos}.pdf`);
+    
+    try {
+      const canvas = await html2canvas(facturaRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 10;
+      const imgWidth = pageWidth - (margin * 2);
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+      const numeroDigitos = String(factura.numero).replace(/\D/g, '').slice(0, 6);
+      pdf.save(`Factura-${numeroDigitos}.pdf`);
+
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+    }
   };
 
   const volverHome = () => {
@@ -167,6 +174,7 @@ const FacturasPage = () => {
       <Container className="flex-grow-1 py-4">
         <Alert variant="success">¡Pago procesado con éxito!</Alert>
         <div ref={facturaRef} className="p-3 p-md-4 bg-white text-dark rounded invoice-container">
+          {/* Header */}
           <div className="invoice-header">
             <div className="company-info">
               <img src="/img/Mangaka.png" alt="Logo" width={50} height={50} className="me-3" />
@@ -178,12 +186,14 @@ const FacturasPage = () => {
             </div>
           </div>
 
+          {/* Cliente */}
           <div className="address-block">
             <h6>Facturar A:</h6>
             <p>{factura.cliente.nombre} {factura.cliente.apellido}</p>
           </div>
 
-          <div className="table-container">
+          {/* Productos - Vista Desktop (Tabla) */}
+          <div className="d-none d-md-block">
             <Table bordered className="invoice-table">
               <thead>
                 <tr>
@@ -206,17 +216,49 @@ const FacturasPage = () => {
             </Table>
           </div>
 
-          <div className="d-flex justify-content-end mt-3">
-            <div className="totals-box">
-              <hr />
-              <div className="d-flex justify-content-between fw-bold">
-                <span>Total</span>
-                <span>${(+factura.total).toFixed(2)}</span>
-              </div>
+          {/* Productos - Vista Móvil (Tarjetas) */}
+          <div className="d-md-none">
+            <div className="productos-mobile">
+              <h6 className="mb-3 border-bottom pb-2">Productos</h6>
+              {factura.detalles.map(d => (
+                <Card key={d.tomo_id} className="mb-3 product-card">
+                  <Card.Body>
+                    <div className="product-info">
+                      <strong className="product-title">{d.titulo}</strong>
+                      <div className="product-details">
+                        <span>Tomo {d.numero_tomo}</span>
+                      </div>
+                    </div>
+                    <div className="product-prices">
+                      <div className="price-row">
+                        <span>Cantidad:</span>
+                        <span>{d.cantidad}</span>
+                      </div>
+                      <div className="price-row">
+                        <span>Precio unitario:</span>
+                        <span>${(+d.precio_unitario).toFixed(2)}</span>
+                      </div>
+                      <div className="price-row total-row">
+                        <strong>Subtotal:</strong>
+                        <strong>${(+d.subtotal).toFixed(2)}</strong>
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Total */}
+          <div className="totals-section">
+            <div className="total-final">
+              <strong>Total: ${(+factura.total).toFixed(2)}</strong>
             </div>
           </div>
         </div>
       </Container>
+      
+      {/* Botones */}
       <div className="botones-factura">
         <Button variant="secondary" onClick={volverHome}>Volver al Home</Button>
         <Button variant="primary" onClick={descargarComoPdf}>Descargar PDF</Button>
