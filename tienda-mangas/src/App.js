@@ -1,5 +1,5 @@
 // App.js
-import React, { useContext, useState, useEffect, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useCallback, useRef } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -59,6 +59,10 @@ const MainApp = () => {
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [navExpanded, setNavExpanded] = useState(false);
 
+  // refs para medir la barra móvil y aplicar padding al contenido principal
+  const mobileTopbarRef = useRef(null);
+  const mainContentRef = useRef(null);
+
   // Carga de tomos
   const fetchTomos = useCallback(async (filtersParam = {}, page = 1) => {
     const params = new URLSearchParams();
@@ -91,6 +95,39 @@ const MainApp = () => {
   useEffect(() => {
     fetchTomos(filters, 1);
   }, [fetchTomos]);
+
+  // Ajuste dinámico del padding-top del contenido según la altura real de la barra móvil
+  useEffect(() => {
+    const applyTopPadding = () => {
+      try {
+        const topbar = mobileTopbarRef.current;
+        const main = mainContentRef.current;
+        if (!main) return;
+        const topbarHeight = topbar ? topbar.offsetHeight : 0;
+        // margen extra de seguridad
+        main.style.paddingTop = `${topbarHeight + 8}px`;
+      } catch (err) {
+        console.warn('No se pudo ajustar padding-top automáticamente', err);
+      }
+    };
+
+    // aplicar inmediatamente
+    applyTopPadding();
+
+    // reaplicar en resize / orientation
+    window.addEventListener('resize', applyTopPadding);
+    window.addEventListener('orientationchange', applyTopPadding);
+
+    // pequeño intervalo para capturar cambios por animaciones / reflows
+    const interval = setInterval(applyTopPadding, 300);
+    setTimeout(() => clearInterval(interval), 1000);
+
+    return () => {
+      window.removeEventListener('resize', applyTopPadding);
+      window.removeEventListener('orientationchange', applyTopPadding);
+      clearInterval(interval);
+    };
+  }, [user]); // re-evalúa si cambia el usuario (barra puede cambiar)
 
   const handlePageChange = (page) => fetchTomos(filters, page);
 
@@ -231,6 +268,7 @@ const MainApp = () => {
 
       {/* BARRA MÓVIL FIJA */}
       <div
+        ref={mobileTopbarRef}
         className="d-md-none p-3 bg-secondary text-white shadow-sm"
         style={{
           position: 'fixed',
@@ -289,7 +327,7 @@ const MainApp = () => {
         </div>
 
         {/* LISTA DE TOMOS */}
-        <div className="main-content flex-grow-1 p-2">
+        <div ref={mainContentRef} className="main-content flex-grow-1 p-2">
           <TomoList
             tomos={tomos}
             pagination={pagination}
