@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useRef, useEffect } from 'react';
 import { Card, Button, Pagination } from 'react-bootstrap';
 import { FaShoppingCart, FaInfoCircle } from 'react-icons/fa';
 import { CartContext } from './CartContext';
@@ -6,6 +6,20 @@ import { CartContext } from './CartContext';
 const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) => {
   const { cart, addToCart } = useContext(CartContext);
   const data = tomos.data ? tomos.data : tomos;
+  
+  // Ref para el contenedor principal que usaremos para el scroll
+  const containerRef = useRef(null);
+
+  // Efecto para hacer scroll al inicio cuando cambia la página
+  useEffect(() => {
+    if (containerRef.current) {
+      // Hacemos scroll suave al inicio del contenedor
+      containerRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
+  }, [pagination?.currentPage]); // Se ejecuta cuando cambia la página actual
 
   if (!data.length) {
     return (
@@ -73,8 +87,14 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
     return pages;
   };
 
+  // Función personalizada para manejar el cambio de página con scroll
+  const handlePageChangeWithScroll = (page) => {
+    onPageChange(page);
+    // El useEffect se encargará del scroll automáticamente
+  };
+
   return (
-    <div className="container my-4">
+    <div ref={containerRef} className="container my-4">
       <Card className="shadow-sm rounded mb-4">
         <Card.Header className="bg-dark text-white">Lista de Tomos</Card.Header>
         <Card.Body className="p-3 bg-dark">
@@ -132,7 +152,7 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
             <Pagination className="mb-0">
               {/* 🔹 Botón Anterior (sin texto) */}
               <Pagination.Prev
-                onClick={() => onPageChange(pagination.currentPage - 1)}
+                onClick={() => handlePageChangeWithScroll(pagination.currentPage - 1)}
                 disabled={pagination.currentPage === 1}
                 className="border border-light"
               />
@@ -141,7 +161,7 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
 
               {/* 🔹 Botón Siguiente (sin texto) */}
               <Pagination.Next
-                onClick={() => onPageChange(pagination.currentPage + 1)}
+                onClick={() => handlePageChangeWithScroll(pagination.currentPage + 1)}
                 disabled={pagination.currentPage === pagination.lastPage}
                 className="border border-light"
               />
