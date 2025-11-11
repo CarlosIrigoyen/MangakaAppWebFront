@@ -138,7 +138,15 @@ const PayPalReturn = () => {
             <Card className="border-0 shadow">
               <Card.Body className="p-4 text-center">
                 <div className="mb-4">
-                  <div style={{ fontSize: '4rem', color: '#dc3545' }}>❌</div>
+                  <img 
+                    src="https://i.pinimg.com/originals/ce/52/60/ce52606293142a2bd11cda1d3f0dc12c.gif" 
+                    alt="Error en el pago" 
+                    style={{ 
+                      width: '150px', 
+                      height: '150px',
+                      objectFit: 'contain'
+                    }}
+                  />
                 </div>
                 
                 <h3 className="mb-3 text-danger">Error en el pago</h3>
