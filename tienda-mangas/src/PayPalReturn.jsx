@@ -122,15 +122,6 @@ const PayPalReturn = () => {
                   <p className="mb-0">{error}</p>
                 </Alert>
 
-                <div className="mt-4 p-3 bg-light rounded">
-                  <p className="text-muted mb-2 small">
-                    <strong>ID de la orden:</strong> {orderId || 'No disponible'}
-                  </p>
-                  <p className="text-muted mb-0 small">
-                    <strong>Modo:</strong> Pruebas (Sandbox) - No se realizó cargo real
-                  </p>
-                </div>
-
                 <div className="d-grid gap-3 d-md-flex justify-content-md-center mt-5">
                   <Button 
                     variant="primary" 
@@ -148,25 +139,6 @@ const PayPalReturn = () => {
                   >
                     🏠 Volver al inicio
                   </Button>
-                </div>
-
-                <div className="mt-4 pt-3 border-top">
-                  <p className="text-muted small mb-2">
-                    ¿Sigues teniendo problemas?
-                  </p>
-                  <Button 
-                    variant="outline-danger" 
-                    onClick={contactSupport}
-                    size="sm"
-                  >
-                    📞 Contactar soporte
-                  </Button>
-                </div>
-
-                <div className="mt-4">
-                  <small className="text-muted">
-                    💡 <strong>Consejo:</strong> En modo pruebas, usa las tarjetas de prueba de PayPal Sandbox
-                  </small>
                 </div>
               </Card.Body>
             </Card>
