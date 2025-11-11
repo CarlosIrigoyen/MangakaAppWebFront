@@ -7,16 +7,15 @@ const API_PAYPAL_CAPTURE = `${process.env.REACT_APP_API_URL}/paypal/capture-orde
 const PayPalReturn = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [orderId, setOrderId] = useState(null);
+  const [pending, setPending] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
-    setOrderId(token);
 
     if (!token) {
-      setError('No se encontró información de la transacción. Por favor, verifica tu historial de compras.');
+      setError('No se encontró información de la transacción.');
       setLoading(false);
       return;
     }
@@ -40,7 +39,13 @@ const PayPalReturn = () => {
         const data = await res.json().catch(() => null);
         
         if (!res.ok) {
-          // Usar el mensaje amigable del backend o mostrar uno genérico
+          // Verificar si es un estado pendiente (código 202)
+          if (res.status === 202) {
+            setPending(true);
+            setLoading(false);
+            return;
+          }
+          
           const friendlyMessage = data?.message || 'Error al procesar el pago. Por favor, intenta con otro método.';
           throw new Error(friendlyMessage);
         }
@@ -58,7 +63,6 @@ const PayPalReturn = () => {
       } catch (err) {
         console.error('Error capturando pago PayPal:', err);
         setError(err.message || 'Error al procesar el pago. Por favor, intenta nuevamente.');
-      } finally {
         setLoading(false);
       }
     };
@@ -67,7 +71,6 @@ const PayPalReturn = () => {
   }, [navigate]);
 
   const retryPayment = () => {
-    // Redirigir al carrito para intentar nuevamente
     navigate('/cart');
   };
 
@@ -75,24 +78,52 @@ const PayPalReturn = () => {
     navigate('/');
   };
 
-  const contactSupport = () => {
-    // Aquí puedes redirigir a una página de contacto o abrir un email
-    window.location.href = 'mailto:soporte@mangakabaka.com?subject=Problema con el pago';
-  };
-
   if (loading) {
     return (
-      <Container className="d-flex flex-column justify-content-center align-items-center min-vh-100 payment-processing">
-        <div className="text-center text-white">
+      <Container className="d-flex flex-column justify-content-center align-items-center min-vh-100">
+        <div className="text-center">
           <Spinner animation="border" variant="primary" role="status" size="lg">
             <span className="visually-hidden">Procesando pago...</span>
           </Spinner>
           <h4 className="mt-4">Procesando tu pago...</h4>
-          <p className="text-light">Esto puede tomar unos segundos. Por favor, no cierres esta página.</p>
-          <div className="mt-3">
-            <small className="text-muted">
-              ID de orden: {orderId || 'Cargando...'}
-            </small>
+          <p className="text-muted">Esto puede tomar unos segundos. Por favor, no cierres esta página.</p>
+        </div>
+      </Container>
+    );
+  }
+
+  if (pending) {
+    return (
+      <Container className="py-5">
+        <div className="row justify-content-center">
+          <div className="col-md-6">
+            <Card className="border-0 shadow">
+              <Card.Body className="p-4 text-center">
+                <div className="mb-4">
+                  <div style={{ fontSize: '4rem', color: '#ffc107' }}>⏳</div>
+                </div>
+                
+                <h3 className="mb-3 text-warning">Pago Pendiente</h3>
+                
+                <Alert variant="warning" className="text-start">
+                  <Alert.Heading>Tu pago está siendo procesado</Alert.Heading>
+                  <p className="mb-0">
+                    Hemos recibido tu solicitud de pago pero aún está en proceso de verificación. 
+                    Esto puede tomar algunos minutos. Te notificaremos cuando se complete.
+                  </p>
+                </Alert>
+
+                <div className="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                  <Button 
+                    variant="outline-secondary" 
+                    onClick={goHome}
+                    size="lg"
+                  >
+                    Volver al Inicio
+                  </Button>
+                </div>
+              </Card.Body>
+            </Card>
           </div>
         </div>
       </Container>
@@ -103,41 +134,34 @@ const PayPalReturn = () => {
     return (
       <Container className="py-5">
         <div className="row justify-content-center">
-          <div className="col-md-8 col-lg-6">
-            <Card className="border-0 shadow-lg">
-              <Card.Body className="p-5 text-center">
+          <div className="col-md-6">
+            <Card className="border-0 shadow">
+              <Card.Body className="p-4 text-center">
                 <div className="mb-4">
-                  <div className="payment-error-icon" style={{ fontSize: '5rem', color: '#dc3545' }}>
-                    ❌
-                  </div>
+                  <div style={{ fontSize: '4rem', color: '#dc3545' }}>❌</div>
                 </div>
                 
-                <h2 className="mb-3 text-danger fw-bold">Pago no procesado</h2>
-                <p className="text-muted mb-4">
-                  No pudimos completar tu compra en este momento.
-                </p>
+                <h3 className="mb-3 text-danger">Error en el pago</h3>
                 
                 <Alert variant="danger" className="text-start">
-                  <Alert.Heading className="h5">📋 Detalles del error:</Alert.Heading>
+                  <Alert.Heading>No se pudo completar el pago</Alert.Heading>
                   <p className="mb-0">{error}</p>
                 </Alert>
 
-                <div className="d-grid gap-3 d-md-flex justify-content-md-center mt-5">
+                <div className="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
                   <Button 
                     variant="primary" 
                     onClick={retryPayment}
                     size="lg"
-                    className="px-4"
                   >
-                    🔄 Intentar con otro método
+                    Intentar con otro método de pago
                   </Button>
                   <Button 
                     variant="outline-secondary" 
                     onClick={goHome}
                     size="lg"
-                    className="px-4"
                   >
-                    🏠 Volver al inicio
+                    Volver al inicio
                   </Button>
                 </div>
               </Card.Body>
