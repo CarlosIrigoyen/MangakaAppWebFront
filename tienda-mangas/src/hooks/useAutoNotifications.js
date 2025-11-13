@@ -1,9 +1,11 @@
+// src/hooks/useAutoNotifications.js
 import { useState, useEffect, useContext, useCallback } from 'react';
-import { getToken, onMessage } from 'firebase/messaging';
-import { messaging, isMessagingSupported, vapidKey } from '../firebase';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/messaging';
+import { isMessagingSupported, vapidKey } from '../firebase';
 import { UserContext } from '../UserContext';
 
-// URLs de la API - CORREGIDAS
+// URLs de la API (usa tus variables de entorno)
 const API_ACTUALIZAR_SUSCRIPCIONES = `${process.env.REACT_APP_API_URL}/suscripciones/actualizar-suscripciones`;
 const API_OBTENER_TOKEN = `${process.env.REACT_APP_API_URL}/suscripciones/obtener-token`;
 const API_MANGAS_DISPONIBLES = `${process.env.REACT_APP_API_URL}/suscripciones/mangas-disponibles`;
@@ -29,7 +31,6 @@ export const useAutoNotifications = () => {
   // Obtener token existente del backend
   const obtenerTokenExistente = useCallback(async () => {
     if (!user) return null;
-
     try {
       const userToken = localStorage.getItem('token');
       const response = await fetch(API_OBTENER_TOKEN, {
@@ -89,21 +90,24 @@ export const useAutoNotifications = () => {
     }
   };
 
-  // Inicializar notificaciones automáticamente - MODIFICADA
+  // Registrar Service Worker y obtener token FCM (compat)
   const inicializarNotificaciones = useCallback(async () => {
-    if (!isSupported || !user) return;
+    if (!isSupported || !user) return null;
 
     setLoading(true);
     try {
       // 1. Intentar recuperar token existente del backend
       const tokenExistente = await obtenerTokenExistente();
-      
+
       // 2. Registrar Service Worker y obtener token actual
       console.log('🔄 Registrando Service Worker...');
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       console.log('✅ Service Worker registrado:', registration);
 
-      const currentToken = await getToken(messaging, {
+      const messagingCompat = firebase.messaging();
+
+      // getToken en compat acepta objeto con vapidKey y serviceWorkerRegistration
+      const currentToken = await messagingCompat.getToken({
         vapidKey: vapidKey,
         serviceWorkerRegistration: registration
       });
@@ -138,9 +142,8 @@ export const useAutoNotifications = () => {
       // 6. Establecer el token actual y cargar suscripciones
       setFcmToken(currentToken);
       await cargarSuscripciones(currentToken);
-      
-      return currentToken;
 
+      return currentToken;
     } catch (error) {
       console.error('❌ Error inicializando notificaciones:', error);
     } finally {
@@ -299,43 +302,53 @@ export const useAutoNotifications = () => {
     }
   }, [user, inicializarNotificaciones]);
 
-  // Escuchar mensajes en primer plano
+  // Escuchar mensajes en primer plano (compat)
   useEffect(() => {
-    if (!isSupported || !messaging) {
+    if (!isSupported) {
       console.log('🔕 Firebase Messaging no soportado en este entorno');
       return;
     }
 
     console.log('🎯 Configurando listener de mensajes en primer plano...');
     
-    const unsubscribe = onMessage(messaging, (payload) => {
-      console.log('📨 Mensaje en primer plano recibido:', payload);
-      
-      // Mostrar notificación incluso en primer plano
-      if (Notification.permission === 'granted') {
-        const title = payload.notification?.title || payload.data?.title || 'Nuevo tomo disponible';
-        const body = payload.notification?.body || payload.data?.body || '';
-        
-        console.log('📢 Mostrando notificación:', { title, body });
+    try {
+      const messagingCompat = firebase.messaging();
 
-        const options = {
-          body: body,
-          icon: payload.notification?.icon || '/img/Mangaka.png',
-          data: payload.data || {},
-          badge: '/img/Mangaka.png',
-          tag: payload.data?.manga_id || 'general'
-        };
+      const handler = (payload) => {
+        console.log('📨 Mensaje en primer plano recibido:', payload);
         
-        new Notification(title, options);
-      }
-    });
+        // Mostrar notificación incluso en primer plano
+        if (Notification.permission === 'granted') {
+          const title = payload.notification?.title || payload.data?.title || 'Nuevo tomo disponible';
+          const body = payload.notification?.body || payload.data?.body || '';
 
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        console.log('🧹 Limpiando listener de mensajes');
-        unsubscribe();
-      }
-    };
+          console.log('📢 Mostrando notificación:', { title, body });
+
+          const options = {
+            body: body,
+            icon: payload.notification?.icon || '/img/Mangaka.png',
+            data: payload.data || {},
+            badge: '/img/Mangaka.png',
+            tag: payload.data?.manga_id || 'general'
+          };
+
+          // Mostrar notificación nativa en primer plano
+          new Notification(title, options);
+        }
+      };
+
+      // compat usa onMessage así:
+      messagingCompat.onMessage(handler);
+
+      // Nota: compat.onMessage no devuelve un unsubscribe estándar.
+      // Si necesitas evitar múltiples listeners, podrías manejar una bandera fuera del hook.
+      return () => {
+        // No hay forma estándar de remover handler en compat. Para evitar duplicados en
+        // re-montados, considera reiniciar la página o migrar a la API modular.
+      };
+    } catch (err) {
+      console.error('❌ Error configurando listener foreground (compat):', err);
+    }
   }, [isSupported]);
 
   return {
