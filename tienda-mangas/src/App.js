@@ -23,6 +23,7 @@ import SuccessPage from './SuccessPage';
 import FailurePage from './FailurePage';
 import PendingPage from './PendingPage';
 import PayPalReturn from './PayPalReturn';
+import SubscriptionManager from './SubscriptionManager'; // Importar el nuevo componente
 
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
@@ -210,6 +211,10 @@ const MainApp = () => {
             {user ? (
               <>
                 <span className="me-2">Hola, {user.nombre}</span>
+                
+                {/* Botón de suscripciones a notificaciones */}
+                <SubscriptionManager />
+                
                 <Button type="button" variant="outline-light" as={Link} to="/cart">
                   <FaShoppingCart /> {cartCount}
                 </Button>
@@ -248,14 +253,19 @@ const MainApp = () => {
             <strong>{user ? `Hola, ${user.nombre}` : 'Bienvenido'}</strong>
           </div>
           {user && (
-            <Button
-              type="button"
-              size="sm"
-              variant="light"
-              onClick={() => navigate('/cart')}
-            >
-              <FaShoppingCart /> {cartCount}
-            </Button>
+            <div className="d-flex align-items-center">
+              {/* Botón de suscripciones en móvil */}
+              <SubscriptionManager />
+              <Button
+                type="button"
+                size="sm"
+                variant="light"
+                className="ms-2"
+                onClick={() => navigate('/cart')}
+              >
+                <FaShoppingCart /> {cartCount}
+              </Button>
+            </div>
           )}
         </div>
 
