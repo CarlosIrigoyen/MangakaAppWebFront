@@ -23,7 +23,7 @@ import SuccessPage from './SuccessPage';
 import FailurePage from './FailurePage';
 import PendingPage from './PendingPage';
 import PayPalReturn from './PayPalReturn';
-import SubscriptionManager from './SubscriptionManager'; // Importar el nuevo componente
+import SubscriptionManager from './SubscriptionManager';
 
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
@@ -175,11 +175,11 @@ const MainApp = () => {
         bg="dark"
         variant="dark"
         expand="lg"
-        fixed="top" // Cambiado a fixed para que sea fija en desktop
+        fixed="top"
         expanded={navExpanded}
         onToggle={() => setNavExpanded(prev => !prev)}
         className="border-bottom border-light d-none d-lg-flex"
-        style={{ zIndex: 1040 }} // Aseguramos z-index adecuado
+        style={{ zIndex: 1040 }}
       >
         <Container fluid>
           <Navbar.Brand as={Link} to="/" onClick={() => setNavExpanded(false)}>
@@ -211,11 +211,11 @@ const MainApp = () => {
             {user ? (
               <>
                 <span className="me-2">Hola, {user.nombre}</span>
-                
+
                 {/* Botón de suscripciones a notificaciones */}
                 <SubscriptionManager />
-                
-                <Button type="button" variant="outline-light" as={Link} to="/cart">
+
+                <Button type="button" variant="outline-light" as={Link} to="/cart" aria-label={`Carrito, ${cartCount} items`}>
                   <FaShoppingCart /> {cartCount}
                 </Button>
                 <Button type="button" variant="danger" className="ms-2" onClick={handleLogout}>
@@ -236,9 +236,9 @@ const MainApp = () => {
         </Container>
       </Navbar>
 
-      {/* BARRA MÓVIL FIJA */}
+      {/* BARRA MÓVIL FIJA (CORREGIDO: bg-dark para buen contraste) */}
       <div
-        className="d-md-none p-3 bg-secondary text-white shadow-sm"
+        className="d-md-none p-3 bg-dark text-white shadow-sm"
         style={{
           position: 'fixed',
           top: 0,
@@ -262,6 +262,7 @@ const MainApp = () => {
                 variant="light"
                 className="ms-2"
                 onClick={() => navigate('/cart')}
+                aria-label={`Carrito, ${cartCount} items`}
               >
                 <FaShoppingCart /> {cartCount}
               </Button>
@@ -275,7 +276,8 @@ const MainApp = () => {
               <Button size="sm" variant="primary" onClick={() => setShowRegister(true)}>
                 Registro
               </Button>
-              <Button size="sm" variant="outline-light" onClick={() => setShowLogin(true)}>
+              {/* LOGIN (CORREGIDO: no outline-light, para contraste) */}
+              <Button size="sm" variant="light" className="text-dark" onClick={() => setShowLogin(true)}>
                 Login
               </Button>
             </>
@@ -291,11 +293,11 @@ const MainApp = () => {
       </div>
 
       {/* CONTENIDO PRINCIPAL CON MÁRGENES PARA LAS BARRAS FIJAS */}
-      <div 
+      <div
         className="d-flex flex-column flex-md-row main-content-container"
-        style={{ 
+        style={{
           minHeight: 'calc(100vh - 56px)',
-          paddingTop: '80px' // Espacio para la barra fija en desktop
+          paddingTop: '80px' // Espacio para la barra fija en desktop (coincide con CSS)
         }}
       >
         {/* SIDEBAR ESCRITORIO */}
