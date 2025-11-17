@@ -174,9 +174,7 @@ const SideBarFiltersContent = ({
 
       {/* Quitar filtros */}
       <div class="sidebar bg-dark text-white p-3 vh-100 position-sticky top-0">
-        <button className="btn btn-outline-light w-100" onClick={clearAllFilters}>
-          Quitar filtros
-        </button>
+        <button class="btn btn-light text-dark w-100">Quitar filtros</button>
       </div>
     </>
   );
