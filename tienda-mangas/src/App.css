@@ -1,5 +1,6 @@
 /* App.css - Manteniendo tus estilos existentes y agregando mejoras */
 
+/* --- Básicos --- */
 .App {
   text-align: center;
 }
@@ -39,7 +40,7 @@
   }
 }
 
-/* Backdrop y modal centrado sobre pantalla - ocupa todo el viewport */
+/* --- Backdrop y modal centrado --- */
 .sfm-backdrop {
   position: fixed;
   inset: 0;
@@ -47,7 +48,6 @@
   z-index: 2040;
 }
 
-/* Modal centrado en desktop, limitado en alto para scroll interno */
 .sfm-modal {
   position: fixed;
   top: 50%;
@@ -118,7 +118,7 @@
 .sfm-clear { color:#6c757d; border:0; background:transparent; }
 .sfm-apply { min-width:220px; }
 
-/* En pantallas pequeñas: modal en fullscreen (sin border-radius) */
+/* Móvil: modal en fullscreen (sin border-radius) */
 @media (max-width: 700px) {
   .sfm-modal {
     width: 100%;
@@ -165,13 +165,13 @@
 
 /* CONTENEDOR PRINCIPAL CON BARRAS FIJAS */
 .main-content-container {
-  padding-top: 80px;
+  padding-top: 80px; /* espacio para navbar desktop */
 }
 
 /* En móvil ajustamos el padding para la barra móvil */
 @media (max-width: 768px) {
   .main-content-container {
-    padding-top: 140px !important;
+    padding-top: 140px !important; /* deja espacio para la barra móvil fija */
   }
 }
 
@@ -187,7 +187,7 @@
 
 /* El contenido principal */
 .main-content {
-  /* Eliminamos el padding-top anterior ya que lo maneja el contenedor */
+  /* Aquí puedes agregar estilos si hace falta */
 }
 
 /* Mejoras globales para facturas responsive */
@@ -214,3 +214,23 @@ html {
     font-size: 16px;
   }
 }
+
+/* === ACCESIBILIDAD: Indicador de foco claro para controles interactivos === */
+button:focus, .btn:focus, .form-check-input:focus, a:focus {
+  outline: 3px solid rgba(13,110,253,0.28);
+  outline-offset: 2px;
+}
+
+/* Mejorar visibilidad de btn-outline-light en fondos oscuros (no cambia su look, solo refuerza) */
+.btn-outline-light {
+  border-color: rgba(248,249,250,0.9);
+  color: rgba(248,249,250,0.95);
+}
+
+/* Si usás botones con background muy claro sobre fondo oscuro, asegurar texto oscuro */
+.btn-light.text-dark {
+  color: #111 !important;
+}
+
+/* Pequeños ajustes estéticos */
+.sfm-close:focus { outline: none; box-shadow: none; }
