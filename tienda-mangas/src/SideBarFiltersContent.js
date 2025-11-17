@@ -39,6 +39,7 @@ const SideBarFiltersContent = ({
             }`}
           >
             {items.length === 0 && <small className="text-light">Sin opciones</small>}
+
             {key === 'authors' &&
               items.map((a) => (
                 <div key={a.id} className="form-check mt-1">
@@ -58,6 +59,7 @@ const SideBarFiltersContent = ({
                   </label>
                 </div>
               ))}
+
             {key === 'languages' &&
               items.map((lang, i) => (
                 <div key={i} className="form-check mt-1">
@@ -77,6 +79,7 @@ const SideBarFiltersContent = ({
                   </label>
                 </div>
               ))}
+
             {key === 'mangas' &&
               items.map((m) => (
                 <div key={m.id} className="form-check mt-1">
@@ -96,6 +99,7 @@ const SideBarFiltersContent = ({
                   </label>
                 </div>
               ))}
+
             {key === 'editorials' &&
               items.map((e) => (
                 <div key={e.id} className="form-check mt-1">
@@ -128,6 +132,7 @@ const SideBarFiltersContent = ({
           <span>Precio</span>
           {openSections.price ? <FiChevronUp /> : <FiChevronDown />}
         </button>
+
         {openSections.price && (
           <div className="mt-2">
             <div className="mb-2">
@@ -143,6 +148,7 @@ const SideBarFiltersContent = ({
                 onChange={handlePriceInputChange}
               />
             </div>
+
             <div className="mb-2">
               <label className="form-label">Máximo</label>
               <input
@@ -156,6 +162,7 @@ const SideBarFiltersContent = ({
                 onChange={handlePriceInputChange}
               />
             </div>
+
             <div className="d-flex justify-content-between">
               <button
                 className="btn btn-primary btn-sm"
@@ -164,6 +171,7 @@ const SideBarFiltersContent = ({
               >
                 Aplicar
               </button>
+
               <button className="btn btn-light btn-sm" onClick={clearPriceFilter}>
                 Limpiar
               </button>
@@ -172,9 +180,11 @@ const SideBarFiltersContent = ({
         )}
       </div>
 
-      {/* Quitar filtros */}
-      <div class="sidebar bg-dark text-white p-3">
-        <button class="btn btn-light text-dark w-100">Quitar filtros</button>
+      {/* Quitar filtros — SOLO CAMBIADO class → className */}
+      <div className="sidebar bg-dark text-white p-3">
+        <button className="btn btn-light text-dark w-100">
+          Quitar filtros
+        </button>
       </div>
     </>
   );
