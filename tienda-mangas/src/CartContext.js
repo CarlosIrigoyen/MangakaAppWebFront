@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { UserContext } from './UserContext';
 
 export const CartContext = createContext();
@@ -10,13 +10,15 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [syncing, setSyncing] = useState(false);
 
-  // URLs de la API
+  // URLs de la API - memoizadas
   const API_URL = process.env.REACT_APP_API_URL;
-  const GUARDAR_CARRITO_URL = `${API_URL}/carrito/guardar`;
-  const OBTENER_CARRITO_URL = `${API_URL}/carrito/obtener`;
-  const LIMPIAR_CARRITO_URL = `${API_URL}/carrito/limpiar`;
+  const endpoints = useMemo(() => ({
+    GUARDAR_CARRITO: `${API_URL}/carrito/guardar`,
+    OBTENER_CARRITO: `${API_URL}/carrito/obtener`,
+    LIMPIAR_CARRITO: `${API_URL}/carrito/limpiar`
+  }), [API_URL]);
 
-  // Cargar carrito cuando el usuario cambia
+  // Cargar carrito cuando el usuario cambia - optimizado
   useEffect(() => {
     if (loadingUser) return;
 
@@ -25,7 +27,7 @@ export const CartProvider = ({ children }) => {
         // Usuario logueado: cargar desde BD
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch(`${OBTENER_CARRITO_URL}/${user.id}`, {
+          const response = await fetch(`${endpoints.OBTENER_CARRITO}/${user.id}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -37,36 +39,61 @@ export const CartProvider = ({ children }) => {
             setCart(cartFromDB);
             
             // Sincronizar localStorage con datos de BD
-            localStorage.setItem(storageKey, JSON.stringify(cartFromDB));
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(cartFromDB));
+            } catch (e) {
+              console.warn('Error guardando en localStorage:', e);
+            }
           } else {
-            // Si hay error, cargar desde localStorage como fallback
+            // Fallback a localStorage
             const saved = localStorage.getItem(storageKey);
-            if (saved) setCart(JSON.parse(saved));
+            if (saved) {
+              try {
+                setCart(JSON.parse(saved));
+              } catch (e) {
+                console.error('Error parseando localStorage:', e);
+                setCart([]);
+              }
+            }
           }
         } catch (error) {
           console.error('Error al cargar carrito desde BD:', error);
           // Fallback a localStorage
           const saved = localStorage.getItem(storageKey);
-          if (saved) setCart(JSON.parse(saved));
+          if (saved) {
+            try {
+              setCart(JSON.parse(saved));
+            } catch (e) {
+              console.error('Error parseando localStorage fallback:', e);
+              setCart([]);
+            }
+          }
         }
       } else {
         // Usuario no logueado: cargar desde localStorage
         const saved = localStorage.getItem(storageKey);
-        if (saved) setCart(JSON.parse(saved));
+        if (saved) {
+          try {
+            setCart(JSON.parse(saved));
+          } catch (e) {
+            console.error('Error parseando localStorage guest:', e);
+            setCart([]);
+          }
+        }
       }
     };
 
     loadCart();
-  }, [user, loadingUser, storageKey]);
+  }, [user, loadingUser, storageKey, endpoints.OBTENER_CARRITO]);
 
   // Sincronizar carrito con BD cuando el usuario está logueado
-  const syncCartWithDB = async (cartData) => {
+  const syncCartWithDB = useCallback(async (cartData) => {
     if (!user || syncing) return;
 
     setSyncing(true);
     try {
       const token = localStorage.getItem('token');
-      await fetch(GUARDAR_CARRITO_URL, {
+      await fetch(endpoints.GUARDAR_CARRITO, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,25 +109,26 @@ export const CartProvider = ({ children }) => {
     } finally {
       setSyncing(false);
     }
-  };
+  }, [user, syncing, endpoints.GUARDAR_CARRITO]);
 
-  // Persistir cambios en localStorage y BD
+  // Persistir cambios en localStorage y BD - optimizado
   useEffect(() => {
     if (loadingUser || syncing) return;
     
-    // Guardar en localStorage con la key actual (depende de user)
+    // Guardar en localStorage
     try {
       localStorage.setItem(storageKey, JSON.stringify(cart));
     } catch (e) {
       console.error('Error guardando carrito en localStorage:', e);
     }
     
+    // Sincronizar con BD si hay usuario
     if (user) {
       syncCartWithDB(cart);
     }
-  }, [cart, storageKey, loadingUser, user]);
+  }, [cart, storageKey, loadingUser, user, syncing, syncCartWithDB]);
 
-  const addToCart = (item) => {
+  const addToCart = useCallback((item) => {
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
     
     if (existingItem) {
@@ -113,15 +141,15 @@ export const CartProvider = ({ children }) => {
     } else {
       // Si no existe, agregar con cantidad 1
       if (item.stock > 0) {
-        setCart([...cart, { ...item, quantity: 1 }]);
+        setCart(prevCart => [...prevCart, { ...item, quantity: 1 }]);
       } else {
         alert('Este producto no tiene stock disponible');
       }
     }
-  };
+  }, [cart]);
 
-  const updateCartItem = (itemId, quantity) => {
-    setCart(cart.map(item => {
+  const updateCartItem = useCallback((itemId, quantity) => {
+    setCart(prevCart => prevCart.map(item => {
       if (item.id === itemId) {
         // No permitir más de lo que hay en stock
         const finalQuantity = Math.min(quantity, item.stock);
@@ -132,21 +160,18 @@ export const CartProvider = ({ children }) => {
       }
       return item;
     }));
-  };
+  }, []);
 
-  // Modificación solicitada: si el carrito tiene 1 elemento, ejecutar clearCart() en lugar de eliminar item
-  const removeCartItem = (itemId) => {
+  const removeCartItem = useCallback((itemId) => {
     if (cart.length === 1) {
-      // Ejecutar el clearCart que limpia localStorage y, si hay usuario, limpia en BD
       clearCart();
       return;
     }
 
-    setCart(cart.filter(item => item.id !== itemId));
-  };
+    setCart(prevCart => prevCart.filter(item => item.id !== itemId));
+  }, [cart.length]);
 
-  // clearCart ahora limpia local, localStorage y (si hay usuario) intenta limpiar en BD
-  const clearCart = async () => {
+  const clearCart = useCallback(async () => {
     // Borramos local inmediatamente
     setCart([]);
     try {
@@ -159,30 +184,23 @@ export const CartProvider = ({ children }) => {
     if (user) {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${LIMPIAR_CARRITO_URL}/${user.id}`, {
+        await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-
-        if (!response.ok) {
-          // opcional: manejar error, loguear
-          const text = await response.text().catch(() => null);
-          console.warn('clearCart: limpiar carrito en BD devolvió status', response.status, text);
-        }
       } catch (error) {
         console.error('Error al limpiar carrito en BD:', error);
       }
     }
-  };
+  }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
 
-  // Función para limpiar carrito después de compra
-  const clearCartAfterPurchase = async () => {
+  const clearCartAfterPurchase = useCallback(async () => {
     if (user) {
       try {
         const token = localStorage.getItem('token');
-        await fetch(`${LIMPIAR_CARRITO_URL}/${user.id}`, {
+        await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -199,29 +217,40 @@ export const CartProvider = ({ children }) => {
       console.error('Error removing storageKey after purchase:', e);
     }
     setCart([]);
-  };
+  }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
 
-  // Función para sincronizar carrito cuando el usuario cierra sesión
-  const syncCartOnLogout = async () => {
+  const syncCartOnLogout = useCallback(async () => {
     if (user && cart.length > 0) {
       await syncCartWithDB(cart);
-      // despues de guardar en BD podés limpiar localStorage si querés:
       try {
         localStorage.removeItem(storageKey);
-      } catch (e) { console.error('Error removing storageKey on logout:', e); }
+      } catch (e) { 
+        console.error('Error removing storageKey on logout:', e); 
+      }
     }
-  };
+  }, [user, cart, storageKey, syncCartWithDB]);
+
+  // Memoizar el valor del contexto para evitar rerenders innecesarios
+  const contextValue = useMemo(() => ({ 
+    cart, 
+    addToCart, 
+    updateCartItem, 
+    removeCartItem, 
+    clearCart,
+    clearCartAfterPurchase,
+    syncCartOnLogout
+  }), [
+    cart, 
+    addToCart, 
+    updateCartItem, 
+    removeCartItem, 
+    clearCart,
+    clearCartAfterPurchase,
+    syncCartOnLogout
+  ]);
 
   return (
-    <CartContext.Provider value={{ 
-      cart, 
-      addToCart, 
-      updateCartItem, 
-      removeCartItem, 
-      clearCart,
-      clearCartAfterPurchase,
-      syncCartOnLogout
-    }}>
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );
