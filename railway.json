@@ -1,0 +1,42 @@
+{
+  "build": {
+    "command": "npm run build",
+    "output": "build"
+  },
+  "routes": [
+    {
+      "handle": "filesystem",
+      "src": "/static/(js|css|media)/(.*)",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "handle": "filesystem", 
+      "src": "/(.*).(ico|png|jpg|jpeg|svg|webp)",
+      "headers": {
+        "Cache-Control": "public, max-age=86400"
+      }
+    },
+    {
+      "handle": "filesystem",
+      "src": "/manifest.json",
+      "headers": {
+        "Cache-Control": "public, max-age=3600"
+      }
+    },
+    {
+      "handle": "filesystem",
+      "src": "/(.*)",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
