@@ -20,7 +20,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "serve -s build -l $PORT",
     "build": "GENERATE_SOURCEMAP=false INLINE_RUNTIME_CHUNK=false DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "build:analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
     "build:analyze:serve": "npx webpack-bundle-analyzer build/static/js/*.js -p 3001",
