@@ -1,43 +1,197 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
+    <meta name="description" content="Mangaka Baka Shop - Tu tienda de mangas favorita. Compra los mejores tomos de manga en español." />
+    <meta name="keywords" content="manga, comics, tienda, comprar, tomos, español" />
+    <meta name="author" content="Mangaka Baka Shop" />
+    
+    <!-- ========================================================= -->
+    <!-- === OPTIMIZACIONES LCP CRÍTICAS === -->
+    <!-- ========================================================= -->
+    
+    <!-- Preconnect a dominios críticos -->
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    <link rel="preconnect" href="https://mangakaappweb-production.up.railway.app">
+    <link rel="dns-prefetch" href="https://res.cloudinary.com">
+    <link rel="dns-prefetch" href="https://mangakaappweb-production.up.railway.app">
+    
+    <!-- Preload de la primera imagen LCP candidate -->
+    <!-- ACTUALIZA esta URL con la imagen real que aparece primero en tu lista -->
+    <link 
+      rel="preload" 
+      href="https://res.cloudinary.com/dcgyq3ajm/image/upload/w_400,q_70,f_webp/v1763416674/tomo_portada_chainsaw-man.jpg" 
+      as="image" 
+      fetchpriority="high" 
+      crossorigin="anonymous"
+    >
+    
+    <!-- Preload de recursos críticos CSS/JS -->
+    <link rel="preload" href="%PUBLIC_URL%/static/css/main.chunk.css" as="style">
+    <link rel="preload" href="%PUBLIC_URL%/static/js/main.chunk.js" as="script">
+    
+    <!-- ========================================================= -->
+    <!-- === META TAGS PARA SEO Y SOCIAL === -->
+    <!-- ========================================================= -->
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Mangaka Baka Shop - Tu tienda de mangas" />
+    <meta property="og:description" content="Compra los mejores tomos de manga en español. Envíos a todo el país." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mangakaappwebfront-production.up.railway.app" />
+    <!-- <meta property="og:image" content="%PUBLIC_URL%/img/og-image.jpg" /> -->
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Mangaka Baka Shop" />
+    <meta name="twitter:description" content="Tu tienda de mangas favorita" />
+    
+    <!-- ========================================================= -->
+    <!-- === MANIFEST Y ICONS === -->
+    <!-- ========================================================= -->
+    
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>Mangaka Baka Shop</title>
+    
+    <!-- ========================================================= -->
+    <!-- === CRITICAL CSS INLINE - Above the fold === -->
+    <!-- ========================================================= -->
+    
+    <style>
+      /* Reset crítico */
+      * {
+        box-sizing: border-box;
+      }
+      
+      /* Above-the-fold styles */
+      .bg-dark { 
+        background-color: #212529 !important; 
+      }
+      .text-white { 
+        color: #fff !important; 
+      }
+      .min-vh-100 { 
+        min-height: 100vh !important; 
+      }
+      .d-flex { 
+        display: flex !important; 
+      }
+      .justify-content-center { 
+        justify-content: center !important; 
+      }
+      .align-items-center { 
+        align-items: center !important; 
+      }
+      
+      /* LCP image container base styles */
+      .lcp-image-container {
+        position: relative;
+        overflow: hidden;
+        background-color: #f8f9fa;
+      }
+      
+      /* Loading spinner inicial para above-the-fold */
+      .initial-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #212529;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* Estilos base para contenido inicial */
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #212529;
+        color: white;
+      }
+      
+      /* Mejora de rendimiento para fuentes */
+      @font-face {
+        font-display: swap;
+      }
+    </style>
+    
+    <title>Mangaka Baka Shop - Tu tienda de mangas favorita</title>
+    
+    <!-- ========================================================= -->
+    <!-- === DEFER NON-CRITICAL CSS === -->
+    <!-- ========================================================= -->
+    
+    <noscript>
+      <link rel="stylesheet" href="%PUBLIC_URL%/static/css/main.chunk.css">
+    </noscript>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    <!-- ========================================================= -->
+    <!-- === CONTENIDO INICIAL PARA LCP === -->
+    <!-- ========================================================= -->
+    
+    <noscript>
+      <div class="bg-dark text-white min-vh-100 d-flex justify-content-center align-items-center">
+        <div class="text-center">
+          <h1>Mangaka Baka Shop</h1>
+          <p>Necesitas habilitar JavaScript para ejecutar esta aplicación.</p>
+        </div>
+      </div>
+    </noscript>
+    
+    <!-- Loading inicial para above-the-fold -->
+    <div id="root">
+      <div class="initial-loading">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    
+    <!-- ========================================================= -->
+    <!-- === SCRIPTS DEFERIDOS === -->
+    <!-- ========================================================= -->
+    
+    <script>
+      // Cargar CSS de forma asíncrona
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '%PUBLIC_URL%/static/css/main.chunk.css';
+      link.onload = function() {
+        // CSS cargado, remover loading spinner cuando React tome control
+        setTimeout(function() {
+          var loadingEl = document.querySelector('.initial-loading');
+          if (loadingEl && !document.querySelector('#root > *:not(.initial-loading)')) {
+            loadingEl.style.display = 'none';
+          }
+        }, 100);
+      };
+      document.head.appendChild(link);
+      
+      // Precarga de imágenes adicionales después de la crítica
+      window.addEventListener('load', function() {
+        var images = document.querySelectorAll('img[data-src]');
+        images.forEach(function(img) {
+          img.src = img.getAttribute('data-src');
+        });
+      });
+    </script>
   </body>
 </html>

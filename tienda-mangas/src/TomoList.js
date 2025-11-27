@@ -1,79 +1,8 @@
 import React, { useContext, useEffect, memo, useCallback } from 'react';
-import { Card, Button, Pagination, Spinner } from 'react-bootstrap';
-import { FaShoppingCart, FaInfoCircle } from 'react-icons/fa';
+import { Card, Button, Pagination } from 'react-bootstrap';
 import { CartContext } from './CartContext';
-
-// Componente de imagen optimizada
-const OptimizedImage = memo(({ src, alt, className, width = 400, height = 200 }) => {
-  const optimizedSrc = src?.includes('cloudinary') 
-    ? src.replace('/upload/', `/upload/w_${width},q_70,f_auto/`)
-    : src;
-
-  return (
-    <Card.Img
-      variant="top"
-      src={optimizedSrc}
-      alt={alt}
-      className={className}
-      style={{ 
-        objectFit: 'cover', 
-        height: `${height}px`,
-        backgroundColor: '#f8f9fa'
-      }}
-      loading="lazy"
-      decoding="async"
-    />
-  );
-});
-
-// Componente individual de tomo memoizado
-const TomoCard = memo(({ tomo, onShowInfo, onAddToCart, isInCart, isLoggedIn }) => {
-  const handleAddToCart = useCallback(() => {
-    onAddToCart(tomo);
-  }, [onAddToCart, tomo]);
-
-  const handleShowInfo = useCallback(() => {
-    onShowInfo(tomo);
-  }, [onShowInfo, tomo]);
-
-  return (
-    <div className="col-md-3 mb-4 d-flex">
-      <Card
-        className="w-100 h-100 shadow-sm text-white bg-secondary border border-light"
-        style={{ minWidth: 0 }}
-      >
-        <OptimizedImage
-          src={tomo.portada}
-          alt={`${tomo.manga?.titulo} Tomo ${tomo.numero_tomo}`}
-          width={400}
-          height={200}
-        />
-        <Card.Body className="d-flex flex-column">
-          <Card.Title className="h6">
-            {tomo.manga?.titulo} Tomo {tomo.numero_tomo} — {tomo.idioma}
-          </Card.Title>
-          <Card.Text className="mb-1">Precio: ${parseFloat(tomo.precio).toFixed(0)}</Card.Text>
-          <Card.Text className="mb-2">Stock: {tomo.stock}</Card.Text>
-          <div className="mt-auto d-flex justify-content-center flex-wrap gap-2">
-            {isLoggedIn && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleAddToCart}
-                disabled={isInCart}
-              >
-                <FaShoppingCart /> {isInCart ? 'En Carrito' : 'Agregar'}
-              </Button>
-            )}
-            <Button variant="info" size="sm" onClick={handleShowInfo}>
-              <FaInfoCircle /> Info
-            </Button>
-          </div>
-        </Card.Body>
-      </Card>
-    </div>
-  );
-});
+import LCPImage from './components/LCPImage';
+import { ShoppingCartIcon, InfoIcon } from './components/Icons';
 
 // Componente de paginación memoizado
 const PaginationComponent = memo(({ pagination, onPageChange }) => {
@@ -155,6 +84,60 @@ const PaginationComponent = memo(({ pagination, onPageChange }) => {
   );
 });
 
+// Componente individual de tomo memoizado
+const TomoCard = memo(({ tomo, index, onShowInfo, onAddToCart, isInCart, isLoggedIn }) => {
+  const handleAddToCart = useCallback(() => {
+    onAddToCart(tomo);
+  }, [onAddToCart, tomo]);
+
+  const handleShowInfo = useCallback(() => {
+    onShowInfo(tomo);
+  }, [onShowInfo, tomo]);
+
+  return (
+    <div className="col-md-3 mb-4 d-flex">
+      <Card
+        className="w-100 h-100 shadow-sm text-white bg-secondary border border-light"
+        style={{ minWidth: 0 }}
+      >
+        {/* IMAGEN OPTIMIZADA CON LCP - SOLO LA PRIMERA ES CRÍTICA */}
+        <LCPImage
+          src={tomo.portada}
+          alt={`${tomo.manga?.titulo} Tomo ${tomo.numero_tomo}`}
+          width={400}
+          height={200}
+          isLCP={index === 0} // SOLO la primera imagen es LCP candidate
+          priority={index === 0} // SOLO la primera imagen carga con máxima prioridad
+          className="card-img-top"
+        />
+
+        <Card.Body className="d-flex flex-column">
+          <Card.Title className="h6">
+            {tomo.manga?.titulo} Tomo {tomo.numero_tomo} — {tomo.idioma}
+          </Card.Title>
+          <Card.Text className="mb-1">Precio: ${parseFloat(tomo.precio).toFixed(0)}</Card.Text>
+          <Card.Text className="mb-2">Stock: {tomo.stock}</Card.Text>
+          <div className="mt-auto d-flex justify-content-center flex-wrap gap-2">
+            {isLoggedIn && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleAddToCart}
+                disabled={isInCart}
+              >
+                <ShoppingCartIcon /> {isInCart ? 'En Carrito' : 'Agregar'}
+              </Button>
+            )}
+            <Button variant="info" size="sm" onClick={handleShowInfo}>
+              <InfoIcon /> Info
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
+  );
+});
+
 // Componente principal TomoList
 const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) => {
   const { cart, addToCart } = useContext(CartContext);
@@ -200,10 +183,11 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
         </Card.Header>
         <Card.Body className="p-3 bg-dark">
           <div className="row">
-            {data.map((tomo) => (
+            {data.map((tomo, index) => (
               <TomoCard
                 key={tomo.id}
                 tomo={tomo}
+                index={index}
                 onShowInfo={onShowInfo}
                 onAddToCart={handleAddToCart}
                 isInCart={cart.some(item => item.id === tomo.id)}
@@ -222,5 +206,4 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
   );
 };
 
-// Exportar con memo para evitar rerenders innecesarios
 export default memo(TomoList);
