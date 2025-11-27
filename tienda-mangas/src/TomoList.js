@@ -3,7 +3,6 @@ import { Card, Button, Pagination } from 'react-bootstrap';
 import { CartContext } from './CartContext';
 import LCPImage from './components/LCPImage';
 import { ShoppingCartIcon, InfoIcon } from './components/Icons';
-
 // Componente de paginación memoizado
 const PaginationComponent = memo(({ pagination, onPageChange }) => {
   const renderPaginationItems = useCallback(() => {
