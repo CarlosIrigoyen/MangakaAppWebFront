@@ -26,7 +26,7 @@ const CartPage = () => {
     if (item.quantity < item.stock) {
       updateCartItem(item.id, item.quantity + 1);
     } else {
-      // Mensaje accesible visual y (podés añadir un toast si querés)
+      // Mensaje visual; para producción conviene usar un toast accesible
       alert(`No hay suficiente stock. Stock disponible: ${item.stock}`);
     }
   };
@@ -38,7 +38,6 @@ const CartPage = () => {
   };
 
   const handleRemove = (item) => {
-    // Confirmación ligera (puedes cambiar por modal si prefieres)
     removeCartItem(item.id);
   };
 
@@ -180,7 +179,11 @@ const CartPage = () => {
   // Estado procesando: pantalla dedicada (con accesible aria-live)
   if (processingPayment) {
     return (
-      <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white" role="status" aria-live="polite">
+      <div
+        className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white"
+        role="status"
+        aria-live="polite"
+      >
         <Spinner animation="border" role="status" className="mb-3" variant="primary" />
         <h1 className="h4">
           Procesando tu pago
@@ -195,7 +198,11 @@ const CartPage = () => {
   // Carrito vacío: título semántico h1
   if (!cart.length) {
     return (
-      <main role="main" aria-label="Carrito de compras" className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white">
+      <main
+        role="main"
+        aria-label="Carrito de compras"
+        className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white"
+      >
         <h1>Tu carrito está vacío</h1>
         <Button variant="secondary" className="mt-3" onClick={() => navigate('/')}>
           Volver a la Tienda
@@ -223,9 +230,7 @@ const CartPage = () => {
         <div className="overflow-auto flex-grow-1 bg-dark p-3 rounded" aria-live="polite" aria-atomic="true">
           {cart.map(item => {
             const itemTotal = item.precio * item.quantity;
-            const imageUrl = item.portada?.startsWith('http')
-              ? item.portada
-              : `${CLOUDINARY_BASE_URL}/${item.portada}`;
+            const imageUrl = item.portada?.startsWith('http') ? item.portada : `${CLOUDINARY_BASE_URL}/${item.portada}`;
 
             const tieneStockSuficiente = item.quantity <= item.stock;
 
@@ -234,7 +239,7 @@ const CartPage = () => {
                 key={item.id}
                 className={`d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom ${!tieneStockSuficiente ? 'bg-warning bg-opacity-10' : 'bg-dark'} text-white`}
                 aria-labelledby={`product-title-${item.id}`}
-                role="group"
+                // NO ponemos role="group" ni roles incompatibles: <article> ya es semántico
               >
                 <Image
                   src={imageUrl}
@@ -261,6 +266,7 @@ const CartPage = () => {
 
                   <div>
                     <Button
+                      type="button"
                       variant="secondary"
                       size="sm"
                       className="me-2"
@@ -276,24 +282,26 @@ const CartPage = () => {
                     <span className="mx-2" aria-live="polite" aria-atomic="true">{item.quantity}</span>
 
                     <Button
+                      type="button"
                       variant="secondary"
                       size="sm"
                       onClick={() => handleIncrease(item)}
                       disabled={item.quantity >= item.stock}
-                      aria-label={`Aumentar cantidad de ${item.manga?.titulo}, max ${item.stock}`}
+                      aria-label={`Aumentar cantidad de ${item.manga?.titulo}, máximo ${item.stock}`}
                     >
                       <span aria-hidden="true">+</span>
                       <span className="visually-hidden"> Aumentar cantidad</span>
                     </Button>
 
                     <Button
+                      type="button"
                       variant="danger"
                       size="sm"
                       className="ms-2"
                       onClick={() => handleRemove(item)}
                       aria-label={`Eliminar ${item.manga?.titulo} del carrito`}
                     >
-                      {/* icono decorative */}
+                      {/* icono decorativo */}
                       <i className="fas fa-trash" aria-hidden="true" /> <span className="ms-1">Eliminar</span>
                     </Button>
                   </div>
@@ -320,6 +328,7 @@ const CartPage = () => {
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch gap-2">
             <div className="d-flex w-100 gap-2 flex-column flex-sm-row">
               <Button
+                type="button"
                 variant="outline-light"
                 onClick={() => navigate('/')}
                 className="w-100 w-md-auto"
@@ -328,6 +337,7 @@ const CartPage = () => {
                 Seguir Comprando
               </Button>
               <Button
+                type="button"
                 variant="danger"
                 className="w-100 w-md-auto"
                 onClick={handleClearCart}
@@ -340,6 +350,7 @@ const CartPage = () => {
 
             <div className="d-flex w-100 gap-2 flex-column flex-sm-row justify-content-end">
               <Button
+                type="button"
                 variant="warning"
                 className="w-100 w-md-auto"
                 onClick={handlePayPalBuy}
@@ -358,6 +369,7 @@ const CartPage = () => {
               </Button>
 
               <Button
+                type="button"
                 variant="primary"
                 className="w-100 w-md-auto"
                 onClick={handleMercadoPagoBuy}
@@ -426,4 +438,3 @@ const CartPage = () => {
 };
 
 export default CartPage;
-
