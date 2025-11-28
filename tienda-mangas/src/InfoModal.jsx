@@ -3,49 +3,63 @@ import { Modal, Card, Button } from 'react-bootstrap';
 
 function InfoModal({ show, onClose, tomo }) {
   return (
-    <Modal show={show} onHide={onClose}>
+    <Modal
+      show={show}
+      onHide={onClose}
+      aria-labelledby="infoTomoTitle"
+      aria-describedby="infoTomoDescripcion"
+      centered
+    >
       <Modal.Header closeButton className="bg-dark text-white">
-        <Modal.Title>Información del Tomo</Modal.Title>
+        <Modal.Title id="infoTomoTitle">
+          Información del Tomo
+        </Modal.Title>
       </Modal.Header>
 
-      <Modal.Body className="bg-dark text-white">
+      <Modal.Body className="bg-dark text-white" id="infoTomoDescripcion">
         {tomo && (
           <Card bg="dark" text="white">
             <Card.Img
               variant="top"
-              src={tomo.portada} // URL completa de Cloudinary
-              alt={tomo.nombre}
+              src={tomo.portada}
+              alt={`Portada del tomo ${tomo.nombre}`}
               style={{
                 width: '100%',
                 height: 'auto',
                 maxHeight: '300px',
-                objectFit: 'contain',
+                objectFit: 'contain'
               }}
             />
 
             <Card.Body>
               <Card.Title>{tomo.nombre}</Card.Title>
-              <Card.Text>
-   <strong>Titulo:</strong> {tomo.manga.titulo}<br />
-                <strong>Número de Tomo:</strong> {tomo.numero_tomo || 'No disponible'}<br />
-                <strong>Editorial:</strong> {tomo.editorial?.nombre || 'No disponible'}<br />
-                <strong>Formato:</strong> {tomo.formato || 'Tankōbon'}<br />
-                <strong>Idioma:</strong> {tomo.idioma || 'No disponible'}<br />
-                <strong>Precio:</strong> ${Number(tomo.precio).toFixed(0)}<br />
-                <strong>Autor:</strong>{' '}
-                {tomo.manga?.autor
-                  ? `${tomo.manga.autor.nombre} ${tomo.manga.autor.apellido}`
-                  : 'No disponible'}<br />
-                <strong>Dibujante:</strong>{' '}
-                {tomo.manga?.dibujante
-                  ? `${tomo.manga.dibujante.nombre} ${tomo.manga.dibujante.apellido}`
-                  : tomo.manga?.autor
-                  ? `${tomo.manga.autor.nombre} ${tomo.manga.autor.apellido}`
-                  : 'No disponible'}<br />
-                <strong>Géneros:</strong>{' '}
-                {tomo.manga?.generos && tomo.manga.generos.length
-                  ? tomo.manga.generos.map(g => g.nombre).join(', ')
-                  : 'No disponible'}
+              <Card.Text as="div">
+                <p><strong>Título:</strong> {tomo.manga.titulo}</p>
+                <p><strong>Número de Tomo:</strong> {tomo.numero_tomo || 'No disponible'}</p>
+                <p><strong>Editorial:</strong> {tomo.editorial?.nombre || 'No disponible'}</p>
+                <p><strong>Formato:</strong> {tomo.formato || 'Tankōbon'}</p>
+                <p><strong>Idioma:</strong> {tomo.idioma || 'No disponible'}</p>
+                <p><strong>Precio:</strong> ${Number(tomo.precio).toFixed(0)}</p>
+                <p>
+                  <strong>Autor:</strong>{' '}
+                  {tomo.manga?.autor
+                    ? `${tomo.manga.autor.nombre} ${tomo.manga.autor.apellido}`
+                    : 'No disponible'}
+                </p>
+                <p>
+                  <strong>Dibujante:</strong>{' '}
+                  {tomo.manga?.dibujante
+                    ? `${tomo.manga.dibujante.nombre} ${tomo.manga.dibujante.apellido}`
+                    : tomo.manga?.autor
+                    ? `${tomo.manga.autor.nombre} ${tomo.manga.autor.apellido}`
+                    : 'No disponible'}
+                </p>
+                <p>
+                  <strong>Géneros:</strong>{' '}
+                  {tomo.manga?.generos?.length
+                    ? tomo.manga.generos.map(g => g.nombre).join(', ')
+                    : 'No disponible'}
+                </p>
               </Card.Text>
             </Card.Body>
           </Card>
@@ -62,3 +76,4 @@ function InfoModal({ show, onClose, tomo }) {
 }
 
 export default InfoModal;
+
