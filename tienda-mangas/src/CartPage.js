@@ -1,3 +1,4 @@
+// src/CartPage.js
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
@@ -18,12 +19,14 @@ const CartPage = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(null); // 'mercadopago' o 'paypal'
 
+  // Total y accesibilidad: usamos aria-live para anunciar cambios
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
 
   const handleIncrease = (item) => {
     if (item.quantity < item.stock) {
       updateCartItem(item.id, item.quantity + 1);
     } else {
+      // Mensaje accesible visual y (podés añadir un toast si querés)
       alert(`No hay suficiente stock. Stock disponible: ${item.stock}`);
     }
   };
@@ -35,6 +38,7 @@ const CartPage = () => {
   };
 
   const handleRemove = (item) => {
+    // Confirmación ligera (puedes cambiar por modal si prefieres)
     removeCartItem(item.id);
   };
 
@@ -47,7 +51,7 @@ const CartPage = () => {
     setShowClearCartModal(false);
   };
 
-  // Función común para validaciones antes del pago
+  // Validaciones antes del pago
   const validatePurchase = () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -77,7 +81,6 @@ const CartPage = () => {
     return true;
   };
 
-  // Preparar payload común
   const preparePayload = () => ({
     cliente_id: user.id,
     productos: cart.map(i => ({
@@ -98,9 +101,6 @@ const CartPage = () => {
       const token = localStorage.getItem('token');
       const payload = preparePayload();
 
-      console.log('Token:', token);
-      console.log('Payload MercadoPago:', payload);
-
       const response = await fetch(REACT_MERCADO_PAGO_PREFERENCE, {
         method: 'POST',
         headers: {
@@ -112,21 +112,12 @@ const CartPage = () => {
       });
 
       if (!response.ok) {
-        let errorMsg = `HTTP ${response.status}`;
         const errorData = await response.json().catch(() => null);
-        console.error('Detalle del error de la API:', errorData);
-        if (errorData?.message) {
-          errorMsg += `: ${errorData.message}`;
-        } else if (errorData) {
-          errorMsg += `: ${JSON.stringify(errorData)}`;
-        }
-        throw new Error(errorMsg);
+        throw new Error(errorData?.message || `HTTP ${response.status}`);
       }
 
       const { init_point } = await response.json();
-      if (!init_point) {
-        throw new Error('No se recibió una URL de pago válida.');
-      }
+      if (!init_point) throw new Error('No se recibió una URL de pago válida.');
 
       sessionStorage.setItem('pendingPurchase', JSON.stringify({
         timestamp: new Date().getTime(),
@@ -153,8 +144,6 @@ const CartPage = () => {
       const token = localStorage.getItem('token');
       const payload = preparePayload();
 
-      console.log('Payload PayPal:', payload);
-
       const response = await fetch(REACT_PAYPAL_CREATE_ORDER, {
         method: 'POST',
         headers: {
@@ -166,23 +155,12 @@ const CartPage = () => {
       });
 
       if (!response.ok) {
-        let errorMsg = `HTTP ${response.status}`;
         const errorData = await response.json().catch(() => null);
-        console.error('Error PayPal:', errorData);
-        if (errorData?.message) {
-          errorMsg += `: ${errorData.message}`;
-        } else if (errorData?.paypal_error) {
-          errorMsg += `: ${JSON.stringify(errorData.paypal_error)}`;
-        } else if (errorData?.error) {
-          errorMsg += `: ${errorData.error}`;
-        }
-        throw new Error(errorMsg);
+        throw new Error(errorData?.message || `HTTP ${response.status}`);
       }
 
       const { approve_url } = await response.json();
-      if (!approve_url) {
-        throw new Error('No se recibió una URL de pago válida de PayPal.');
-      }
+      if (!approve_url) throw new Error('No se recibió una URL de pago válida de PayPal.');
 
       sessionStorage.setItem('pendingPurchase', JSON.stringify({
         timestamp: new Date().getTime(),
@@ -199,250 +177,253 @@ const CartPage = () => {
     }
   };
 
-  // Si está procesando el pago, mostrar spinner con delay
+  // Estado procesando: pantalla dedicada (con accesible aria-live)
   if (processingPayment) {
     return (
-      <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white">
-        <Spinner animation="border" role="status" className="mb-3" variant="primary">
-          <span className="visually-hidden">Procesando pago...</span>
-        </Spinner>
-        <h4>
+      <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white" role="status" aria-live="polite">
+        <Spinner animation="border" role="status" className="mb-3" variant="primary" />
+        <h1 className="h4">
           Procesando tu pago
           {paymentMethod === 'paypal' ? ' con PayPal' : paymentMethod === 'mercadopago' ? ' con MercadoPago' : ''}
           ...
-        </h4>
-        <p className="text-muted">Serás redirigido en un momento</p>
-        <div className="mt-3">
-          <small className="text-warning">
-            No cierres esta ventana hasta que se complete la redirección
-          </small>
-        </div>
+        </h1>
+        <p className="text-muted">Serás redirigido en un momento. Por favor, no cierres esta página.</p>
       </div>
     );
   }
 
+  // Carrito vacío: título semántico h1
   if (!cart.length) {
     return (
-      <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white">
-        <h2>Tu carrito está vacío</h2>
+      <main role="main" aria-label="Carrito de compras" className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white">
+        <h1>Tu carrito está vacío</h1>
         <Button variant="secondary" className="mt-3" onClick={() => navigate('/')}>
           Volver a la Tienda
         </Button>
-      </div>
+      </main>
     );
   }
 
-  // Verificar si hay productos con problemas de stock
   const productosConProblemas = cart.filter(item => item.quantity > item.stock);
 
   return (
-    <>
-      <div className="d-flex flex-column min-vh-100 bg-dark text-white">
-        <div className="container flex-grow-1 d-flex flex-column py-4">
-          <h2 className="mb-4 text-center">Carrito de Compras</h2>
+    <main role="main" aria-label="Carrito de compras" className="d-flex flex-column min-vh-100 bg-dark text-white">
+      <div className="container flex-grow-1 d-flex flex-column py-4">
+        {/* Título principal: h1 para accesibilidad / orden de encabezados */}
+        <h1 className="mb-4 text-center">Carrito de Compras</h1>
 
-          {productosConProblemas.length > 0 && (
-            <Alert variant="warning" className="mb-3">
-              <Alert.Heading>¡Atención!</Alert.Heading>
-              Algunos productos en tu carrito tienen más cantidad que el stock disponible.
-              Por favor, ajusta las cantidades antes de proceder con la compra.
-            </Alert>
-          )}
+        {productosConProblemas.length > 0 && (
+          <Alert variant="warning" className="mb-3" role="alert">
+            <Alert.Heading>¡Atención!</Alert.Heading>
+            Algunos productos en tu carrito tienen más cantidad que el stock disponible.
+            Por favor, ajusta las cantidades antes de proceder con la compra.
+          </Alert>
+        )}
 
-          <div className="overflow-auto flex-grow-1 bg-dark p-3 rounded">
-            {cart.map(item => {
-              const itemTotal = item.precio * item.quantity;
-              const imageUrl = item.portada?.startsWith('http')
-                ? item.portada
-                : `${CLOUDINARY_BASE_URL}/${item.portada}`;
+        <div className="overflow-auto flex-grow-1 bg-dark p-3 rounded" aria-live="polite" aria-atomic="true">
+          {cart.map(item => {
+            const itemTotal = item.precio * item.quantity;
+            const imageUrl = item.portada?.startsWith('http')
+              ? item.portada
+              : `${CLOUDINARY_BASE_URL}/${item.portada}`;
 
-              const tieneStockSuficiente = item.quantity <= item.stock;
+            const tieneStockSuficiente = item.quantity <= item.stock;
 
-              return (
-                <div
-                  key={item.id}
-                  className={`d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom ${
-                    !tieneStockSuficiente ? 'bg-warning bg-opacity-10' : 'bg-dark'
-                  } text-white`}
-                >
-                  <Image
-                    src={imageUrl}
-                    alt={item.manga?.titulo}
-                    thumbnail
-                    style={{ maxWidth: '80px' }}
-                    className="me-md-3 mb-2 mb-md-0"
-                  />
-                  <div className="flex-grow-1">
-                    <h5 className="mb-1">
-                      {item.manga?.titulo} - Tomo {item.numero_tomo}
-                      {!tieneStockSuficiente && (
-                        <span className="badge bg-danger ms-2">Stock insuficiente</span>
-                      )}
-                    </h5>
-                    <p className="mb-1">Idioma: {item.idioma}</p>
-                    <p className="mb-1">
-                      Stock disponible: <strong>{item.stock}</strong>
-                    </p>
-                    <div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleDecrease(item)}
-                        disabled={item.quantity <= 1}
-                      >
-                        –
-                      </Button>
-                      <span className="mx-2">{item.quantity}</span>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleIncrease(item)}
-                        disabled={item.quantity >= item.stock}
-                      >
-                        +
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        className="ms-2"
-                        onClick={() => handleRemove(item)}
-                      >
-                        Eliminar
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="ms-md-auto text-md-end mt-2 mt-md-0">
-                    <strong>${itemTotal.toFixed(2)}</strong>
+            return (
+              <article
+                key={item.id}
+                className={`d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom ${!tieneStockSuficiente ? 'bg-warning bg-opacity-10' : 'bg-dark'} text-white`}
+                aria-labelledby={`product-title-${item.id}`}
+                role="group"
+              >
+                <Image
+                  src={imageUrl}
+                  alt={`${item.manga?.titulo} — portada del tomo ${item.numero_tomo}`}
+                  thumbnail
+                  style={{ maxWidth: '80px', width: '80px', height: '100px', objectFit: 'cover' }}
+                  className="me-md-3 mb-2 mb-md-0"
+                  loading="lazy"
+                  width={80}
+                  height={100}
+                />
+
+                <div className="flex-grow-1">
+                  {/* Encabezado del producto: usamos h2 semántico (visual lo ajustamos con clases) */}
+                  <h2 id={`product-title-${item.id}`} className="h5 mb-1">
+                    {item.manga?.titulo} - Tomo {item.numero_tomo}
+                    {!tieneStockSuficiente && (
+                      <span className="badge bg-danger ms-2">Stock insuficiente</span>
+                    )}
+                  </h2>
+
+                  <p className="mb-1">Idioma: {item.idioma}</p>
+                  <p className="mb-1">Stock disponible: <strong>{item.stock}</strong></p>
+
+                  <div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="me-2"
+                      onClick={() => handleDecrease(item)}
+                      disabled={item.quantity <= 1}
+                      aria-label={`Disminuir cantidad de ${item.manga?.titulo}, actualmente ${item.quantity}`}
+                    >
+                      <span aria-hidden="true">–</span>
+                      <span className="visually-hidden"> Disminuir cantidad</span>
+                    </Button>
+
+                    {/* Cantidad visible */}
+                    <span className="mx-2" aria-live="polite" aria-atomic="true">{item.quantity}</span>
+
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleIncrease(item)}
+                      disabled={item.quantity >= item.stock}
+                      aria-label={`Aumentar cantidad de ${item.manga?.titulo}, max ${item.stock}`}
+                    >
+                      <span aria-hidden="true">+</span>
+                      <span className="visually-hidden"> Aumentar cantidad</span>
+                    </Button>
+
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="ms-2"
+                      onClick={() => handleRemove(item)}
+                      aria-label={`Eliminar ${item.manga?.titulo} del carrito`}
+                    >
+                      {/* icono decorative */}
+                      <i className="fas fa-trash" aria-hidden="true" /> <span className="ms-1">Eliminar</span>
+                    </Button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-          <div className="p-3 border-top bg-dark">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <strong>Total</strong>
+                <div className="ms-md-auto text-md-end mt-2 mt-md-0">
+                  <strong aria-label={`Precio total del producto ${item.manga?.titulo}`}>${itemTotal.toFixed(2)}</strong>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="p-3 border-top bg-dark">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <strong>Total</strong>
+            {/* Región aria-live para anunciar cambios en el total */}
+            <div aria-live="polite" aria-atomic="true">
               <strong>${totalAmount.toFixed(2)}</strong>
             </div>
-
-            {/* --- NUEVA ESTRUCTURA DE BOTONES (responsiva) --- */}
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch gap-2">
-              {/* Fila 1: Seguir comprando + Vaciar carrito */}
-              <div className="d-flex w-100 gap-2 flex-column flex-sm-row">
-                <Button
-                  variant="outline-light"
-                  onClick={() => navigate('/')}
-                  className="w-100 w-md-auto"
-                >
-                  Seguir Comprando
-                </Button>
-                <Button
-                  variant="danger"
-                  className="w-100 w-md-auto"
-                  onClick={handleClearCart}
-                >
-                  Vaciar carrito
-                </Button>
-              </div>
-
-              {/* Fila 2: Botones de pago */}
-              <div className="d-flex w-100 gap-2 flex-column flex-sm-row justify-content-end">
-                <Button
-                  variant="warning"
-                  className="w-100 w-md-auto"
-                  onClick={handlePayPalBuy}
-                  disabled={productosConProblemas.length > 0 || processingPayment}
-                  title="Pagar con PayPal"
-                >
-                  {processingPayment && paymentMethod === 'paypal' ? (
-                    <>
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
-                      />
-                      PayPal...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fab fa-paypal me-2"></i>
-                      PayPal
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  variant="primary"
-                  className="w-100 w-md-auto"
-                  onClick={handleMercadoPagoBuy}
-                  disabled={productosConProblemas.length > 0 || processingPayment}
-                  title="Pagar con MercadoPago"
-                >
-                  {processingPayment && paymentMethod === 'mercadopago' ? (
-                    <>
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
-                      />
-                      MercadoPago...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-credit-card me-2"></i>
-                      MercadoPago
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-            {/* --- FIN NUEVA ESTRUCTURA DE BOTONES --- */}
-
-            {productosConProblemas.length > 0 && (
-              <div className="mt-2">
-                <small className="text-warning">
-                  No puedes proceder con la compra hasta que ajustes las cantidades de los productos con stock insuficiente.
-                </small>
-              </div>
-            )}
           </div>
+
+          {/* Botones organizados para responsive */}
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch gap-2">
+            <div className="d-flex w-100 gap-2 flex-column flex-sm-row">
+              <Button
+                variant="outline-light"
+                onClick={() => navigate('/')}
+                className="w-100 w-md-auto"
+                aria-label="Seguir comprando, ir al inicio"
+              >
+                Seguir Comprando
+              </Button>
+              <Button
+                variant="danger"
+                className="w-100 w-md-auto"
+                onClick={handleClearCart}
+                aria-haspopup="dialog"
+                aria-controls="clear-cart-modal"
+              >
+                Vaciar carrito
+              </Button>
+            </div>
+
+            <div className="d-flex w-100 gap-2 flex-column flex-sm-row justify-content-end">
+              <Button
+                variant="warning"
+                className="w-100 w-md-auto"
+                onClick={handlePayPalBuy}
+                disabled={productosConProblemas.length > 0 || processingPayment}
+                title="Pagar con PayPal"
+                aria-label="Pagar con PayPal"
+              >
+                {processingPayment && paymentMethod === 'paypal' ? (
+                  <>
+                    <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                    PayPal...
+                  </>
+                ) : (
+                  <>PayPal</>
+                )}
+              </Button>
+
+              <Button
+                variant="primary"
+                className="w-100 w-md-auto"
+                onClick={handleMercadoPagoBuy}
+                disabled={productosConProblemas.length > 0 || processingPayment}
+                title="Pagar con MercadoPago"
+                aria-label="Pagar con MercadoPago"
+              >
+                {processingPayment && paymentMethod === 'mercadopago' ? (
+                  <>
+                    <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                    MercadoPago...
+                  </>
+                ) : (
+                  <>MercadoPago</>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {productosConProblemas.length > 0 && (
+            <div className="mt-2">
+              <small className="text-warning">
+                No puedes proceder con la compra hasta que ajustes las cantidades de los productos con stock insuficiente.
+              </small>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Modal para vaciar carrito */}
-      <Modal show={showClearCartModal} onHide={() => setShowClearCartModal(false)} centered>
+      <Modal
+        show={showClearCartModal}
+        onHide={() => setShowClearCartModal(false)}
+        centered
+        aria-labelledby="clearCartTitle"
+        aria-describedby="clearCartDesc"
+        id="clear-cart-modal"
+      >
         <Modal.Header closeButton className="bg-dark text-white">
-          <Modal.Title>Vaciar Carrito</Modal.Title>
+          <Modal.Title id="clearCartTitle">Vaciar Carrito</Modal.Title>
         </Modal.Header>
+
         <Modal.Body className="bg-dark text-white">
           <div className="text-center">
-            <i className="fas fa-shopping-cart fa-3x text-warning mb-3"></i>
-            <h5>¿Estás seguro de que quieres vaciar tu carrito?</h5>
-            <p className="text-muted">
-              Se eliminarán {cart.length} producto{cart.length !== 1 ? 's' : ''} de tu carrito.
-              Esta acción no se puede deshacer.
+            {/* icono decorativo */}
+            <span aria-hidden="true" style={{ fontSize: '2rem', color: '#ffc107' }}>🗑️</span>
+            <h2 id="clearCartHeading" className="h5 mt-3">¿Estás seguro de que quieres vaciar tu carrito?</h2>
+            <p id="clearCartDesc" className="text-muted">
+              Se eliminarán {cart.length} producto{cart.length !== 1 ? 's' : ''} de tu carrito. Esta acción no se puede deshacer.
             </p>
           </div>
         </Modal.Body>
+
         <Modal.Footer className="bg-dark">
-          <Button variant="secondary" onClick={() => setShowClearCartModal(false)}>
+          {/* Cancelar (autofocus para teclado) */}
+          <Button variant="secondary" onClick={() => setShowClearCartModal(false)} autoFocus>
             Cancelar
           </Button>
-          <Button variant="danger" onClick={confirmClearCart}>
-            <i className="fas fa-trash me-2"></i>
+          <Button variant="danger" onClick={confirmClearCart} aria-label="Confirmar vaciar carrito">
             Sí, vaciar carrito
           </Button>
         </Modal.Footer>
       </Modal>
-    </>
+    </main>
   );
 };
 
 export default CartPage;
+
