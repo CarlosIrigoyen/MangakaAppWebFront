@@ -2,196 +2,202 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta name="description" content="Mangaka Baka Shop - Tu tienda de mangas favorita. Compra los mejores tomos de manga en español." />
     <meta name="keywords" content="manga, comics, tienda, comprar, tomos, español" />
     <meta name="author" content="Mangaka Baka Shop" />
-    
-    <!-- ========================================================= -->
-    <!-- === OPTIMIZACIONES LCP CRÍTICAS === -->
-    <!-- ========================================================= -->
-    
-    <!-- Preconnect a dominios críticos -->
+
+    <title>Mangaka Baka Shop - Tu tienda de mangas favorita</title>
+
+    <!-- ========================= -->
+    <!-- Preconnect y DNS prefetch -->
+    <!-- ========================= -->
     <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
-    <link rel="preconnect" href="https://mangakaappweb-production.up.railway.app">
+    <link rel="preconnect" href="https://mangakaappweb-production.up.railway.app" crossorigin>
     <link rel="dns-prefetch" href="https://res.cloudinary.com">
     <link rel="dns-prefetch" href="https://mangakaappweb-production.up.railway.app">
-    
-    <!-- Preload de la primera imagen LCP candidate -->
-    <!-- ACTUALIZA esta URL con la imagen real que aparece primero en tu lista -->
-    <link 
-      rel="preload" 
-      href="https://res.cloudinary.com/dcgyq3ajm/image/upload/w_400,q_70,f_webp/v1763416674/tomo_portada_chainsaw-man.jpg" 
-      as="image" 
-      fetchpriority="high" 
+
+    <!-- =========================================================
+         Preload de la imagen LCP (actualiza href si tu LCP es otra imagen)
+         Uso q_50 para reducir tamaño sin perder calidad visible
+         ========================================================= -->
+    <link
+      rel="preload"
+      as="image"
+      href="https://res.cloudinary.com/dcgyq3ajm/image/upload/w_400,q_50,f_webp/v1763416674/tomo_portada_chainsaw-man.jpg"
+      fetchpriority="high"
       crossorigin="anonymous"
-    >
-    
-    <!-- Preload de recursos críticos CSS/JS -->
+    />
+
+    <!-- Preload crítico del CSS (archivo generado por build) -->
     <link rel="preload" href="%PUBLIC_URL%/static/css/main.chunk.css" as="style">
-    <link rel="preload" href="%PUBLIC_URL%/static/js/main.chunk.js" as="script">
-    
-    <!-- ========================================================= -->
-    <!-- === META TAGS PARA SEO Y SOCIAL === -->
-    <!-- ========================================================= -->
-    
-    <!-- Open Graph -->
+
+    <!-- Meta Open Graph / Twitter -->
     <meta property="og:title" content="Mangaka Baka Shop - Tu tienda de mangas" />
     <meta property="og:description" content="Compra los mejores tomos de manga en español. Envíos a todo el país." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://mangakaappwebfront-production.up.railway.app" />
-    <!-- <meta property="og:image" content="%PUBLIC_URL%/img/og-image.jpg" /> -->
-    
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Mangaka Baka Shop" />
     <meta name="twitter:description" content="Tu tienda de mangas favorita" />
-    
-    <!-- ========================================================= -->
-    <!-- === MANIFEST Y ICONS === -->
-    <!-- ========================================================= -->
-    
+
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    
-    <!-- ========================================================= -->
-    <!-- === CRITICAL CSS INLINE - Above the fold === -->
-    <!-- ========================================================= -->
-    
+
+    <!-- ========================= -->
+    <!-- Critical CSS inline (mínimo) -->
+    <!-- ========================= -->
     <style>
-      /* Reset crítico */
-      * {
-        box-sizing: border-box;
+      /* =========================
+         Estilos críticos para above-the-fold
+         - Mantén lo mínimo aquí para reducir render-blocking.
+         ========================= */
+      :root { color-scheme: dark; }
+      html,body{height:100%;margin:0;}
+      body{
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+        -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+        background-color:#212529;color:#fff;
+        -webkit-text-size-adjust:100%;
       }
-      
-      /* Above-the-fold styles */
-      .bg-dark { 
-        background-color: #212529 !important; 
-      }
-      .text-white { 
-        color: #fff !important; 
-      }
-      .min-vh-100 { 
-        min-height: 100vh !important; 
-      }
-      .d-flex { 
-        display: flex !important; 
-      }
-      .justify-content-center { 
-        justify-content: center !important; 
-      }
-      .align-items-center { 
-        align-items: center !important; 
-      }
-      
-      /* LCP image container base styles */
-      .lcp-image-container {
-        position: relative;
+
+      /* Skip link accesible pero oculto hasta focus */
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: auto;
+        width: 1px;
+        height: 1px;
         overflow: hidden;
+      }
+      .skip-link:focus {
+        left: 1rem;
+        top: 1rem;
+        width: auto;
+        height: auto;
+        padding: 0.5rem 0.75rem;
+        background: #fff;
+        color: #000;
+        z-index: 9999;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+
+      /* LCP placeholder container (mantener aspecto para evitar CLS) */
+      .lcp-placeholder {
+        width: 100%;
+        max-width: 400px;
+        height: 200px;
         background-color: #f8f9fa;
+        display: block;
+        margin: 0 auto;
       }
-      
-      /* Loading spinner inicial para above-the-fold */
+
+      /* Small utility classes used before React hydrate */
       .initial-loading {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        background-color: #212529;
+        display:flex;align-items:center;justify-content:center;height:100vh;
       }
-      
-      .loading-spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #007bff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
+      .loading-spinner{
+        width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;
       }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      /* Estilos base para contenido inicial */
-      body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-          sans-serif;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        background-color: #212529;
-        color: white;
-      }
-      
-      /* Mejora de rendimiento para fuentes */
-      @font-face {
-        font-display: swap;
-      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Asegurar foco visible */
+      :focus { outline: 3px solid rgba(13,110,253,0.28); outline-offset: 2px; }
     </style>
-    
-    <title>Mangaka Baka Shop - Tu tienda de mangas favorita</title>
-    
-    <!-- ========================================================= -->
-    <!-- === DEFER NON-CRITICAL CSS === -->
-    <!-- ========================================================= -->
-    
+
+    <!-- Defer non-critical CSS: lo inyectamos por JS para evitar blocking -->
     <noscript>
       <link rel="stylesheet" href="%PUBLIC_URL%/static/css/main.chunk.css">
     </noscript>
   </head>
+
   <body>
-    <!-- ========================================================= -->
-    <!-- === CONTENIDO INICIAL PARA LCP === -->
-    <!-- ========================================================= -->
-    
-    <noscript>
-      <div class="bg-dark text-white min-vh-100 d-flex justify-content-center align-items-center">
-        <div class="text-center">
-          <h1>Mangaka Baka Shop</h1>
-          <p>Necesitas habilitar JavaScript para ejecutar esta aplicación.</p>
-        </div>
+    <!-- Enlace para saltar contenido repetitivo (accesibilidad) -->
+    <a class="skip-link" href="#main-content">Saltar al contenido</a>
+
+    <!-- Contenido ligero para LCP y para usuarios sin JS -->
+    <main id="main-content" role="main" aria-label="Contenido principal">
+      <div class="initial-loading" id="initial-loading">
+        <div class="loading-spinner" aria-hidden="true"></div>
       </div>
-    </noscript>
-    
-    <!-- Loading inicial para above-the-fold -->
-    <div id="root">
-      <div class="initial-loading">
-        <div class="loading-spinner"></div>
-      </div>
-    </div>
-    
-    <!-- ========================================================= -->
-    <!-- === SCRIPTS DEFERIDOS === -->
-    <!-- ========================================================= -->
-    
+
+      <!-- Placeholder visual para preservar espacio del LCP y evitar CLS.
+           NO es una imagen real en DOM (la imagen real la carga React),
+           pero tener este contenedor ayuda a que el layout no salte. -->
+      <div class="lcp-placeholder" aria-hidden="true"></div>
+    </main>
+
+    <!-- Root de React -->
+    <div id="root" aria-live="polite"></div>
+
+    <!-- ========================= -->
+    <!-- Scripts: carga no bloqueante del CSS y scripts build -->
+    <!-- ========================= -->
     <script>
-      // Cargar CSS de forma asíncrona
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = '%PUBLIC_URL%/static/css/main.chunk.css';
-      link.onload = function() {
-        // CSS cargado, remover loading spinner cuando React tome control
-        setTimeout(function() {
-          var loadingEl = document.querySelector('.initial-loading');
-          if (loadingEl && !document.querySelector('#root > *:not(.initial-loading)')) {
-            loadingEl.style.display = 'none';
-          }
-        }, 100);
-      };
-      document.head.appendChild(link);
-      
-      // Precarga de imágenes adicionales después de la crítica
-      window.addEventListener('load', function() {
-        var images = document.querySelectorAll('img[data-src]');
-        images.forEach(function(img) {
-          img.src = img.getAttribute('data-src');
-        });
-      });
+      /* Carga asíncrona del CSS generado por build.
+         Cuando se cargue, eliminamos el placeholder si React ya hidrató. */
+      (function() {
+        var href = '%PUBLIC_URL%/static/css/main.chunk.css';
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.onload = function() {
+          // Si React ya está hidratado o ha reemplazado el contenido, remover loader
+          var init = document.getElementById('initial-loading');
+          if (init) { init.style.display = 'none'; }
+        };
+        link.onerror = function() {
+          // fallback: inyectar mediante noscript ya presente
+          console.warn('No se pudo cargar el CSS asíncrono:', href);
+        };
+        document.head.appendChild(link);
+      })();
     </script>
+
+    <!-- ========================= -->
+    <!-- Carga del script principal (React build) - este archivo lo inyecta CRA en producción -->
+    <!-- Dejar el script que CRA inyecta (no incluir aquí hardcoded nombres si usas CRA) -->
+    <!-- Si no usas CRA, reemplazar por el path correcto a tu bundle -->
+    <!-- ========================= -->
+    <!-- IMPORTANTE: CRA insertará los scripts build correspondientes al hacer `npm run build` -->
+    <!-- Si tu deploy no inyecta, revisá la configuración del servidor estático. -->
+
+    <!-- ========================= -->
+    <!-- Pequeñas mejoras de accesibilidad JS (no obligatorias) -->
+    <!-- ========================= -->
+    <script>
+      // Hacer foco en #main-content cuando se sigue el skip link (mejora UX teclado)
+      (function() {
+        var skip = document.querySelector('.skip-link');
+        if (!skip) return;
+        skip.addEventListener('click', function(e) {
+          var main = document.getElementById('main-content');
+          if (main) {
+            main.setAttribute('tabindex', '-1');
+            main.focus();
+          }
+        });
+      })();
+    </script>
+
+    <!-- ========================= -->
+    <!-- Sugerencias / notas:
+         - Asegurate de que el archivo de build (JS) que Railway sirve esté en modo producción
+           (react-scripts build) para que CRA inyecte automáticamente los <script> con los nombres
+           de los chunks. No metas aquí manualmente los nombres de bundle si cambian.
+         - Reemplaza la URL del preload de imagen LCP por la portada real si corresponde.
+         - Este index.html ya incluye:
+             * preconnect a Cloudinary
+             * preload LCP (fetchpriority=high)
+             * critical CSS inline mínimo
+             * carga asíncrona del CSS main
+             * skip-link para accesibilidad
+         - Para mejorar aún más LCP, agrega la misma URL preloaded como background-image
+           inline en el placeholder si tu LCP es siempre la misma portada.
+       ========================= -->
   </body>
 </html>
