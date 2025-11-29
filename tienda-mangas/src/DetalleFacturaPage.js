@@ -111,7 +111,7 @@ const DetalleFacturaPage = () => {
         <div ref={facturaRef} className="p-4 bg-white text-dark rounded">
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div className="d-flex align-items-center">
-              <img src="/img/Mangaka.png" alt="Logo" width={80} className="me-3 rounded-circle" />
+              <img src="/img/Mangaka.webp" alt="Logo" width={80} className="me-3 rounded-circle" />
               <h4 className="mb-0">Mangaka Baka Shop</h4>
             </div>
             <div className="text-end">
