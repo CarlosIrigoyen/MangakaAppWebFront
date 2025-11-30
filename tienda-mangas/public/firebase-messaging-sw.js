@@ -10,7 +10,7 @@ const APP_SHELL = [
 
 // Instalación optimizada
 self.addEventListener('install', (event) => {
-  console.log('[SW] Service Worker instalando...');
+ 
   
   // No cacheamos durante la instalación para mayor velocidad
   self.skipWaiting();
@@ -18,7 +18,6 @@ self.addEventListener('install', (event) => {
 
 // Activación con limpieza de cachés antiguos
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Service Worker activado');
   event.waitUntil(
     Promise.all([
       self.clients.claim(),
@@ -27,7 +26,6 @@ self.addEventListener('activate', (event) => {
         return Promise.all(
           cacheNames.map(cacheName => {
             if (cacheName !== CACHE_NAME) {
-              console.log('[SW] Eliminando cache antigua:', cacheName);
               return caches.delete(cacheName);
             }
           })
@@ -40,7 +38,6 @@ self.addEventListener('activate', (event) => {
 // Manejo de notificaciones push optimizado
 self.addEventListener('push', (event) => {
   if (!event.data) {
-    console.log('[SW] Push event sin data');
     return;
   }
   
@@ -48,7 +45,7 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json();
   } catch (err) {
-    console.error('[SW] Error parseando payload push:', err);
+ 
     return;
   }
 
@@ -79,7 +76,7 @@ self.addEventListener('push', (event) => {
 
 // Manejo de clics en notificaciones optimizado
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notificación clickeada:', event.notification.tag);
+ 
   event.notification.close();
   
   const urlToOpen = new URL('/', self.location.origin).href;
@@ -92,23 +89,21 @@ self.addEventListener('notificationclick', (event) => {
       // Buscar ventana existente del mismo origen
       for (const client of clientList) {
         if (client.url.includes(self.location.origin)) {
-          console.log('[SW] Enfocando ventana existente');
           return client.focus().then(() => client);
         }
       }
       
       // Abrir nueva ventana si no existe
-      console.log('[SW] Abriendo nueva ventana');
       return self.clients.openWindow(urlToOpen);
     }).catch(err => {
-      console.error('[SW] Error manejando notification click:', err);
+ 
     })
   );
 });
 
 // Manejo de cierre de notificaciones
 self.addEventListener('notificationclose', (event) => {
-  console.log('[SW] Notificación cerrada:', event.notification.tag);
+  //pass
 });
 
 // Cache estratégico para recursos críticos

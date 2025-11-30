@@ -27,7 +27,7 @@ const LCPImage = ({
   // Precarga AGRESIVA para imagen LCP
   useEffect(() => {
     if (isLCP && highQualitySrc) {
-      console.log('🔄 Precargando imagen LCP críticamente:', highQualitySrc);
+     
       
       // Precargar con link preload (más efectivo)
       const link = document.createElement('link');
@@ -51,12 +51,12 @@ const LCPImage = ({
   }, [isLCP, highQualitySrc]);
 
   const handleLoad = () => {
-    console.log('✅ Imagen LCP cargada:', highQualitySrc);
+    
     setLoaded(true);
   };
 
   const handleError = () => {
-    console.error('❌ Error cargando imagen LCP:', highQualitySrc);
+    
     setError(true);
     setLoaded(true);
   };
