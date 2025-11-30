@@ -126,7 +126,6 @@ const CartPage = () => {
 
       window.location.href = init_point;
     } catch (err) {
-      console.error('Error en createPreference:', err);
       alert(`No se pudo iniciar el pago: ${err.message || 'Error desconocido'}`);
       setProcessingPayment(false);
       setPaymentMethod(null);
@@ -169,7 +168,7 @@ const CartPage = () => {
 
       window.location.href = approve_url;
     } catch (err) {
-      console.error('Error en PayPal:', err);
+      
       alert(`No se pudo iniciar el pago con PayPal: ${err.message || 'Error desconocido'}`);
       setProcessingPayment(false);
       setPaymentMethod(null);

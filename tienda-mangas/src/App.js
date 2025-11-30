@@ -97,7 +97,7 @@ const MainApp = () => {
         total: data.total || 0
       });
     } catch (error) {
-      console.error('Error al cargar tomos:', error);
+      //pass
     }
   }, []);
 
@@ -144,7 +144,7 @@ const MainApp = () => {
         setShowRegister(false);
       }
     } catch (err) {
-      console.error(err);
+      //pass
     }
   };
 
@@ -164,7 +164,7 @@ const MainApp = () => {
         setShowLogin(false);
       }
     } catch (err) {
-      console.error(err);
+      // pass
     }
   };
 

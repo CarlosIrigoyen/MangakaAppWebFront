@@ -183,7 +183,6 @@ const DetalleFacturaPage = () => {
       const numeroDigitos = (factura?.numero || '').replace(/\D/g, '').slice(0, 6);
       pdf.save(`Factura-${numeroDigitos}.pdf`);
     } catch (error) {
-      console.error('Error generando PDF:', error);
       alert('Error al generar el PDF. Intenta nuevamente.');
     }
   }, [factura]);

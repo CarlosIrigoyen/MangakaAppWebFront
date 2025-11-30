@@ -42,7 +42,7 @@ export const CartProvider = ({ children }) => {
             try {
               localStorage.setItem(storageKey, JSON.stringify(cartFromDB));
             } catch (e) {
-              console.warn('Error guardando en localStorage:', e);
+              //pass
             }
           } else {
             // Fallback a localStorage
@@ -51,20 +51,17 @@ export const CartProvider = ({ children }) => {
               try {
                 setCart(JSON.parse(saved));
               } catch (e) {
-                console.error('Error parseando localStorage:', e);
                 setCart([]);
               }
             }
           }
         } catch (error) {
-          console.error('Error al cargar carrito desde BD:', error);
           // Fallback a localStorage
           const saved = localStorage.getItem(storageKey);
           if (saved) {
             try {
               setCart(JSON.parse(saved));
             } catch (e) {
-              console.error('Error parseando localStorage fallback:', e);
               setCart([]);
             }
           }
@@ -76,7 +73,7 @@ export const CartProvider = ({ children }) => {
           try {
             setCart(JSON.parse(saved));
           } catch (e) {
-            console.error('Error parseando localStorage guest:', e);
+            
             setCart([]);
           }
         }
@@ -105,7 +102,7 @@ export const CartProvider = ({ children }) => {
         })
       });
     } catch (error) {
-      console.error('Error al sincronizar carrito con BD:', error);
+      
     } finally {
       setSyncing(false);
     }
@@ -119,7 +116,7 @@ export const CartProvider = ({ children }) => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(cart));
     } catch (e) {
-      console.error('Error guardando carrito en localStorage:', e);
+      //pass
     }
     
     // Sincronizar con BD si hay usuario
@@ -177,7 +174,7 @@ export const CartProvider = ({ children }) => {
     try {
       localStorage.removeItem(storageKey);
     } catch (e) {
-      console.error('Error removiendo carrito del localStorage:', e);
+      //PASS
     }
 
     // Si hay usuario, intentamos limpiar en BD
@@ -191,7 +188,7 @@ export const CartProvider = ({ children }) => {
           }
         });
       } catch (error) {
-        console.error('Error al limpiar carrito en BD:', error);
+        //PASS
       }
     }
   }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
@@ -207,14 +204,14 @@ export const CartProvider = ({ children }) => {
           }
         });
       } catch (error) {
-        console.error('Error al limpiar carrito en BD:', error);
+        //PASS
       }
     }
     // Limpiar siempre el localStorage
     try {
       localStorage.removeItem(storageKey);
     } catch (e) {
-      console.error('Error removing storageKey after purchase:', e);
+      //PASS
     }
     setCart([]);
   }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
@@ -225,7 +222,7 @@ export const CartProvider = ({ children }) => {
       try {
         localStorage.removeItem(storageKey);
       } catch (e) { 
-        console.error('Error removing storageKey on logout:', e); 
+        //PASS 
       }
     }
   }, [user, cart, storageKey, syncCartWithDB]);

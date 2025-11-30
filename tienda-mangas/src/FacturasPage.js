@@ -68,7 +68,6 @@ const FacturasPage = () => {
         const data = await resDet.json();
         setFactura(data);
       } catch (err) {
-        console.error(err);
         setError(err.message || 'Error al obtener facturas');
       } finally {
         setLoading(false);
@@ -92,13 +91,13 @@ const FacturasPage = () => {
       if (!response.ok) throw new Error('Error capturando pago PayPal');
 
       const result = await response.json();
-      console.log('Pago PayPal capturado y factura creada:', result);
+    
 
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
 
     } catch (err) {
-      console.error('Error capturando pago PayPal:', err);
+    
       setError('Error confirmando el pago: ' + err.message);
     }
   };
@@ -130,7 +129,7 @@ const FacturasPage = () => {
       pdf.save(`Factura-${numeroDigitos}.pdf`);
 
     } catch (error) {
-      console.error('Error generando PDF:', error);
+     
       alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
     }
   };

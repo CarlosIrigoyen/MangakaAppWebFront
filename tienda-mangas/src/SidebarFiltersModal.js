@@ -39,7 +39,7 @@ const SidebarFiltersModal = ({ show, onClose, onApplyFilters }) => {
         const json = await response.json();
         setAvailableFilters(json);
       } catch (error) {
-        console.error('Error cargando filtros:', error);
+       //pass 
       }
     }
     fetchFilters();

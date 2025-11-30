@@ -26,27 +26,19 @@ const SubscriptionManager = () => {
 
   // Sincronizar selecciones cuando cambian las suscripciones
   useEffect(() => {
-    console.log('🔄 Sincronizando suscripciones:', suscripciones);
+  
     setSelectedMangas(suscripciones);
   }, [suscripciones]);
 
   // Al abrir el modal, cargar datos
   useEffect(() => {
     if (showModal && user) {
-      console.log('🔔 Abriendo modal de suscripciones');
-      console.log('📊 Estado actual:', {
-        hasPermission,
-        fcmToken: fcmToken ? 'Sí' : 'No',
-        suscripcionesCount: suscripciones.length,
-        mangasDisponiblesCount: mangasDisponibles.length
-      });
-
+   
       // Cargar datos necesarios
       cargarMangasDisponibles();
       
       // Si no hay token, intentar inicializar notificaciones
       if (!fcmToken) {
-        console.log('🔄 Inicializando notificaciones desde modal...');
         inicializarNotificaciones();
       }
     }
@@ -58,8 +50,6 @@ const SubscriptionManager = () => {
       const newSelection = isChecked 
         ? [...prev, mangaId]
         : prev.filter(id => id !== mangaId);
-      
-      console.log('🔔 Manga toggleado:', { mangaId, isChecked, newSelection });
       return newSelection;
     });
   };
@@ -68,11 +58,11 @@ const SubscriptionManager = () => {
   const handleToggleAll = () => {
     if (selectedMangas.length === mangasDisponibles.length) {
       setSelectedMangas([]);
-      console.log('🔔 Deseleccionando todos los mangas');
+      
     } else {
       const todosLosIds = mangasDisponibles.map(manga => manga.id);
       setSelectedMangas(todosLosIds);
-      console.log('🔔 Seleccionando todos los mangas:', todosLosIds);
+      
     }
   };
 
@@ -88,28 +78,22 @@ const SubscriptionManager = () => {
     setSuccess('');
 
     try {
-      console.log('💾 Intentando guardar suscripciones:', {
-        selectedMangas,
-        selectedCount: selectedMangas.length,
-        fcmToken: fcmToken ? 'Sí' : 'No'
-      });
+      
 
       const success = await actualizarSuscripciones(selectedMangas);
       
       if (success) {
         setSuccess(`✅ Suscrito a ${selectedMangas.length} manga(s) correctamente`);
-        console.log('✅ Suscripciones guardadas exitosamente');
-        
         // Cerrar modal después de 2 segundos
         setTimeout(() => {
           setShowModal(false);
         }, 2000);
       } else {
         setError('Error al guardar suscripciones. Por favor, intenta nuevamente.');
-        console.error('❌ Error al guardar suscripciones');
+        
       }
     } catch (error) {
-      console.error('❌ Error inesperado guardando suscripciones:', error);
+      
       setError('Error inesperado. Por favor, intenta nuevamente.');
     } finally {
       setSaving(false);

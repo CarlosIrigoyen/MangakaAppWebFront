@@ -42,7 +42,6 @@ export const UserProvider = ({ children }) => {
           setUser(null);
         }
       } catch (error) {
-        console.error('Error al verificar autenticación:', error);
         localStorage.removeItem('token'); // En caso de error de red, también limpiamos el token
         setUser(null);
       } finally {
@@ -71,7 +70,7 @@ export const UserProvider = ({ children }) => {
           }
         });
       } catch (error) {
-        console.error('Error en logout:', error);
+       //pass
       } finally {
         localStorage.removeItem('token');
         setUser(null);

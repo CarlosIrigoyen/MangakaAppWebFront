@@ -61,7 +61,7 @@ const PayPalReturn = () => {
         });
         
       } catch (err) {
-        console.error('Error capturando pago PayPal:', err);
+       
         setError(err.message || 'Error al procesar el pago. Por favor, intenta nuevamente.');
         setLoading(false);
       }

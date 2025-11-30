@@ -66,7 +66,7 @@ const SidebarFilters = ({ onFilterChange, setShowLogin, setShowRegister }) => {
         const json = await resp.json();
         setAvailableFilters(json);
       } catch (err) {
-        console.error(err);
+        //passs
       }
     }
     fetchFilters();
