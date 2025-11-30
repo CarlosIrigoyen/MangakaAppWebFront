@@ -40,7 +40,7 @@ const FacturaHeader = React.memo(({ numeroMostrar, fechaSolo }) => {
     <div className="d-flex justify-content-between align-items-center mb-4">
       <div className="d-flex align-items-center">
         <img 
-          src="/img/Mangaka.webp" 
+          src="/img/Mangaka_110x110.png" 
           alt="Logo" 
           width={80} 
           className="me-3 rounded-circle"
