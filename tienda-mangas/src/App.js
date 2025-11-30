@@ -194,7 +194,7 @@ const MainApp = () => {
         <Container fluid>
           <Navbar.Brand as={Link} to="/" onClick={() => setNavExpanded(false)}>
             <img 
-              src="/img/Mangaka_110x110.png" 
+              src="/img/Mangaka.png" 
               alt="Logo" 
               width="40" 
               height="40" 
