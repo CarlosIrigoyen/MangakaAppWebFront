@@ -8,10 +8,10 @@ import {
   useNavigate
 } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
 import './App.css';
 
 import { Navbar, Container, Form, Button, Spinner, Offcanvas, InputGroup } from 'react-bootstrap';
+import { FaShoppingCart, FaBars, FaSearch } from 'react-icons/fa';
 
 // Lazy loading de componentes pesados
 const TomoList = lazy(() => import('./TomoList'));
@@ -52,7 +52,7 @@ const MainApp = () => {
   const navigate = useNavigate();
   const { user, login, logout, loadingUser } = useContext(UserContext);
   const { cart } = useContext(CartContext);
-  const cartCount = cart.length;
+  const cartCount = cart.length || 0;
 
   const [tomos, setTomos] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -105,7 +105,8 @@ const MainApp = () => {
         total: data.total || 0
       });
     } catch (error) {
-      //pass
+      // fail silently (puedes loguear si querés)
+      console.error('fetchTomos error', error);
     }
   }, []);
 
@@ -123,7 +124,6 @@ const MainApp = () => {
     setFilters(f);
     fetchTomos(f, 1);
     setNavExpanded(false);
-    // Close mobile search UI after search on mobile
     setMobileSearchOpen(false);
   }, [filters, searchQuery, fetchTomos]);
 
@@ -139,10 +139,10 @@ const MainApp = () => {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    const nombre = e.target.formNombre.value;
-    const direccion = e.target.formDireccion.value;
-    const email = e.target.formEmailRegister.value;
-    const password = e.target.formPasswordRegister.value;
+    const nombre = e.target.formNombre?.value;
+    const direccion = e.target.formDireccion?.value;
+    const email = e.target.formEmailRegister?.value;
+    const password = e.target.formPasswordRegister?.value;
     try {
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
@@ -155,14 +155,14 @@ const MainApp = () => {
         setShowRegister(false);
       }
     } catch (err) {
-      //pass
+      console.error(err);
     }
   };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    const email = e.target.formEmailLogin.value;
-    const password = e.target.formPasswordLogin.value;
+    const email = e.target.formEmailLogin?.value;
+    const password = e.target.formPasswordLogin?.value;
     try {
       const res = await fetch(LOGIN_URL, {
         method: 'POST',
@@ -175,7 +175,7 @@ const MainApp = () => {
         setShowLogin(false);
       }
     } catch (err) {
-      // pass
+      console.error(err);
     }
   };
 
@@ -221,7 +221,7 @@ const MainApp = () => {
               />
               {/* desktop: icon-only search */}
               <Button type="submit" variant="outline-light" aria-label="Buscar" className="icon-btn ms-2">
-                <i className="bi bi-search" />
+                <FaSearch />
               </Button>
             </InputGroup>
           </Form>
@@ -234,7 +234,7 @@ const MainApp = () => {
 
                 {/* Suscripciones (desktop) */}
                 <Suspense fallback={<Spinner animation="border" size="sm" />}>
-                  <div className="d-none d-lg-inline">
+                  <div className="d-none d-lg-inline subscription-area">
                     <SubscriptionManager />
                   </div>
                 </Suspense>
@@ -247,7 +247,7 @@ const MainApp = () => {
                   className="cart-btn d-flex align-items-center justify-content-center"
                   aria-label={`Carrito, ${cartCount} items`}
                 >
-                  <i className="bi bi-cart-fill" style={{ fontSize: '1rem' }} />
+                  <FaShoppingCart style={{ fontSize: '1rem' }} />
                   <span className="badge bg-danger ms-2 cart-badge">{cartCount}</span>
                 </Button>
 
@@ -285,7 +285,7 @@ const MainApp = () => {
         {/* Hamburger */}
         <div className="d-flex align-items-center" style={{ width: 56 }}>
           <Button variant="outline-light" size="sm" onClick={() => setMobileMenuOpen(true)} aria-label="Abrir menú" className="hamburger-btn icon-btn">
-            <i className="bi bi-list" />
+            <FaBars />
           </Button>
         </div>
 
@@ -294,7 +294,7 @@ const MainApp = () => {
           <strong>Mangaka Baka Shop</strong>
         </div>
 
-        {/* Right: search icon + cart */}
+        {/* Right: search icon */}
         <div className="d-flex align-items-center" style={{ width: 56 }}>
           <Button
             variant="outline-light"
@@ -303,7 +303,7 @@ const MainApp = () => {
             aria-label="Buscar"
             className="search-btn icon-btn"
           >
-            <i className="bi bi-search" />
+            <FaSearch />
           </Button>
         </div>
 
@@ -317,7 +317,7 @@ const MainApp = () => {
             onClick={() => navigate('/cart')}
             aria-label={`Carrito, ${cartCount} items`}
           >
-            <i className="bi bi-cart-fill" />
+            <FaShoppingCart />
             <span className="badge bg-danger ms-1 cart-badge">{cartCount}</span>
           </Button>
         </div>
