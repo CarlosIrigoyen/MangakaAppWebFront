@@ -1,3 +1,4 @@
+// SidebarFiltersModal.js
 import React, { useState, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import SideBarFiltersContent from './SideBarFiltersContent';
@@ -60,7 +61,24 @@ const SidebarFiltersModal = ({ show, onClose, onApplyFilters }) => {
   const clearPriceFilter = () =>
     setFilters({ ...filters, applyPriceFilter: 0, minPrice: '', maxPrice: '' });
 
-  const clearAllFilters = () => setFilters(INITIAL_FILTERS);
+  // Cuando se limpia todo desde este modal, además aplicamos filtros vacíos hacia el padre
+  const clearAllFilters = () => {
+    setFilters(INITIAL_FILTERS);
+    if (onApplyFilters && typeof onApplyFilters === 'function') {
+      onApplyFilters({
+        authors: [],
+        languages: [],
+        mangas: [],
+        editorials: [],
+        searchText: '',
+        sortBy: 'titulo,numero_tomo',
+        applyPriceFilter: 0
+      });
+    }
+    // NO cerramos el modal automáticamente para que el usuario vea que quedó limpio;
+    // si prefieres cerrar, descomenta onClose()
+    // if (onClose) onClose();
+  };
 
   const toggleSection = (section) =>
     setOpenSections({ ...openSections, [section]: !openSections[section] });
@@ -119,6 +137,8 @@ const SidebarFiltersModal = ({ show, onClose, onApplyFilters }) => {
           applyPrice={applyPrice}
           clearPriceFilter={clearPriceFilter}
           clearAllFilters={clearAllFilters}
+          onApplyFilters={onApplyFilters}
+          onClose={onClose}
         />
       </Modal.Body>
 
@@ -135,4 +155,3 @@ const SidebarFiltersModal = ({ show, onClose, onApplyFilters }) => {
 };
 
 export default SidebarFiltersModal;
-

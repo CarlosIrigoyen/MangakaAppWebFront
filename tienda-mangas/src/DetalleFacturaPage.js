@@ -1,4 +1,4 @@
-// src/DetalleFacturaPage.js - VERSIÓN COMPLETA OPTIMIZADA
+// src/DetalleFacturaPage.js - VERSIÓN COMPLETA OPTIMIZADA (actualizada para mobile list)
 import React, { useEffect, useState, useRef, useContext, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Spinner, Alert, Button, Container, Table } from 'react-bootstrap';
@@ -8,8 +8,39 @@ import './DetalleFacturaPage.css';
 
 const API_URL = 'https://mangakaappweb-production.up.railway.app/api';
 
-// Componente memoizado para la tabla
+// Componente memoizado para la tabla/listado
 const FacturaTable = React.memo(({ detalles }) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767.98px)');
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange);
+    return () => {
+      mq.removeEventListener ? mq.removeEventListener('change', onChange) : mq.removeListener(onChange);
+    };
+  }, []);
+
+  if (isMobile) {
+    // versión apilada para móvil: items debajo uno del otro
+    return (
+      <div className="productos-mobile">
+        {detalles.map(d => (
+          <div key={d.tomo_id} className="product-row py-2 border-bottom">
+            <div className="product-title-small">{`${d.titulo} – Tomo ${d.numero_tomo}`}</div>
+            <div className="product-details small text-muted">Cantidad: {d.cantidad}</div>
+            <div className="price-row">
+              <div className="product-prices">Precio: ${(+d.precio_unitario).toFixed(2)}</div>
+              <div className="product-prices">Importe: ${(+d.subtotal).toFixed(2)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // versión de tabla para desktop
   return (
     <Table bordered className="invoice-table">
       <thead>
@@ -34,18 +65,12 @@ const FacturaTable = React.memo(({ detalles }) => {
   );
 });
 
-// Componente memoizado para el header
+// Componente memoizado para el header (sin icono)
 const FacturaHeader = React.memo(({ numeroMostrar, fechaSolo }) => {
   return (
     <div className="d-flex justify-content-between align-items-center mb-4">
       <div className="d-flex align-items-center">
-        <img 
-          src="/img/Mangaka.png" 
-          alt="Logo" 
-          width={80} 
-          className="me-3 rounded-circle"
-          loading="lazy"
-        />
+        {/* Icono eliminado: sólo nombre de la tienda */}
         <h4 className="mb-0">Mangaka Baka Shop</h4>
       </div>
       <div className="text-end">
@@ -94,7 +119,7 @@ const DetalleFacturaPage = () => {
   const [error, setError] = useState(null);
   const facturaRef = useRef();
 
-  // Preload de imagen crítica
+  // Preload de imagen crítica (mantengo webp preload en caso de usar en otros lugares)
   useEffect(() => {
     const link = document.createElement('link');
     link.rel = 'preload';
@@ -103,7 +128,7 @@ const DetalleFacturaPage = () => {
     document.head.appendChild(link);
     
     return () => {
-      document.head.removeChild(link);
+      try { document.head.removeChild(link); } catch {}
     };
   }, []);
 

@@ -1,3 +1,4 @@
+// App.js
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import {
   BrowserRouter as Router,
@@ -6,8 +7,8 @@ import {
   Link,
   useNavigate
 } from 'react-router-dom';
-import { Navbar, Container, Form, Button, Spinner } from 'react-bootstrap';
-import { FaShoppingCart, FaUserCircle } from 'react-icons/fa';
+import { Navbar, Container, Form, Button, Spinner, Offcanvas } from 'react-bootstrap';
+import { FaShoppingCart, FaBars } from 'react-icons/fa';
 
 // Lazy loading de componentes pesados
 const TomoList = lazy(() => import('./TomoList'));
@@ -71,6 +72,9 @@ const MainApp = () => {
   const [selectedTomo, setSelectedTomo] = useState(null);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [navExpanded, setNavExpanded] = useState(false);
+
+  // Mobile offcanvas menu state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Carga de tomos con useCallback para evitar recreaciones
   const fetchTomos = useCallback(async (filtersParam = {}, page = 1) => {
@@ -172,6 +176,7 @@ const MainApp = () => {
     logout();
     navigate('/');
     setNavExpanded(false);
+    setMobileMenuOpen(false);
   }, [logout, navigate]);
 
   if (loadingUser) {
@@ -192,21 +197,14 @@ const MainApp = () => {
         style={{ zIndex: 1040 }}
       >
         <Container fluid>
-          <Navbar.Brand as={Link} to="/" onClick={() => setNavExpanded(false)}>
-            <img 
-              src="/img/Mangaka.png" 
-              alt="Logo" 
-              width="40" 
-              height="40" 
-              className="rounded-circle"
-              loading="lazy"
-            />
+          <Navbar.Brand as={Link} to="/" onClick={() => setNavExpanded(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* Imagen eliminada intencionalmente */}
             <span className="ms-2">Mangaka Baka Shop</span>
           </Navbar.Brand>
 
           <Form
             className="mx-auto"
-            style={{ width: '50%' }}
+            style={{ width: '35%' }}
             onSubmit={(e) => {
               e.preventDefault();
               handleSearch();
@@ -257,7 +255,7 @@ const MainApp = () => {
 
       {/* BARRA MÓVIL FIJA */}
       <div
-        className="d-md-none p-3 bg-dark text-white shadow-sm"
+        className="d-md-none p-3 bg-dark text-white shadow-sm mobile-topbar"
         style={{
           position: 'fixed',
           top: 0,
@@ -268,26 +266,36 @@ const MainApp = () => {
       >
         <div className="d-flex justify-content-between align-items-center mb-2">
           <div className="d-flex align-items-center">
-            <FaUserCircle size={26} className="me-2" />
-            <strong>{user ? `Hola, ${user.nombre}` : 'Bienvenido'}</strong>
+            {/* Hamburguesa a la izquierda */}
+            <Button variant="outline-light" size="sm" onClick={() => setMobileMenuOpen(true)} aria-label="Abrir menú">
+              <FaBars />
+            </Button>
           </div>
-          {user && (
-            <div className="d-flex align-items-center">
-              <Suspense fallback={<Spinner animation="border" size="sm" />}>
-                <SubscriptionManager />
-              </Suspense>
-              <Button
-                type="button"
-                size="sm"
-                variant="light"
-                className="ms-2"
-                onClick={() => navigate('/cart')}
-                aria-label={`Carrito, ${cartCount} items`}
-              >
-                <FaShoppingCart /> {cartCount}
-              </Button>
-            </div>
-          )}
+
+          {/* Nombre de la tienda centrado */}
+          <div className="text-center store-name" style={{ flex: 1 }}>
+            <strong>Mangaka Baka Shop</strong>
+          </div>
+
+          <div style={{ minWidth: 80 }} className="d-flex justify-content-end">
+            {user && (
+              <>
+                <Suspense fallback={<Spinner animation="border" size="sm" />}>
+                  <SubscriptionManager />
+                </Suspense>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="light"
+                  className="ms-2 text-dark"
+                  onClick={() => navigate('/cart')}
+                  aria-label={`Carrito, ${cartCount} items`}
+                >
+                  <FaShoppingCart /> {cartCount}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="d-flex justify-content-center gap-2">
@@ -310,6 +318,28 @@ const MainApp = () => {
           </Button>
         </div>
       </div>
+
+      {/* Mobile Offcanvas Menu */}
+      <Offcanvas show={mobileMenuOpen} onHide={() => setMobileMenuOpen(false)} placement="start">
+        <Offcanvas.Header closeButton>
+          <Offcanvas.Title>Menú</Offcanvas.Title>
+        </Offcanvas.Header>
+        <Offcanvas.Body>
+          <div className="mb-3">
+            <strong>{user ? `Hola, ${user.nombre}` : 'Bienvenido'}</strong>
+            <div className="small text-muted">Gracias por visitar Mangaka Baka Shop</div>
+          </div>
+
+          <div className="d-grid gap-2">
+            {!user && <Button variant="outline-primary" onClick={() => { setShowLogin(true); setMobileMenuOpen(false); }}>Iniciar sesión</Button>}
+            {!user && <Button variant="outline-secondary" onClick={() => { setShowRegister(true); setMobileMenuOpen(false); }}>Registrarse</Button>}
+
+            {user && <Button variant="outline-primary" onClick={() => { navigate('/facturas'); setMobileMenuOpen(false); }}>Mis facturas</Button>}
+            {user && <Button variant="outline-secondary" onClick={() => { navigate('/cart'); setMobileMenuOpen(false); }}>Mi carrito ({cartCount})</Button>}
+            {user && <Button variant="danger" onClick={() => { handleLogout(); }}>Cerrar sesión</Button>}
+          </div>
+        </Offcanvas.Body>
+      </Offcanvas>
 
       {/* CONTENIDO PRINCIPAL */}
       <div

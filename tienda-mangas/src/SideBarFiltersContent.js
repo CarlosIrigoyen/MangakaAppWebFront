@@ -1,4 +1,4 @@
-// 📁 SideBarFiltersContent.js
+// SideBarFiltersContent.js
 import React from 'react';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
@@ -12,31 +12,54 @@ const SideBarFiltersContent = ({
   applyPrice,
   clearPriceFilter,
   clearAllFilters,
+  onApplyFilters, // opcional: función pasada desde el modal o sidebar para aplicar
+  onClose // opcional: cerrar modal si se usa dentro de modal
 }) => {
+  // helper para aplicar filtros vacíos (mismo shape que handleApply)
+  const applyEmptyFilters = () => {
+    const transformedFilters = {
+      authors: [],
+      languages: [],
+      mangas: [],
+      editorials: [],
+      searchText: '',
+      sortBy: 'titulo,numero_tomo',
+      applyPriceFilter: 0
+    };
+    if (typeof onApplyFilters === 'function') {
+      onApplyFilters(transformedFilters);
+    }
+    // si el clearAllFilters provisto es local (ej. limpia estado del sidebar) lo ejecutamos
+    if (typeof clearAllFilters === 'function') {
+      clearAllFilters();
+    }
+    // si queremos cerrar el modal después de limpiar
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  };
+
   return (
     <>
       {/* ====== SECCIONES DE FILTROS ====== */}
       {[
-        { key: 'authors', label: 'Autores', items: availableFilters.authors },
-        { key: 'languages', label: 'Idiomas', items: availableFilters.languages },
-        { key: 'mangas', label: 'Mangas', items: availableFilters.mangas },
-        { key: 'editorials', label: 'Editoriales', items: availableFilters.editorials },
+        { key: 'authors', label: 'Autores', items: availableFilters.authors || [] },
+        { key: 'languages', label: 'Idiomas', items: availableFilters.languages || [] },
+        { key: 'mangas', label: 'Mangas', items: availableFilters.mangas || [] },
+        { key: 'editorials', label: 'Editoriales', items: availableFilters.editorials || [] },
       ].map(({ key, label, items }) => (
         <div key={key} className="mb-2 border-bottom border-light pb-2">
           <button
             className="btn btn-sm btn-dark w-100 d-flex justify-content-between align-items-center"
             onClick={() => toggleSection(key)}
+            aria-expanded={!!openSections[key]}
           >
             <span>{label}</span>
             {openSections[key] ? <FiChevronUp /> : <FiChevronDown />}
           </button>
 
           <div
-            className={`mt-2 ps-2 ${
-              openSections[key]
-                ? 'd-block animate__animated animate__fadeIn'
-                : 'd-none'
-            }`}
+            className={`mt-2 ps-2 ${openSections[key] ? 'd-block animate__animated animate__fadeIn' : 'd-none'}`}
           >
             {items.length === 0 && <small className="text-light">Sin opciones</small>}
 
@@ -128,6 +151,7 @@ const SideBarFiltersContent = ({
         <button
           className="btn btn-sm btn-dark w-100 d-flex justify-content-between align-items-center"
           onClick={() => toggleSection('price')}
+          aria-expanded={!!openSections.price}
         >
           <span>Precio</span>
           {openSections.price ? <FiChevronUp /> : <FiChevronDown />}
@@ -180,9 +204,13 @@ const SideBarFiltersContent = ({
         )}
       </div>
 
-      {/* Quitar filtros — SOLO CAMBIADO class → className */}
+      {/* Quitar filtros */}
       <div className="sidebar bg-dark text-white p-3">
-        <button className="btn btn-light text-dark w-100">
+        <button
+          className="btn btn-light text-dark w-100"
+          onClick={applyEmptyFilters}
+          aria-label="Quitar todos los filtros"
+        >
           Quitar filtros
         </button>
       </div>
