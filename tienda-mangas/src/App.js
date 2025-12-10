@@ -218,18 +218,20 @@ const MainApp = () => {
             </InputGroup>
           </Form>
 
-          {/* Right actions: cart + greeting */}
+          {/* Right actions: cart (only if logged) + greeting */}
           <div className="ms-auto d-flex align-items-center gap-2">
-            <Button
-              as={Link}
-              to="/cart"
-              variant="light"
-              className="cart-btn d-flex align-items-center justify-content-center"
-              aria-label={`Carrito, ${cartCount} items`}
-            >
-              <FaShoppingCart style={{ fontSize: '1rem' }} />
-              <span className="badge bg-danger ms-2 cart-badge">{cartCount}</span>
-            </Button>
+            {user && (
+              <Button
+                as={Link}
+                to="/cart"
+                variant="light"
+                className="cart-btn d-flex align-items-center justify-content-center"
+                aria-label={`Carrito, ${cartCount} items`}
+              >
+                <FaShoppingCart style={{ fontSize: '1rem' }} />
+                <span className="badge bg-danger ms-2 cart-badge">{cartCount}</span>
+              </Button>
+            )}
 
             <div className="d-flex align-items-center greeting-text">
               {user ? <span className="greeting">Hola, {user.nombre}</span> : null}
@@ -262,7 +264,7 @@ const MainApp = () => {
           <strong>Mangaka Baka Shop</strong>
         </div>
 
-        {/* Right side: lupa, carrito, greeting (in that order) */}
+        {/* Right side: lupa, carrito (solo si logged), greeting (only show if logged) */}
         <div className="d-flex align-items-center gap-1" style={{ marginLeft: 8 }}>
           <Button
             variant="outline-light"
@@ -274,19 +276,21 @@ const MainApp = () => {
             <FaSearch />
           </Button>
 
-          <Button
-            type="button"
-            size="sm"
-            variant="light"
-            className="cart-btn icon-compact d-flex align-items-center justify-content-center"
-            onClick={() => navigate('/cart')}
-            aria-label={`Carrito, ${cartCount} items`}
-          >
-            <FaShoppingCart />
-            <span className="badge bg-danger ms-1 cart-badge">{cartCount}</span>
-          </Button>
+          {user && (
+            <Button
+              type="button"
+              size="sm"
+              variant="light"
+              className="cart-btn icon-compact d-flex align-items-center justify-content-center"
+              onClick={() => navigate('/cart')}
+              aria-label={`Carrito, ${cartCount} items`}
+            >
+              <FaShoppingCart />
+              <span className="badge bg-danger ms-1 cart-badge">{cartCount}</span>
+            </Button>
+          )}
 
-          {/* Greeting visible on mobile after icons */}
+          {/* Greeting visible on mobile after icons (only if logged) */}
           <div className="ms-2 d-flex align-items-center greeting-mobile">
             {user ? <span className="small">Hola, {user.nombre}</span> : null}
           </div>
@@ -330,32 +334,14 @@ const MainApp = () => {
         </Offcanvas.Header>
 
         <Offcanvas.Body className="bg-dark text-white">
-          {/* Welcome block - visible only on small screens (hidden in desktop offcanvas) */}
-          <div className="mb-3 p-2 border-bottom border-secondary d-lg-none menu-welcome">
-            <div style={{ fontWeight: 700, fontSize: '1rem' }}>
-              {user ? `Bienvenido, ${user.nombre}` : 'Bienvenido'}
-            </div>
-            <div className="small text-secondary">Explora y encuentra tu próximo tomo</div>
-          </div>
+          {/* Welcome block visible only on small screens */}
 
           <div className="d-grid gap-2">
-            <Suspense fallback={<Button variant="outline-light">Notificaciones</Button>}>
+            <Suspense fallback={<Button variant="outline-light">Suscripciones</Button>}>
               <SubscriptionManager />
             </Suspense>
 
-            {/* Menu options - NO incluir la búsqueda aquí */}
-            <Button variant="outline-light" className="action-btn" onClick={() => { setShowFiltersModal(true); setMenuOpen(false); }}>
-              Filtros
-            </Button>
-
-            <Button variant="outline-light" as={Link} to="/cart" className="action-btn" onClick={() => setMenuOpen(false)}>
-              Ver Carrito
-            </Button>
-
-            <Button variant="outline-light" as={Link} to="/facturas" className="action-btn" onClick={() => setMenuOpen(false)}>
-              Facturas
-            </Button>
-
+            {/* Menu options (NO búsqueda, NO filtros, NO facturas, NO ver carrito) */}
             {!user ? (
               <>
                 <Button variant="outline-primary" className="action-btn" onClick={() => { setShowLogin(true); setMenuOpen(false); }}>
