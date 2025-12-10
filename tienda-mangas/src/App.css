@@ -1,4 +1,4 @@
-/* App.css - Versión optimizada para LCP y rendimiento */
+/* App.css - Versión optimizada para LCP y rendimiento (modificado) */
 
 /* --- Básicos --- */
 .App {
@@ -32,12 +32,8 @@
 }
 
 @keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 /* --- Backdrop y modal centrado --- */
@@ -462,6 +458,7 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
     background-color: #000 !important;
   }
 }
+
 /* Offcanvas / Mobile menu: usar mismos colores y estilo que la página principal */
 .mobile-offcanvas .offcanvas-header,
 .mobile-offcanvas .offcanvas-body {
@@ -509,3 +506,100 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
     color: #fff !important;
   }
 }
+
+/* ========================================================= */
+/* === CAMBIOS SOLICITADOS: ocultar botones duplicados en móvil y ajustar offcanvas === */
+/* ========================================================= */
+
+/* 1) Ocultar (en móvil) los botones de registro/login/filtros/salir.
+   Recomendado: añadir esas clases en los botones del App (ver snippet abajo).
+   Si no los añades, esta regla no hará nada (evita 'false positives'). */
+@media (max-width: 768px) {
+  .mobile-topbar .register-btn,
+  .mobile-topbar .login-btn,
+  .mobile-topbar .filters-btn,
+  .mobile-topbar .logout-btn {
+    display: none !important;
+  }
+
+  /* Asegurar que los botones esenciales sigan visibles */
+  .mobile-topbar .hamburger-btn,
+  .mobile-topbar .search-btn,
+  .mobile-topbar .cart-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Ajuste visual: la topbar móvil tiene una altura fija; la dejamos explícita */
+  .mobile-topbar {
+    height: 56px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* 2) Traer el offcanvas por encima de la barra fija para que nada quede tapado */
+  .mobile-offcanvas {
+    z-index: 1060 !important; /* debe quedar por encima de la mobile-topbar (1050) */
+  }
+
+  /* 3) Añadir espacio de "colchón" en el body del Offcanvas para que el contenido
+     no quede oculto por la barra fija: */
+  .mobile-offcanvas .offcanvas-body {
+    padding-top: calc(56px + 0.5rem); /* 56px = altura topbar + margen */
+  }
+
+  /* Clase auxiliar para el primer bloque del offcanvas (por si usás HTML directo) */
+  .mobile-offcanvas .welcome-block {
+    margin-top: 0;
+    padding-top: 0;
+  }
+}
+
+/* ========================================================= */
+/* === Ajustes menores para la barra fija y el contenido === */
+/* ========================================================= */
+
+/* Si el offcanvas se abre y el contenido del menú tiene un bloque "Bienvenido"
+   que está muy arriba, puedes forzar este margen para que sea legible. */
+.mobile-offcanvas .offcanvas-body .menu-welcome {
+  margin-top: 6px;
+  padding-top: 4px;
+}
+
+/* Si por algún motivo queda contenido por debajo de la barra fija en pantallas pequeñas,
+   te aseguras con este helper: */
+.content-under-topbar {
+  padding-top: 56px; /* usar en containers que queden pegados al topbar */
+}
+
+/* ========================================================= */
+/* === REDUCCIÓN DEL TAMAÑO DE LA BARRA DE BÚSQUEDA EN DESKTOP === */
+/* ========================================================= */
+
+/* Clase que utilizamos en App.js: .desktop-search-form */
+.desktop-search-form {
+  width: 28% !important; /* tamaño por defecto para desktop */
+  max-width: 520px;       /* evitar que se estire demasiado en pantallas grandes */
+  min-width: 240px;       /* mantener usable en pantallas medianas */
+}
+
+@media (min-width: 1200px) {
+  .desktop-search-form {
+    width: 24% !important; /* reducir aún más en pantallas extra grandes */
+  }
+}
+
+@media (max-width: 992px) {
+  .desktop-search-form {
+    width: 40% !important; /* en tablet mantén más espacio */
+  }
+}
+
+/* Alternativa: si querés controlar el input y el botón por separado */
+.desktop-search-form .form-control {
+  padding-right: 8px;
+}
+
+/* ========================================================= */
+/* ========================================================= */

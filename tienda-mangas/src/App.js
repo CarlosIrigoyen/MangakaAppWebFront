@@ -206,8 +206,8 @@ const MainApp = () => {
           </Navbar.Brand>
 
           <Form
-            className="mx-auto"
-            style={{ width: '35%' }}
+            className="mx-auto desktop-search-form"
+            style={{ width: '28%' }}
             onSubmit={(e) => {
               e.preventDefault();
               handleSearch();
@@ -228,26 +228,26 @@ const MainApp = () => {
           <div className="ms-auto d-flex align-items-center">
             {user ? (
               <>
-                <span className="me-2">Hola, {user.nombre}</span>
+                <span className="me-2 d-none d-lg-inline">Hola, {user.nombre}</span>
 
                 {/* Botón de suscripciones a notificaciones (desktop) */}
                 <Suspense fallback={<Spinner animation="border" size="sm" />}>
                   <SubscriptionManager />
                 </Suspense>
 
-                <Button type="button" variant="outline-light" as={Link} to="/cart" aria-label={`Carrito, ${cartCount} items`}>
+                <Button type="button" variant="outline-light" as={Link} to="/cart" aria-label={`Carrito, ${cartCount} items`} className="d-none d-lg-inline ms-2">
                   <FaShoppingCart /> {cartCount}
                 </Button>
-                <Button type="button" variant="danger" className="ms-2" onClick={handleLogout}>
+                <Button type="button" variant="danger" className="ms-2 d-none d-lg-inline" onClick={handleLogout}>
                   Cerrar Sesión
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>
+                <Button variant="primary" className="me-2 d-none d-lg-inline" onClick={() => setShowRegister(true)}>
                   Registro
                 </Button>
-                <Button variant="secondary" onClick={() => setShowLogin(true)}>
+                <Button variant="secondary" className="d-none d-lg-inline" onClick={() => setShowLogin(true)}>
                   Login
                 </Button>
               </>
@@ -270,7 +270,7 @@ const MainApp = () => {
         <div className="d-flex align-items-center mb-2">
           {/* Hamburguesa a la izquierda */}
           <div style={{ width: 44 }}>
-            <Button variant="outline-light" size="sm" onClick={() => setMobileMenuOpen(true)} aria-label="Abrir menú">
+            <Button variant="outline-light" size="sm" onClick={() => setMobileMenuOpen(true)} aria-label="Abrir menú" className="hamburger-btn">
               <FaBars />
             </Button>
           </div>
@@ -287,7 +287,7 @@ const MainApp = () => {
               size="sm"
               onClick={() => setMobileSearchOpen(prev => !prev)}
               aria-label="Buscar"
-              className="me-1"
+              className="me-1 search-btn"
             >
               <FaSearch />
             </Button>
@@ -298,7 +298,7 @@ const MainApp = () => {
                 type="button"
                 size="sm"
                 variant="outline-light"
-                className="ms-1 text-dark"
+                className="ms-1 text-dark cart-btn"
                 onClick={() => navigate('/cart')}
                 aria-label={`Carrito, ${cartCount} items`}
               >
@@ -329,25 +329,7 @@ const MainApp = () => {
           </div>
         )}
 
-        <div className="d-flex justify-content-center gap-2 mt-2">
-          {!user ? (
-            <>
-              <Button size="sm" variant="primary" onClick={() => setShowRegister(true)}>
-                Registro
-              </Button>
-              <Button size="sm" variant="light" className="text-dark" onClick={() => setShowLogin(true)}>
-                Login
-              </Button>
-            </>
-          ) : (
-            <Button size="sm" variant="danger" onClick={handleLogout}>
-              Salir
-            </Button>
-          )}
-          <Button size="sm" variant="warning" onClick={() => setShowFiltersModal(true)}>
-            Filtros
-          </Button>
-        </div>
+        {/* NOTE: Removed duplicated action buttons from the topbar. All registration/login/filters actions live inside the hamburger Offcanvas to avoid duplication. */}
       </div>
 
       {/* Mobile Offcanvas Menu */}
@@ -362,11 +344,8 @@ const MainApp = () => {
         </Offcanvas.Header>
         <Offcanvas.Body className="bg-dark text-white">
           {/* Mensaje de bienvenida (más visible) */}
-          
-          <div className="mb-3 p-2 border-bottom border-secondary">
-           
-            <div style={{ fontWeight: 700, fontSize: '1rem' }}>
-             
+          <div className="mb-3 p-2 border-bottom border-secondary menu-welcome">
+            <div style={{ fontWeight: 700, fontSize: '1rem' }} className="welcome-block">
               {user ? `Bienvenido, ${user.nombre}` : 'Bienvenido'}
             </div>
             <div className="small text-secondary">Explora y encuentra tu próximo tomo</div>
@@ -417,7 +396,7 @@ const MainApp = () => {
 
             {user && (
               <>
-                <Button variant="outline-danger" onClick={() => { handleLogout(); }}>
+                <Button variant="outline-danger" onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>
                   Cerrar sesión
                 </Button>
               </>
