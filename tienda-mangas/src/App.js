@@ -362,6 +362,8 @@ const MainApp = () => {
         </Offcanvas.Header>
         <Offcanvas.Body className="bg-dark text-white">
           {/* Mensaje de bienvenida (más visible) */}
+          <br> </br>
+          <br></br>
           <div className="mb-3 p-2 border-bottom border-secondary">
             <div style={{ fontWeight: 700, fontSize: '1rem' }}>
               {user ? `Bienvenido, ${user.nombre}` : 'Bienvenido'}
