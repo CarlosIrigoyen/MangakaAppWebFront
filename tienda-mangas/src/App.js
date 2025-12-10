@@ -335,13 +335,19 @@ const MainApp = () => {
 
         <Offcanvas.Body className="bg-dark text-white">
           {/* Welcome block visible only on small screens */}
+     
 
           <div className="d-grid gap-2">
             <Suspense fallback={<Button variant="outline-light">Suscripciones</Button>}>
               <SubscriptionManager />
             </Suspense>
 
-            {/* Menu options (NO búsqueda, NO filtros, NO facturas, NO ver carrito) */}
+            {/* FILTROS: solo en móvil (d-lg-none) */}
+            <Button variant="outline-light" className="action-btn d-lg-none" onClick={() => { setShowFiltersModal(true); setMenuOpen(false); }}>
+              Filtros
+            </Button>
+
+            {/* Auth actions (no facturas, no ver carrito, no filtros on desktop) */}
             {!user ? (
               <>
                 <Button variant="outline-primary" className="action-btn" onClick={() => { setShowLogin(true); setMenuOpen(false); }}>
