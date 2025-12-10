@@ -7,8 +7,8 @@ import {
   Link,
   useNavigate
 } from 'react-router-dom';
-import { Navbar, Container, Form, Button, Spinner, Offcanvas } from 'react-bootstrap';
-import { FaShoppingCart, FaBars } from 'react-icons/fa';
+import { Navbar, Container, Form, Button, Spinner, Offcanvas, InputGroup } from 'react-bootstrap';
+import { FaShoppingCart, FaBars, FaSearch } from 'react-icons/fa';
 
 // Lazy loading de componentes pesados
 const TomoList = lazy(() => import('./TomoList'));
@@ -75,6 +75,7 @@ const MainApp = () => {
 
   // Mobile offcanvas menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   // Carga de tomos con useCallback para evitar recreaciones
   const fetchTomos = useCallback(async (filtersParam = {}, page = 1) => {
@@ -118,6 +119,8 @@ const MainApp = () => {
     setFilters(f);
     fetchTomos(f, 1);
     setNavExpanded(false);
+    // Close mobile search UI after search
+    setMobileSearchOpen(false);
   }, [filters, searchQuery, fetchTomos]);
 
   const handleShowInfo = useCallback((tomo) => {
@@ -227,7 +230,7 @@ const MainApp = () => {
               <>
                 <span className="me-2">Hola, {user.nombre}</span>
 
-                {/* Botón de suscripciones a notificaciones */}
+                {/* Botón de suscripciones a notificaciones (desktop) */}
                 <Suspense fallback={<Spinner animation="border" size="sm" />}>
                   <SubscriptionManager />
                 </Suspense>
@@ -264,9 +267,9 @@ const MainApp = () => {
           zIndex: 1050,
         }}
       >
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <div className="d-flex align-items-center">
-            {/* Hamburguesa a la izquierda */}
+        <div className="d-flex align-items-center mb-2">
+          {/* Hamburguesa a la izquierda */}
+          <div style={{ width: 44 }}>
             <Button variant="outline-light" size="sm" onClick={() => setMobileMenuOpen(true)} aria-label="Abrir menú">
               <FaBars />
             </Button>
@@ -277,28 +280,56 @@ const MainApp = () => {
             <strong>Mangaka Baka Shop</strong>
           </div>
 
-          <div style={{ minWidth: 80 }} className="d-flex justify-content-end">
+          <div style={{ width: 44 }} className="d-flex justify-content-end align-items-center">
+            {/* Search icon - always visible on mobile */}
+            <Button
+              variant="outline-light"
+              size="sm"
+              onClick={() => setMobileSearchOpen(prev => !prev)}
+              aria-label="Buscar"
+              className="me-1"
+            >
+              <FaSearch />
+            </Button>
+
+            {/* Carrito: solo aparece si está logueado (a la derecha) */}
             {user && (
-              <>
-                <Suspense fallback={<Spinner animation="border" size="sm" />}>
-                  <SubscriptionManager />
-                </Suspense>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="light"
-                  className="ms-2 text-dark"
-                  onClick={() => navigate('/cart')}
-                  aria-label={`Carrito, ${cartCount} items`}
-                >
-                  <FaShoppingCart /> {cartCount}
-                </Button>
-              </>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline-light"
+                className="ms-1 text-dark"
+                onClick={() => navigate('/cart')}
+                aria-label={`Carrito, ${cartCount} items`}
+              >
+                <FaShoppingCart />
+              </Button>
             )}
           </div>
         </div>
 
-        <div className="d-flex justify-content-center gap-2">
+        {/* Mobile search input (se muestra cuando se activa el icono) */}
+        {mobileSearchOpen && (
+          <div className="d-flex mt-2">
+            <InputGroup>
+              <Form.Control
+                type="search"
+                placeholder="Buscar tomos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
+              />
+              <Button variant="outline-light" onClick={handleSearch}>Ir</Button>
+            </InputGroup>
+          </div>
+        )}
+
+        <div className="d-flex justify-content-center gap-2 mt-2">
           {!user ? (
             <>
               <Button size="sm" variant="primary" onClick={() => setShowRegister(true)}>
@@ -320,23 +351,74 @@ const MainApp = () => {
       </div>
 
       {/* Mobile Offcanvas Menu */}
-      <Offcanvas show={mobileMenuOpen} onHide={() => setMobileMenuOpen(false)} placement="start">
-        <Offcanvas.Header closeButton>
-          <Offcanvas.Title>Menú</Offcanvas.Title>
+      <Offcanvas
+        show={mobileMenuOpen}
+        onHide={() => setMobileMenuOpen(false)}
+        placement="start"
+        className="bg-dark text-white mobile-offcanvas"
+      >
+        <Offcanvas.Header closeButton className="bg-dark text-white border-0">
+          <Offcanvas.Title className="text-white">Menú</Offcanvas.Title>
         </Offcanvas.Header>
-        <Offcanvas.Body>
-          <div className="mb-3">
-            <strong>{user ? `Hola, ${user.nombre}` : 'Bienvenido'}</strong>
-            <div className="small text-muted">Gracias por visitar Mangaka Baka Shop</div>
+        <Offcanvas.Body className="bg-dark text-white">
+          {/* Mensaje de bienvenida (más visible) */}
+          <div className="mb-3 p-2 border-bottom border-secondary">
+            <div style={{ fontWeight: 700, fontSize: '1rem' }}>
+              {user ? `Bienvenido, ${user.nombre}` : 'Bienvenido'}
+            </div>
+            <div className="small text-secondary">Explora y encuentra tu próximo tomo</div>
           </div>
 
           <div className="d-grid gap-2">
-            {!user && <Button variant="outline-primary" onClick={() => { setShowLogin(true); setMobileMenuOpen(false); }}>Iniciar sesión</Button>}
-            {!user && <Button variant="outline-secondary" onClick={() => { setShowRegister(true); setMobileMenuOpen(false); }}>Registrarse</Button>}
+            {/* Notificaciones dentro del offcanvas (mobile) */}
+            <Suspense fallback={<Button variant="outline-light">Notificaciones</Button>}>
+              <div className="d-grid">
+                {/* SubscriptionManager expuesto aquí en mobile */}
+                <SubscriptionManager />
+              </div>
+            </Suspense>
 
-            {user && <Button variant="outline-primary" onClick={() => { navigate('/facturas'); setMobileMenuOpen(false); }}>Mis facturas</Button>}
-            {user && <Button variant="outline-secondary" onClick={() => { navigate('/cart'); setMobileMenuOpen(false); }}>Mi carrito ({cartCount})</Button>}
-            {user && <Button variant="danger" onClick={() => { handleLogout(); }}>Cerrar sesión</Button>}
+            {/* Buscar (también incluimos acceso rápido a búsqueda desde menú) */}
+            <Button
+              variant="outline-light"
+              onClick={() => {
+                setMobileSearchOpen(true);
+                setMobileMenuOpen(false);
+              }}
+            >
+              Buscar
+            </Button>
+
+            {/* Filtros */}
+            <Button
+              variant="outline-light"
+              onClick={() => {
+                setShowFiltersModal(true);
+                setMobileMenuOpen(false);
+              }}
+            >
+              Filtros
+            </Button>
+
+            {/* Salir / Login / Register */}
+            {!user && (
+              <>
+                <Button variant="outline-primary" onClick={() => { setShowLogin(true); setMobileMenuOpen(false); }}>
+                  Iniciar sesión
+                </Button>
+                <Button variant="outline-secondary" onClick={() => { setShowRegister(true); setMobileMenuOpen(false); }}>
+                  Registrarse
+                </Button>
+              </>
+            )}
+
+            {user && (
+              <>
+                <Button variant="outline-danger" onClick={() => { handleLogout(); }}>
+                  Cerrar sesión
+                </Button>
+              </>
+            )}
           </div>
         </Offcanvas.Body>
       </Offcanvas>

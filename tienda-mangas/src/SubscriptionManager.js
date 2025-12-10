@@ -116,7 +116,7 @@ const SubscriptionManager = () => {
         className="ms-2"
       >
         <FaBell className="me-1" />
-        Notificaciones {suscripciones.length > 0 && `(${suscripciones.length})`}
+        Suscripciones {suscripciones.length > 0 && `(${suscripciones.length})`}
       </Button>
 
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>

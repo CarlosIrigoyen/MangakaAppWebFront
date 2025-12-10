@@ -462,3 +462,50 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
     background-color: #000 !important;
   }
 }
+/* Offcanvas / Mobile menu: usar mismos colores y estilo que la página principal */
+.mobile-offcanvas .offcanvas-header,
+.mobile-offcanvas .offcanvas-body {
+  background-color: #212529;
+  color: #fff;
+}
+
+/* Ajustes para botones dentro del offcanvas */
+.mobile-offcanvas .btn {
+  color: #fff;
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* Hacer los botones outline-light más visibles dentro del offcanvas */
+.mobile-offcanvas .btn-outline-light {
+  color: #fff;
+  border-color: rgba(255,255,255,0.15);
+}
+
+/* Store name en mobile (ya centrado) */
+.mobile-topbar .store-name {
+  text-align: center;
+  font-weight: 600;
+  display: block;
+  flex: 1;
+}
+
+/* Ajustes para el input de búsqueda móvil (cuando aparece) */
+.mobile-topbar .input-group .form-control {
+  background: #fff;
+  color: #111;
+}
+
+/* Asegurar que SubscriptionManager dentro del offcanvas herede los estilos (si usa btns propios) */
+.mobile-offcanvas .btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+/* Pequeña corrección para que el botón del carrito no tenga fondo negro */
+@media (max-width: 767.98px) {
+  .mobile-topbar .btn.text-dark {
+    background: transparent !important;
+    border-color: rgba(255,255,255,0.08) !important;
+    color: #fff !important;
+  }
+}
