@@ -364,9 +364,9 @@ const MainApp = () => {
           {/* Mensaje de bienvenida (más visible) */}
           
           <div className="mb-3 p-2 border-bottom border-secondary">
-            <br> </br>
+           
             <div style={{ fontWeight: 700, fontSize: '1rem' }}>
-              
+             
               {user ? `Bienvenido, ${user.nombre}` : 'Bienvenido'}
             </div>
             <div className="small text-secondary">Explora y encuentra tu próximo tomo</div>
