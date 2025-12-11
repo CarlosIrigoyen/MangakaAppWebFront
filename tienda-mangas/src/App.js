@@ -1,4 +1,3 @@
-// App.js actualizado con menú desplegable corregido
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import {
   BrowserRouter as Router,
@@ -31,7 +30,7 @@ const SuccessPage = lazy(() => import('./SuccessPage'));
 const FailurePage = lazy(() => import('./FailurePage'));
 const PendingPage = lazy(() => import('./PendingPage'));
 const PayPalReturn = lazy(() => import('./PayPalReturn'));
-const SubscriptionManager = lazy(() => import('./SubscriptionManager'));
+const SubscriptionManagerModal = lazy(() => import('./SubscriptionManagerModal'));
 
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
@@ -301,9 +300,15 @@ const MainApp = () => {
             ) : user ? (
               <>
                 <span className="me-2">Hola, {user.nombre}</span>
-                <Suspense fallback={<SmallSpinner />}>
-                  <SubscriptionManager />
-                </Suspense>
+                <Button 
+                  variant="outline-warning" 
+                  size="sm"
+                  onClick={() => setShowSubscriptionModal(true)}
+                  className="ms-2"
+                >
+                  <FaBell className="me-1" />
+                  Suscripciones
+                </Button>
                 <Button 
                   type="button" 
                   variant="outline-light" 
@@ -382,7 +387,14 @@ const MainApp = () => {
                   )}
                   
                   {/* Opciones del menú */}
-    
+                  <Button 
+                    variant="outline-light" 
+                    onClick={() => { navigate('/'); setShowMobileDropdown(false); }}
+                    className="text-start d-flex align-items-center w-100 mb-2"
+                  >
+                    <FaHome className="me-2" /> Inicio
+                  </Button>
+                  
                   {/* Opciones de filtros para TODOS los usuarios */}
                   <div className="border-top border-secondary pt-2 mt-2">
                     <Button 
@@ -598,15 +610,11 @@ const MainApp = () => {
         />
         <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
         
-        {/* Modal de suscripciones para móvil */}
-        {showSubscriptionModal && (
-          <Suspense fallback={null}>
-            <SubscriptionManager 
-              show={showSubscriptionModal}
-              onHide={() => setShowSubscriptionModal(false)}
-            />
-          </Suspense>
-        )}
+        {/* Modal de suscripciones */}
+        <SubscriptionManagerModal 
+          show={showSubscriptionModal}
+          onHide={() => setShowSubscriptionModal(false)}
+        />
       </Suspense>
     </div>
   );

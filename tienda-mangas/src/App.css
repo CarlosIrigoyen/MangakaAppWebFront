@@ -117,7 +117,7 @@
   z-index: 1060;
   display: flex;
   flex-direction: column;
-  padding: 80px 20px 20px;
+  padding: 100px 20px 20px; /* Más espacio arriba */
 }
 
 .search-overlay-mobile .input-group {
@@ -197,7 +197,7 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
   }
   
   .search-overlay-mobile {
-    padding: 100px 20px 20px; /* Más espacio en móvil pequeño */
+    padding: 120px 20px 20px; /* Aún más espacio en móvil pequeño */
   }
 }
 
