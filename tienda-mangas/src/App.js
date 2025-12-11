@@ -32,8 +32,8 @@ const FailurePage = lazy(() => import('./FailurePage'));
 const PendingPage = lazy(() => import('./PendingPage'));
 const PayPalReturn = lazy(() => import('./PayPalReturn'));
 
-// SOLO modal controlado: SubscriptionManagerModal (no botón interno)
-const SubscriptionManagerModal = lazy(() => import('./SubscriptionManager'));
+// Modal controlado (sin botón interno)
+const SubscriptionManagerModal = lazy(() => import('./SubscriptionManagerModal'));
 
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
@@ -284,7 +284,7 @@ const MainApp = () => {
               />
               <Button
                 variant="dark"
-                className="btn-black border border-secondary"
+                className="btn-black border border-secondary btn-equal"
                 onClick={handleSearch}
                 style={{ borderLeft: 'none' }}
                 aria-label="Buscar"
@@ -309,7 +309,7 @@ const MainApp = () => {
                   variant="outline-warning" 
                   size="sm"
                   onClick={() => setShowSubscriptionModal(true)}
-                  className="ms-2"
+                  className="ms-2 btn-equal"
                 >
                   <FaBell className="me-1" />
                   Suscripciones
@@ -320,21 +320,21 @@ const MainApp = () => {
                   variant="outline-light" 
                   as={Link} 
                   to="/cart" 
-                  className="btn-black ms-2"
+                  className="btn-black ms-2 btn-equal"
                   aria-label={`Carrito, ${cartCount} items`}
                 >
                   <FaShoppingCart /> {cartCount}
                 </Button>
-                <Button type="button" variant="danger" className="ms-2" onClick={handleLogout}>
+                <Button type="button" variant="danger" className="ms-2 btn-equal" onClick={handleLogout}>
                   Cerrar Sesión
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>
+                <Button variant="primary" className="me-2 btn-equal" onClick={() => setShowRegister(true)}>
                   Registro
                 </Button>
-                <Button variant="secondary" onClick={() => setShowLogin(true)}>
+                <Button variant="secondary" className="btn-equal" onClick={() => setShowLogin(true)}>
                   Login
                 </Button>
               </>
@@ -362,7 +362,7 @@ const MainApp = () => {
               variant="outline-light" 
               size="sm" 
               onClick={() => setShowMobileDropdown(!showMobileDropdown)}
-              className="btn-black"
+              className="btn-black btn-equal icon-btn"
               aria-label="Abrir menú"
             >
               <FaBars />
@@ -396,7 +396,7 @@ const MainApp = () => {
                   <Button 
                     variant="outline-light" 
                     onClick={() => { navigate('/'); setShowMobileDropdown(false); }}
-                    className="text-start d-flex align-items-center w-100 mb-2"
+                    className="text-start d-flex align-items-center w-100 mb-2 btn-equal"
                   >
                     <FaHome className="me-2" /> Inicio
                   </Button>
@@ -406,7 +406,7 @@ const MainApp = () => {
                     <Button 
                       variant="outline-light" 
                       onClick={() => { setShowFiltersModal(true); setShowMobileDropdown(false); }}
-                      className="text-start d-flex align-items-center w-100 mb-2"
+                      className="text-start d-flex align-items-center w-100 mb-2 btn-equal"
                     >
                       <FaFilter className="me-2" /> Filtros
                     </Button>
@@ -414,7 +414,7 @@ const MainApp = () => {
                     <Button 
                       variant="outline-light" 
                       onClick={() => { resetFilters(); setShowMobileDropdown(false); }}
-                      className="text-start w-100 mb-2 btn-black"
+                      className="text-start w-100 mb-2 btn-black btn-equal"
                     >
                       Quitar Filtros
                     </Button>
@@ -424,7 +424,6 @@ const MainApp = () => {
                   {user ? (
                     <>
                       <div className="border-top border-secondary pt-2 mt-2">
-                        {/* TRIGGER móvil: abre el mismo modal de suscripciones */}
                         <Button 
                           variant="outline-light" 
                           size="sm" 
@@ -432,7 +431,7 @@ const MainApp = () => {
                             setShowSubscriptionModal(true); 
                             setShowMobileDropdown(false); 
                           }}
-                          className="text-start d-flex align-items-center w-100 mb-2"
+                          className="text-start d-flex align-items-center w-100 mb-2 btn-equal"
                         >
                           <FaBell className="me-2" /> Suscripciones
                         </Button>
@@ -440,7 +439,7 @@ const MainApp = () => {
                         <Button 
                           variant="danger" 
                           onClick={() => { handleLogout(); setShowMobileDropdown(false); }}
-                          className="mt-2 w-100"
+                          className="mt-2 w-100 btn-equal"
                         >
                           Cerrar Sesión
                         </Button>
@@ -452,7 +451,7 @@ const MainApp = () => {
                         <Button 
                           variant="primary" 
                           onClick={() => { setShowRegister(true); setShowMobileDropdown(false); }}
-                          className="w-100 mb-2"
+                          className="w-100 mb-2 btn-equal"
                         >
                           Registrarse
                         </Button>
@@ -460,7 +459,7 @@ const MainApp = () => {
                         <Button 
                           variant="outline-light" 
                           onClick={() => { setShowLogin(true); setShowMobileDropdown(false); }}
-                          className="w-100"
+                          className="w-100 btn-equal"
                         >
                           Iniciar Sesión
                         </Button>
@@ -482,7 +481,7 @@ const MainApp = () => {
             <Button
               type="button"
               size="sm"
-              className="me-2 btn-black"
+              className="me-2 btn-black btn-equal icon-btn"
               onClick={() => setShowMobileSearch(true)}
               aria-label="Buscar"
             >
@@ -492,11 +491,12 @@ const MainApp = () => {
               <Button
                 type="button"
                 size="sm"
-                className="btn-black"
+                className="btn-black btn-equal icon-btn"
                 onClick={() => navigate('/cart')}
                 aria-label={`Carrito, ${cartCount} items`}
               >
-                <FaShoppingCart /> {cartCount > 0 && <span className="badge bg-danger">{cartCount}</span>}
+                <FaShoppingCart />
+                {cartCount > 0 && <span className="badge bg-danger ms-1">{cartCount}</span>}
               </Button>
             )}
           </div>

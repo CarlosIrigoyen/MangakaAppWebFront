@@ -236,3 +236,71 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
     color: black !important;
   }
 }
+
+/* ====== Botones uniformes para header / menú ====== */
+/* Clase base para botones que queremos uniformes */
+.btn-equal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 6px 12px;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* En pantallas grandes damos un min-width para que parescan consistentes */
+@media (min-width: 992px) {
+  .btn-equal {
+    min-width: 140px;
+  }
+}
+
+/* Dropdown móvil: botones a ancho completo pero misma altura */
+.mobile-dropdown-menu .btn.btn-equal {
+  width: 100%;
+  text-align: left;
+  padding-left: 14px;
+  min-width: unset;
+  height: 44px;
+  margin: 6px 0;
+}
+
+/* Barra móvil: icon buttons cuadrados (lupa, carrito, menu) */
+.mobile-top-bar .btn.btn-equal.icon-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* Evitar que los icon-buttons reciban min-width grande en desktop breakpoints */
+.mobile-top-bar .btn.btn-equal.icon-btn {
+  min-width: 40px;
+}
+
+/* Ajustes para botones negros ya existentes (conservar contraste) */
+.btn-equal.btn-black {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+/* Focus visible (accesibilidad) */
+.btn-equal:focus {
+  outline: 3px solid rgba(13,110,253,0.45);
+  outline-offset: 2px;
+}
+
+/* Reducir ligeramente en móviles muy pequeños */
+@media (max-width: 420px) {
+  .btn-equal {
+    height: 38px;
+    font-size: 0.92rem;
+  }
+  .mobile-dropdown-menu .btn.btn-equal {
+    height: 42px;
+  }
+}
