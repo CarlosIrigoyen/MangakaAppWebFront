@@ -1,13 +1,24 @@
-// src/App.js
-import React, { useContext, useState, useEffect, useCallback, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
+// App.js actualizado con menú desplegable
+import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useNavigate
+} from 'react-router-dom';
+import {
+  Navbar,
+  Container,
+  Form,
+  Button,
+  Spinner,
+  Alert,
+  InputGroup,
+  Dropdown
+} from 'react-bootstrap';
+import { FaShoppingCart, FaSearch, FaBars, FaBell, FaUser, FaFileInvoice, FaFilter, FaHome } from 'react-icons/fa';
 
-import { Navbar, Container, Form, Button, Spinner, Offcanvas, InputGroup } from 'react-bootstrap';
-import { FaShoppingCart, FaBars, FaSearch } from 'react-icons/fa';
-
-// Lazy components
 const TomoList = lazy(() => import('./TomoList'));
 const SidebarFilters = lazy(() => import('./SideBarFilters'));
 const SidebarFiltersModal = lazy(() => import('./SidebarFiltersModal'));
@@ -30,20 +41,22 @@ const REGISTER_URL = `${process.env.REACT_APP_API_URL}/register`;
 const LOGIN_URL = `${process.env.REACT_APP_API_URL}/login`;
 const TOMOS_URL = `${process.env.REACT_APP_API_URL}/public/tomos`;
 
-const LoadingSpinner = () => (
-  <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark">
-    <div className="text-center">
-      <Spinner animation="border" variant="primary" role="status" />
-      <p className="text-white mt-2">Cargando aplicación...</p>
-    </div>
+// Loading componente optimizado sin bloquear LCP
+const TomoListFallback = () => (
+  <div className="text-center p-3" aria-hidden="true">
+    <div className="lcp-image-container loading" style={{ height: 220, borderRadius: 8 }} />
   </div>
+);
+
+const SmallSpinner = () => (
+  <Spinner animation="border" size="sm" role="status" aria-hidden="true" />
 );
 
 const MainApp = () => {
   const navigate = useNavigate();
   const { user, login, logout, loadingUser } = useContext(UserContext);
   const { cart } = useContext(CartContext);
-  const cartCount = cart?.length || 0;
+  const cartCount = cart.length;
 
   const [tomos, setTomos] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -66,12 +79,17 @@ const MainApp = () => {
   const [selectedTomo, setSelectedTomo] = useState(null);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [navExpanded, setNavExpanded] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [showMobileDropdown, setShowMobileDropdown] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const dropdownRef = useRef(null);
 
-  // Offcanvas state (used both on mobile and desktop hamburger)
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-
+  // Carga inicial de tomos sin mostrar loading global
   const fetchTomos = useCallback(async (filtersParam = {}, page = 1) => {
+    setIsLoading(true);
     const params = new URLSearchParams();
     if (filtersParam.authors?.length) params.append('authors', filtersParam.authors.join(','));
     if (filtersParam.languages?.length) params.append('languages', filtersParam.languages.join(','));
@@ -95,7 +113,9 @@ const MainApp = () => {
         total: data.total || 0
       });
     } catch (error) {
-      console.error('fetchTomos error', error);
+      console.error('Error fetch tomos:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -107,13 +127,12 @@ const MainApp = () => {
     fetchTomos(filters, page);
   }, [fetchTomos, filters]);
 
-  const handleSearch = useCallback((e) => {
-    if (e && e.preventDefault) e.preventDefault();
+  const handleSearch = useCallback(() => {
     const f = { ...filters, searchText: searchQuery };
     setFilters(f);
     fetchTomos(f, 1);
     setNavExpanded(false);
-    setMobileSearchOpen(false);
+    setShowMobileSearch(false);
   }, [filters, searchQuery, fetchTomos]);
 
   const handleShowInfo = useCallback((tomo) => {
@@ -126,12 +145,33 @@ const MainApp = () => {
     fetchTomos(f, 1);
   }, [fetchTomos]);
 
+  const resetFilters = useCallback(() => {
+    const defaultFilters = {
+      authors: [],
+      languages: [],
+      mangas: [],
+      editorials: [],
+      searchText: '',
+      sortBy: 'titulo,numero_tomo',
+      applyPriceFilter: 0,
+      minPrice: '',
+      maxPrice: ''
+    };
+    setFilters(defaultFilters);
+    setSearchQuery('');
+    fetchTomos(defaultFilters, 1);
+    setSuccessMessage('Filtros eliminados correctamente');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  }, [fetchTomos]);
+
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     const nombre = e.target.formNombre?.value;
     const direccion = e.target.formDireccion?.value;
     const email = e.target.formEmailRegister?.value;
     const password = e.target.formPasswordRegister?.value;
+
     try {
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
@@ -142,14 +182,19 @@ const MainApp = () => {
       if (res.ok) {
         login(data.cliente, data.token);
         setShowRegister(false);
+        setSuccessMessage('¡Registro exitoso!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setError(data.message || 'Error en el registro');
       }
     } catch (err) {
-      console.error(err);
+      setError('Error de conexión. Intenta nuevamente.');
     }
   };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     const email = e.target.formEmailLogin?.value;
     const password = e.target.formPasswordLogin?.value;
     try {
@@ -162,211 +207,344 @@ const MainApp = () => {
       if (res.ok) {
         login(data.cliente, data.token);
         setShowLogin(false);
+        setSuccessMessage('¡Bienvenido!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setError(data.message || 'Usuario o contraseña incorrectos');
       }
     } catch (err) {
-      console.error(err);
+      setError('Error de conexión. Intenta nuevamente.');
     }
   };
 
   const handleLogout = useCallback(() => {
     logout();
     navigate('/');
-    setNavExpanded(false);
-    setMenuOpen(false);
+    setShowMobileDropdown(false);
+    setSuccessMessage('¡Sesión cerrada correctamente!');
+    setTimeout(() => setSuccessMessage(''), 3000);
   }, [logout, navigate]);
 
-  if (loadingUser) return <LoadingSpinner />;
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowMobileDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <div className="bg-dark text-white min-vh-100">
-      {/* DESKTOP NAVBAR */}
+      {/* Mensajes de éxito */}
+      {successMessage && (
+        <Alert
+          variant="success"
+          className="position-fixed top-0 start-50 translate-middle-x mt-3 z-1050 floating-alert"
+          style={{ minWidth: '300px' }}
+          dismissible
+          onClose={() => setSuccessMessage('')}
+        >
+          {successMessage}
+        </Alert>
+      )}
+
+      {/* NAVBAR ESCRITORIO - FIJA */}
       <Navbar
         bg="dark"
         variant="dark"
         expand="lg"
         fixed="top"
-        className="border-bottom border-light d-none d-lg-flex align-items-center desktop-navbar"
+        expanded={navExpanded}
+        onToggle={() => setNavExpanded(prev => !prev)}
+        className="border-bottom border-light d-none d-lg-flex"
         style={{ zIndex: 1040 }}
       >
-        <Container fluid className="d-flex align-items-center">
-          {/* Hamburger (desktop) */}
-          <Button
-            variant="outline-light"
-            className="hamburger-btn icon-btn me-2"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Abrir menú"
-          >
-            <FaBars />
-          </Button>
+        <Container fluid>
+          <Navbar.Brand as={Link} to="/" onClick={() => setNavExpanded(false)}>
+            <span className="ms-2 fw-bold">Mangaka Baka Shop</span>
+          </Navbar.Brand>
 
-          {/* Store name (next to hamburger) */}
-          <div className="me-3 brand-name">Mangaka Baka Shop</div>
-
-          {/* Centered search */}
-          <Form className="mx-auto desktop-search-form" onSubmit={handleSearch}>
-            <InputGroup className="w-100">
+          {/* Barra de búsqueda compacta */}
+          <div className="mx-auto" style={{ width: '300px' }}>
+            <InputGroup>
               <Form.Control
                 type="search"
-                placeholder="Buscar tomos..."
+                placeholder="Buscar mangas..."
+                className="border-end-0 bg-dark text-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Buscar tomos"
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                aria-label="Buscar mangas"
               />
-              <Button type="submit" variant="outline-light" className="icon-btn ms-2" aria-label="Buscar">
+              <Button
+                variant="dark"
+                className="btn-black border border-secondary"
+                onClick={handleSearch}
+                style={{ borderLeft: 'none' }}
+                aria-label="Buscar"
+              >
                 <FaSearch />
               </Button>
             </InputGroup>
-          </Form>
+          </div>
 
-          {/* Right actions: cart (only if logged) + greeting */}
-          <div className="ms-auto d-flex align-items-center gap-2">
-            {user && (
-              <Button
-                as={Link}
-                to="/cart"
-                variant="light"
-                className="cart-btn d-flex align-items-center justify-content-center"
-                aria-label={`Carrito, ${cartCount} items`}
-              >
-                <FaShoppingCart style={{ fontSize: '1rem' }} />
-                <span className="badge bg-danger ms-2 cart-badge">{cartCount}</span>
-              </Button>
+          <div className="ms-auto d-flex align-items-center">
+            {loadingUser ? (
+              <div className="d-flex align-items-center gap-2">
+                <span className="me-2 text-muted">Cargando...</span>
+                <SmallSpinner />
+              </div>
+            ) : user ? (
+              <>
+                <span className="me-2">Hola, {user.nombre}</span>
+                <Suspense fallback={<SmallSpinner />}>
+                  <SubscriptionManager />
+                </Suspense>
+                <Button 
+                  type="button" 
+                  variant="outline-light" 
+                  as={Link} 
+                  to="/cart" 
+                  className="btn-black ms-2"
+                  aria-label={`Carrito, ${cartCount} items`}
+                >
+                  <FaShoppingCart /> {cartCount}
+                </Button>
+                <Dropdown className="ms-2">
+                  <Dropdown.Toggle variant="outline-light" className="btn-black">
+                    <FaUser className="me-1" />
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu className="bg-dark text-white border-secondary">
+                    <Dropdown.Item as={Link} to="/facturas" className="text-white">
+                      <FaFileInvoice className="me-2" /> Mis Facturas
+                    </Dropdown.Item>
+                    <Dropdown.Item className="text-white" onClick={() => setShowFiltersModal(true)}>
+                      <FaFilter className="me-2" /> Filtros Avanzados
+                    </Dropdown.Item>
+                    <Dropdown.Divider className="border-secondary" />
+                    <Dropdown.Item className="text-danger" onClick={handleLogout}>
+                      Cerrar Sesión
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
+              </>
+            ) : (
+              <>
+                <Button variant="primary" className="me-2" onClick={() => setShowRegister(true)}>
+                  Registro
+                </Button>
+                <Button variant="secondary" onClick={() => setShowLogin(true)}>
+                  Login
+                </Button>
+              </>
             )}
-
-            <div className="d-flex align-items-center greeting-text">
-              {user ? <span className="greeting">Hola, {user.nombre}</span> : null}
-            </div>
           </div>
         </Container>
       </Navbar>
 
-      {/* MOBILE TOPBAR */}
+      {/* BARRA MÓVIL FIJA - Con menú desplegable */}
       <div
-        className="d-md-none p-2 bg-dark text-white shadow-sm mobile-topbar d-flex align-items-center"
+        className="d-lg-none p-2 bg-dark text-white shadow-sm mobile-top-bar"
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           zIndex: 1050,
-          height: 56
+          height: '56px'
         }}
       >
-        {/* Hamburger (mobile) */}
-        <div style={{ width: 56 }}>
-          <Button variant="outline-light" size="sm" onClick={() => setMenuOpen(true)} aria-label="Abrir menú" className="hamburger-btn icon-btn">
-            <FaBars />
-          </Button>
-        </div>
+        <div className="d-flex justify-content-between align-items-center h-100">
+          {/* MENÚ DESPLEGABLE IZQUIERDA */}
+          <div className="d-flex align-items-center" ref={dropdownRef}>
+            <Dropdown 
+              show={showMobileDropdown}
+              onToggle={(isOpen) => setShowMobileDropdown(isOpen)}
+            >
+              <Dropdown.Toggle 
+                variant="outline-light" 
+                size="sm" 
+                className="btn-black"
+                aria-label="Abrir menú"
+              >
+                <FaBars />
+              </Dropdown.Toggle>
+              
+              <Dropdown.Menu className="bg-dark text-white border-secondary mobile-dropdown-menu">
+                {/* Encabezado del menú */}
+                <div className="dropdown-header p-2 border-bottom border-secondary">
+                  <h6 className="mb-0">Menú Principal</h6>
+                </div>
+                
+                <div className="p-2">
+                  {/* Mensaje de bienvenida si está logueado */}
+                  {user && (
+                    <div className="text-center mb-3 p-2 bg-secondary rounded">
+                      <h6 className="mb-0">👋 Hola, {user.nombre}</h6>
+                    </div>
+                  )}
+                  
+                  {/* Opciones del menú */}
+                  <Dropdown.Item 
+                    as="button"
+                    className="text-white d-flex align-items-center mb-2"
+                    onClick={() => { navigate('/'); setShowMobileDropdown(false); }}
+                  >
+                    <FaHome className="me-2" /> Inicio
+                  </Dropdown.Item>
+                  
+                  {user ? (
+                    <>
+                      <Dropdown.Item 
+                        as="button"
+                        className="text-white d-flex align-items-center mb-2"
+                        onClick={() => { navigate('/cart'); setShowMobileDropdown(false); }}
+                      >
+                        <FaShoppingCart className="me-2" /> Carrito ({cartCount})
+                      </Dropdown.Item>
+                      
+                      <Dropdown.Item 
+                        as="button"
+                        className="text-white d-flex align-items-center mb-2"
+                        onClick={() => { 
+                          // Aquí podrías abrir el manager de suscripciones
+                          setShowMobileDropdown(false); 
+                        }}
+                      >
+                        <FaBell className="me-2" /> Suscripciones
+                      </Dropdown.Item>
+                      
+                      <Dropdown.Item 
+                        as="button"
+                        className="text-white d-flex align-items-center mb-2"
+                        onClick={() => { navigate('/facturas'); setShowMobileDropdown(false); }}
+                      >
+                        <FaFileInvoice className="me-2" /> Mis Facturas
+                      </Dropdown.Item>
+                      
+                      <div className="border-top border-secondary pt-2 mt-2">
+                        <Dropdown.Item 
+                          as="button"
+                          className="text-white d-flex align-items-center mb-2"
+                          onClick={() => { setShowFiltersModal(true); setShowMobileDropdown(false); }}
+                        >
+                          <FaFilter className="me-2" /> Filtros
+                        </Dropdown.Item>
+                        
+                        <Dropdown.Item 
+                          as="button"
+                          className="text-white d-flex align-items-center mb-2"
+                          onClick={() => { resetFilters(); setShowMobileDropdown(false); }}
+                        >
+                          Quitar Filtros
+                        </Dropdown.Item>
+                        
+                        <Button 
+                          variant="danger" 
+                          onClick={() => { handleLogout(); setShowMobileDropdown(false); }}
+                          className="mt-2 w-100"
+                        >
+                          Cerrar Sesión
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="border-top border-secondary pt-2 mt-2">
+                        <Button 
+                          variant="primary" 
+                          onClick={() => { setShowRegister(true); setShowMobileDropdown(false); }}
+                          className="w-100 mb-2"
+                        >
+                          Registrarse
+                        </Button>
+                        
+                        <Button 
+                          variant="outline-light" 
+                          onClick={() => { setShowLogin(true); setShowMobileDropdown(false); }}
+                          className="w-100"
+                        >
+                          Iniciar Sesión
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
 
-        {/* Store name centered */}
-        <div className="flex-fill text-center store-name">
-          <strong>Mangaka Baka Shop</strong>
-        </div>
+          {/* NOMBRE CENTRADO */}
+          <div className="text-center position-absolute start-50 translate-middle-x">
+            <strong className="fs-6">Mangaka Baka Shop</strong>
+          </div>
 
-        {/* Right side: lupa, carrito (solo si logged), greeting (only show if logged) */}
-        <div className="d-flex align-items-center gap-1" style={{ marginLeft: 8 }}>
-          <Button
-            variant="outline-light"
-            size="sm"
-            onClick={() => setMobileSearchOpen(prev => !prev)}
-            aria-label="Buscar"
-            className="search-btn icon-btn"
-          >
-            <FaSearch />
-          </Button>
-
-          {user && (
+          {/* CARRITO + LUPA DERECHA */}
+          <div className="d-flex align-items-center">
             <Button
               type="button"
               size="sm"
-              variant="light"
-              className="cart-btn icon-compact d-flex align-items-center justify-content-center"
-              onClick={() => navigate('/cart')}
-              aria-label={`Carrito, ${cartCount} items`}
+              className="me-2 btn-black"
+              onClick={() => setShowMobileSearch(true)}
+              aria-label="Buscar"
             >
-              <FaShoppingCart />
-              <span className="badge bg-danger ms-1 cart-badge">{cartCount}</span>
+              <FaSearch />
             </Button>
-          )}
-
-          {/* Greeting visible on mobile after icons (only if logged) */}
-          <div className="ms-2 d-flex align-items-center greeting-mobile">
-            {user ? <span className="small">Hola, {user.nombre}</span> : null}
+            {user && (
+              <Button
+                type="button"
+                size="sm"
+                className="btn-black"
+                onClick={() => navigate('/cart')}
+                aria-label={`Carrito, ${cartCount} items`}
+              >
+                <FaShoppingCart /> {cartCount > 0 && <span className="badge bg-danger">{cartCount}</span>}
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Mobile search input (shows under topbar) */}
-      {mobileSearchOpen && (
-        <div className="d-md-none p-2 mobile-search-input" style={{ paddingTop: 64 }}>
-          <Container fluid>
-            <InputGroup>
-              <Form.Control
-                type="search"
-                placeholder="Buscar tomos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSearch();
-                  }
-                }}
-              />
-              <Button variant="outline-light" onClick={handleSearch} className="action-btn ms-2">
-                Ir
-              </Button>
-            </InputGroup>
-          </Container>
+      {/* Overlay de búsqueda móvil */}
+      {showMobileSearch && (
+        <div className="d-lg-none search-overlay-mobile">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5>Buscar</h5>
+            <Button 
+              variant="outline-light" 
+              size="sm" 
+              onClick={() => setShowMobileSearch(false)}
+              className="btn-black"
+            >
+              ✕
+            </Button>
+          </div>
+          <InputGroup className="mb-3">
+            <Form.Control
+              type="search"
+              placeholder="Buscar mangas..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              autoFocus
+              className="bg-dark text-white"
+            />
+            <Button 
+              variant="dark" 
+              className="btn-black" 
+              onClick={() => { handleSearch(); setShowMobileSearch(false); }}
+            >
+              <FaSearch />
+            </Button>
+          </InputGroup>
         </div>
       )}
 
-      {/* Offcanvas menu (shared mobile + desktop) */}
-      <Offcanvas
-        show={menuOpen}
-        onHide={() => setMenuOpen(false)}
-        placement="start"
-        className="bg-dark text-white mobile-offcanvas"
-      >
-        <Offcanvas.Header closeButton className="bg-dark text-white border-0">
-          <Offcanvas.Title className="text-white">Menú</Offcanvas.Title>
-        </Offcanvas.Header>
-
-        <Offcanvas.Body className="bg-dark text-white">
-          {/* Welcome block visible only on small screens */}
-     
-
-          <div className="d-grid gap-2">
-            <Suspense fallback={<Button variant="outline-light">Suscripciones</Button>}>
-              <SubscriptionManager />
-            </Suspense>
-
-            {/* FILTROS: solo en móvil (d-lg-none) */}
-            <Button variant="outline-light" className="action-btn d-lg-none" onClick={() => { setShowFiltersModal(true); setMenuOpen(false); }}>
-              Filtros
-            </Button>
-
-            {/* Auth actions (no facturas, no ver carrito, no filtros on desktop) */}
-            {!user ? (
-              <>
-                <Button variant="outline-primary" className="action-btn" onClick={() => { setShowLogin(true); setMenuOpen(false); }}>
-                  Iniciar sesión
-                </Button>
-                <Button variant="outline-secondary" className="action-btn" onClick={() => { setShowRegister(true); setMenuOpen(false); }}>
-                  Registrarse
-                </Button>
-              </>
-            ) : (
-              <Button variant="outline-danger" className="action-btn" onClick={() => { handleLogout(); setMenuOpen(false); }}>
-                Cerrar sesión
-              </Button>
-            )}
-          </div>
-        </Offcanvas.Body>
-      </Offcanvas>
-
-      {/* MAIN CONTENT */}
+      {/* CONTENIDO PRINCIPAL - Sin loading global */}
       <div
         className="d-flex flex-column flex-md-row main-content-container"
         style={{
@@ -374,24 +552,76 @@ const MainApp = () => {
           paddingTop: '80px'
         }}
       >
+        {/* SIDEBAR ESCRITORIO */}
         <div className="d-none d-md-block sidebar-fixed">
           <Suspense fallback={<div className="p-3 text-white">Cargando filtros...</div>}>
-            <SidebarFilters onFilterChange={handleFilterChange} setShowLogin={setShowLogin} setShowRegister={setShowRegister} />
+            <SidebarFilters
+              onFilterChange={handleFilterChange}
+              onResetFilters={resetFilters}
+              setShowLogin={setShowLogin}
+              setShowRegister={setShowRegister}
+            />
           </Suspense>
         </div>
 
+        {/* LISTA DE TOMOS - Solo muestra loading interno si está cargando */}
         <div className="main-content flex-grow-1 p-2">
-          <Suspense fallback={<div className="text-center p-4"><Spinner animation="border" /></div>}>
-            <TomoList tomos={tomos} pagination={pagination} onPageChange={handlePageChange} onShowInfo={handleShowInfo} isLoggedIn={!!user} />
+          {error && (
+            <Alert variant="danger" className="mb-3" dismissible onClose={() => setError('')}>
+              {error}
+            </Alert>
+          )}
+          
+          {/* Indicador de carga mínima */}
+          {isLoading && (
+            <div className="text-center mb-3">
+              <Spinner animation="border" size="sm" className="me-2" />
+              <span>Cargando tomos...</span>
+            </div>
+          )}
+          
+          <Suspense fallback={<TomoListFallback />}>
+            <TomoList
+              tomos={tomos}
+              pagination={pagination}
+              onPageChange={handlePageChange}
+              onShowInfo={handleShowInfo}
+              isLoggedIn={!!user}
+              isLoading={isLoading}
+            />
           </Suspense>
         </div>
       </div>
 
-      {/* MODALES */}
+      {/* MODALES CON SUSPENSE */}
       <Suspense fallback={null}>
-        <SidebarFiltersModal show={showFiltersModal} onClose={() => setShowFiltersModal(false)} onApplyFilters={handleFilterChange} />
-        <RegisterModal show={showRegister} onHide={() => setShowRegister(false)} onSubmit={handleRegisterSubmit} />
-        <LoginModal show={showLogin} onHide={() => setShowLogin(false)} onSubmit={handleLoginSubmit} />
+        <SidebarFiltersModal
+          show={showFiltersModal}
+          onClose={() => setShowFiltersModal(false)}
+          onApplyFilters={handleFilterChange}
+          onResetFilters={resetFilters}
+        />
+
+        <RegisterModal
+          show={showRegister}
+          onHide={() => {
+            setShowRegister(false);
+            setError('');
+          }}
+          onSubmit={handleRegisterSubmit}
+          error={error}
+          setError={setError}
+        />
+        <LoginModal
+          show={showLogin}
+          onHide={() => {
+            setShowLogin(false);
+            setError('');
+          }}
+          onSubmit={handleLoginSubmit}
+          error={error}
+          setError={setError}
+        />
         <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
       </Suspense>
     </div>
@@ -402,7 +632,7 @@ const App = () => (
   <UserProvider>
     <CartProvider>
       <Router>
-        <Suspense fallback={<LoadingSpinner />}>
+        <Suspense fallback={null}>
           <Routes>
             <Route path="/" element={<MainApp />} />
             <Route path="/cart" element={<CartPage />} />
