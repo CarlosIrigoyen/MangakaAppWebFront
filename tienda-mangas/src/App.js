@@ -1,4 +1,4 @@
-// App.js actualizado con menú desplegable
+// App.js actualizado con menú desplegable corregido
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import {
   BrowserRouter as Router,
@@ -14,10 +14,9 @@ import {
   Button,
   Spinner,
   Alert,
-  InputGroup,
-  Dropdown
+  InputGroup
 } from 'react-bootstrap';
-import { FaShoppingCart, FaSearch, FaBars, FaBell, FaUser, FaFileInvoice, FaFilter, FaHome } from 'react-icons/fa';
+import { FaShoppingCart, FaSearch, FaBars, FaBell, FaFilter, FaHome } from 'react-icons/fa';
 
 const TomoList = lazy(() => import('./TomoList'));
 const SidebarFilters = lazy(() => import('./SideBarFilters'));
@@ -83,6 +82,7 @@ const MainApp = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showMobileDropdown, setShowMobileDropdown] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   const dropdownRef = useRef(null);
@@ -252,7 +252,7 @@ const MainApp = () => {
         </Alert>
       )}
 
-      {/* NAVBAR ESCRITORIO - FIJA */}
+      {/* NAVBAR ESCRITORIO - FIJA - SIN menú desplegable */}
       <Navbar
         bg="dark"
         variant="dark"
@@ -314,23 +314,9 @@ const MainApp = () => {
                 >
                   <FaShoppingCart /> {cartCount}
                 </Button>
-                <Dropdown className="ms-2">
-                  <Dropdown.Toggle variant="outline-light" className="btn-black">
-                    <FaUser className="me-1" />
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu className="bg-dark text-white border-secondary">
-                    <Dropdown.Item as={Link} to="/facturas" className="text-white">
-                      <FaFileInvoice className="me-2" /> Mis Facturas
-                    </Dropdown.Item>
-                    <Dropdown.Item className="text-white" onClick={() => setShowFiltersModal(true)}>
-                      <FaFilter className="me-2" /> Filtros Avanzados
-                    </Dropdown.Item>
-                    <Dropdown.Divider className="border-secondary" />
-                    <Dropdown.Item className="text-danger" onClick={handleLogout}>
-                      Cerrar Sesión
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
+                <Button type="button" variant="danger" className="ms-2" onClick={handleLogout}>
+                  Cerrar Sesión
+                </Button>
               </>
             ) : (
               <>
@@ -361,20 +347,27 @@ const MainApp = () => {
         <div className="d-flex justify-content-between align-items-center h-100">
           {/* MENÚ DESPLEGABLE IZQUIERDA */}
           <div className="d-flex align-items-center" ref={dropdownRef}>
-            <Dropdown 
-              show={showMobileDropdown}
-              onToggle={(isOpen) => setShowMobileDropdown(isOpen)}
+            <Button 
+              variant="outline-light" 
+              size="sm" 
+              onClick={() => setShowMobileDropdown(!showMobileDropdown)}
+              className="btn-black"
+              aria-label="Abrir menú"
             >
-              <Dropdown.Toggle 
-                variant="outline-light" 
-                size="sm" 
-                className="btn-black"
-                aria-label="Abrir menú"
+              <FaBars />
+            </Button>
+            
+            {/* MENÚ DESPLEGABLE PERSONALIZADO */}
+            {showMobileDropdown && (
+              <div 
+                className="position-absolute bg-dark text-white border border-secondary rounded shadow-lg mt-2 mobile-dropdown-menu"
+                style={{
+                  width: '280px',
+                  zIndex: 1060,
+                  top: '100%',
+                  left: '0'
+                }}
               >
-                <FaBars />
-              </Dropdown.Toggle>
-              
-              <Dropdown.Menu className="bg-dark text-white border-secondary mobile-dropdown-menu">
                 {/* Encabezado del menú */}
                 <div className="dropdown-header p-2 border-bottom border-secondary">
                   <h6 className="mb-0">Menú Principal</h6>
@@ -389,59 +382,40 @@ const MainApp = () => {
                   )}
                   
                   {/* Opciones del menú */}
-                  <Dropdown.Item 
-                    as="button"
-                    className="text-white d-flex align-items-center mb-2"
-                    onClick={() => { navigate('/'); setShowMobileDropdown(false); }}
-                  >
-                    <FaHome className="me-2" /> Inicio
-                  </Dropdown.Item>
+    
+                  {/* Opciones de filtros para TODOS los usuarios */}
+                  <div className="border-top border-secondary pt-2 mt-2">
+                    <Button 
+                      variant="outline-light" 
+                      onClick={() => { setShowFiltersModal(true); setShowMobileDropdown(false); }}
+                      className="text-start d-flex align-items-center w-100 mb-2"
+                    >
+                      <FaFilter className="me-2" /> Filtros
+                    </Button>
+                    
+                    <Button 
+                      variant="outline-light" 
+                      onClick={() => { resetFilters(); setShowMobileDropdown(false); }}
+                      className="text-start w-100 mb-2 btn-black"
+                    >
+                      Quitar Filtros
+                    </Button>
+                  </div>
                   
+                  {/* Opciones específicas según si está logueado o no */}
                   {user ? (
                     <>
-                      <Dropdown.Item 
-                        as="button"
-                        className="text-white d-flex align-items-center mb-2"
-                        onClick={() => { navigate('/cart'); setShowMobileDropdown(false); }}
-                      >
-                        <FaShoppingCart className="me-2" /> Carrito ({cartCount})
-                      </Dropdown.Item>
-                      
-                      <Dropdown.Item 
-                        as="button"
-                        className="text-white d-flex align-items-center mb-2"
-                        onClick={() => { 
-                          // Aquí podrías abrir el manager de suscripciones
-                          setShowMobileDropdown(false); 
-                        }}
-                      >
-                        <FaBell className="me-2" /> Suscripciones
-                      </Dropdown.Item>
-                      
-                      <Dropdown.Item 
-                        as="button"
-                        className="text-white d-flex align-items-center mb-2"
-                        onClick={() => { navigate('/facturas'); setShowMobileDropdown(false); }}
-                      >
-                        <FaFileInvoice className="me-2" /> Mis Facturas
-                      </Dropdown.Item>
-                      
                       <div className="border-top border-secondary pt-2 mt-2">
-                        <Dropdown.Item 
-                          as="button"
-                          className="text-white d-flex align-items-center mb-2"
-                          onClick={() => { setShowFiltersModal(true); setShowMobileDropdown(false); }}
+                        <Button 
+                          variant="outline-light" 
+                          onClick={() => { 
+                            setShowSubscriptionModal(true); 
+                            setShowMobileDropdown(false); 
+                          }}
+                          className="text-start d-flex align-items-center w-100 mb-2"
                         >
-                          <FaFilter className="me-2" /> Filtros
-                        </Dropdown.Item>
-                        
-                        <Dropdown.Item 
-                          as="button"
-                          className="text-white d-flex align-items-center mb-2"
-                          onClick={() => { resetFilters(); setShowMobileDropdown(false); }}
-                        >
-                          Quitar Filtros
-                        </Dropdown.Item>
+                          <FaBell className="me-2" /> Suscripciones
+                        </Button>
                         
                         <Button 
                           variant="danger" 
@@ -474,8 +448,8 @@ const MainApp = () => {
                     </>
                   )}
                 </div>
-              </Dropdown.Menu>
-            </Dropdown>
+              </div>
+            )}
           </div>
 
           {/* NOMBRE CENTRADO */}
@@ -509,7 +483,7 @@ const MainApp = () => {
         </div>
       </div>
 
-      {/* Overlay de búsqueda móvil */}
+      {/* Overlay de búsqueda móvil con espacio */}
       {showMobileSearch && (
         <div className="d-lg-none search-overlay-mobile">
           <div className="d-flex justify-content-between align-items-center mb-3">
@@ -623,6 +597,16 @@ const MainApp = () => {
           setError={setError}
         />
         <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
+        
+        {/* Modal de suscripciones para móvil */}
+        {showSubscriptionModal && (
+          <Suspense fallback={null}>
+            <SubscriptionManager 
+              show={showSubscriptionModal}
+              onHide={() => setShowSubscriptionModal(false)}
+            />
+          </Suspense>
+        )}
       </Suspense>
     </div>
   );

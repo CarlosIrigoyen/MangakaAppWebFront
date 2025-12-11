@@ -100,28 +100,13 @@
   color: #fff;
 }
 
-.mobile-dropdown-menu .dropdown-item {
-  color: #fff !important;
-  padding: 10px 15px;
-  border-radius: 4px;
-  margin-bottom: 2px;
-}
-
-.mobile-dropdown-menu .dropdown-item:hover,
-.mobile-dropdown-menu .dropdown-item:focus {
-  background-color: #495057 !important;
-  color: #fff !important;
-}
-
-.mobile-dropdown-menu .dropdown-item:active {
-  background-color: #6c757d !important;
-}
-
 .mobile-dropdown-menu .btn {
   margin: 2px 0;
+  text-align: left;
+  justify-content: flex-start;
 }
 
-/* === OVERLAY DE BÚSQUEDA MÓVIL === */
+/* === OVERLAY DE BÚSQUEDA MÓVIL CON ESPACIO === */
 .search-overlay-mobile {
   position: fixed;
   top: 0;
@@ -209,6 +194,10 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
   
   .mobile-dropdown-menu {
     width: 250px !important;
+  }
+  
+  .search-overlay-mobile {
+    padding: 100px 20px 20px; /* Más espacio en móvil pequeño */
   }
 }
 
