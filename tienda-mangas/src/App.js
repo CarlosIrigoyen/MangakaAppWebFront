@@ -1,3 +1,4 @@
+// App.js
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import {
   BrowserRouter as Router,
@@ -30,6 +31,8 @@ const SuccessPage = lazy(() => import('./SuccessPage'));
 const FailurePage = lazy(() => import('./FailurePage'));
 const PendingPage = lazy(() => import('./PendingPage'));
 const PayPalReturn = lazy(() => import('./PayPalReturn'));
+
+// SOLO modal controlado: SubscriptionManagerModal (no botón interno)
 const SubscriptionManagerModal = lazy(() => import('./SubscriptionManagerModal'));
 
 import { CartProvider, CartContext } from './CartContext';
@@ -300,6 +303,8 @@ const MainApp = () => {
             ) : user ? (
               <>
                 <span className="me-2">Hola, {user.nombre}</span>
+
+                {/* TRIGGER: abre el modal de suscripciones */}
                 <Button 
                   variant="outline-warning" 
                   size="sm"
@@ -309,6 +314,7 @@ const MainApp = () => {
                   <FaBell className="me-1" />
                   Suscripciones
                 </Button>
+
                 <Button 
                   type="button" 
                   variant="outline-light" 
@@ -418,8 +424,10 @@ const MainApp = () => {
                   {user ? (
                     <>
                       <div className="border-top border-secondary pt-2 mt-2">
+                        {/* TRIGGER móvil: abre el mismo modal de suscripciones */}
                         <Button 
                           variant="outline-light" 
+                          size="sm" 
                           onClick={() => { 
                             setShowSubscriptionModal(true); 
                             setShowMobileDropdown(false); 
@@ -610,7 +618,7 @@ const MainApp = () => {
         />
         <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
         
-        {/* Modal de suscripciones */}
+        {/* Modal de suscripciones CONTROLADO desde App.js */}
         <SubscriptionManagerModal 
           show={showSubscriptionModal}
           onHide={() => setShowSubscriptionModal(false)}
