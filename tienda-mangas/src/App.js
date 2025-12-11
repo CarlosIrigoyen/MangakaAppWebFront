@@ -33,7 +33,7 @@ const PendingPage = lazy(() => import('./PendingPage'));
 const PayPalReturn = lazy(() => import('./PayPalReturn'));
 
 // SOLO modal controlado: SubscriptionManagerModal (no botón interno)
-const SubscriptionManagerModal = lazy(() => import('./SubscriptionManagerModal'));
+const SubscriptionManagerModal = lazy(() => import('./SubscriptionManager'));
 
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
