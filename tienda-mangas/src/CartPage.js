@@ -18,6 +18,7 @@ const CartPage = () => {
   const [showClearCartModal, setShowClearCartModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(null); // 'mercadopago' o 'paypal'
+  const [clearingCart, setClearingCart] = useState(false); // nuevo estado para vaciado masivo
 
   // Total y accesibilidad: usamos aria-live para anunciar cambios
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
@@ -37,8 +38,9 @@ const CartPage = () => {
     }
   };
 
-  // IMPORTANTE: devolvemos lo que retorne removeCartItem para que confirmClearCart pueda awaitearlo si es una promesa
+  // IMPORTANTE: devolvemos lo que retorne removeCartItem para poder awaitearlo
   const handleRemove = (item) => {
+    // Aquí usamos exactamente la misma llamada que el botón "Eliminar" usa.
     return removeCartItem(item.id);
   };
 
@@ -46,25 +48,38 @@ const CartPage = () => {
     setShowClearCartModal(true);
   };
 
-  // Ahora confirmClearCart llama a handleRemove por cada item del carrito
+  // confirmClearCart elimina los items **secuencialmente** usando handleRemove(item)
   const confirmClearCart = async () => {
+    setClearingCart(true);
     try {
-      // hacemos copia por seguridad
+      // Hacemos copia del carrito actual para iterar sin problemas si el estado cambia
       const itemsToRemove = [...cart];
+      const failed = [];
 
-      // map a promesas; handleRemove puede devolver promesa o undefined/síncrono
-      const removerPromises = itemsToRemove.map(item => {
-        const result = handleRemove(item);
-        return result instanceof Promise ? result : Promise.resolve(result);
-      });
+      for (const item of itemsToRemove) {
+        try {
+          // Soportamos tanto removeCartItem síncrono como asíncrono
+          const result = handleRemove(item);
+          await (result instanceof Promise ? result : Promise.resolve(result));
+        } catch (err) {
+          console.error(`Error eliminando item ${item.id}:`, err);
+          failed.push(item);
+          // Opcional: si preferís detenerte al primer error, descomenta la siguiente línea:
+          // break;
+        }
+      }
 
-      // esperamos todas las eliminaciones
-      await Promise.all(removerPromises);
+      if (failed.length === 0) {
+        // Todo bien: si tu context actualiza el estado del carrito, acá ya debería estar vacío
+        // Si tenés una función que limpia todo en backend (clearCartAfterPurchase) podrías llamarla como fallback.
+      } else {
+        alert(`No se pudieron eliminar ${failed.length} item(s). Revisa la consola para más detalle.`);
+      }
     } catch (err) {
       console.error('Error al vaciar el carrito:', err);
       alert('Ocurrió un error al intentar vaciar el carrito. Intenta nuevamente.');
     } finally {
-      // cerramos modal siempre
+      setClearingCart(false);
       setShowClearCartModal(false);
     }
   };
@@ -344,6 +359,7 @@ const CartPage = () => {
                 onClick={() => navigate('/')}
                 className="w-100 w-md-auto"
                 aria-label="Seguir comprando, ir al inicio"
+                disabled={clearingCart}
               >
                 Seguir Comprando
               </Button>
@@ -354,6 +370,7 @@ const CartPage = () => {
                 onClick={handleClearCart}
                 aria-haspopup="dialog"
                 aria-controls="clear-cart-modal"
+                disabled={clearingCart}
               >
                 Vaciar carrito
               </Button>
@@ -365,7 +382,7 @@ const CartPage = () => {
                 variant="warning"
                 className="w-100 w-md-auto"
                 onClick={handlePayPalBuy}
-                disabled={productosConProblemas.length > 0 || processingPayment}
+                disabled={productosConProblemas.length > 0 || processingPayment || clearingCart}
                 title="Pagar con PayPal"
                 aria-label="Pagar con PayPal"
               >
@@ -384,7 +401,7 @@ const CartPage = () => {
                 variant="primary"
                 className="w-100 w-md-auto"
                 onClick={handleMercadoPagoBuy}
-                disabled={productosConProblemas.length > 0 || processingPayment}
+                disabled={productosConProblemas.length > 0 || processingPayment || clearingCart}
                 title="Pagar con MercadoPago"
                 aria-label="Pagar con MercadoPago"
               >
@@ -434,11 +451,23 @@ const CartPage = () => {
         </Modal.Body>
 
         <Modal.Footer className="bg-dark">
-          <Button variant="secondary" onClick={() => setShowClearCartModal(false)} autoFocus>
+          <Button variant="secondary" onClick={() => setShowClearCartModal(false)} autoFocus disabled={clearingCart}>
             Cancelar
           </Button>
-          <Button variant="danger" onClick={confirmClearCart} aria-label="Confirmar vaciar carrito">
-            Sí, vaciar carrito
+          <Button
+            variant="danger"
+            onClick={confirmClearCart}
+            aria-label="Confirmar vaciar carrito"
+            disabled={clearingCart}
+          >
+            {clearingCart ? (
+              <>
+                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                Vaciarando...
+              </>
+            ) : (
+              'Sí, vaciar carrito'
+            )}
           </Button>
         </Modal.Footer>
       </Modal>
