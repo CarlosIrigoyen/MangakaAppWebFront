@@ -363,17 +363,6 @@ const CartPage = () => {
               >
                 Seguir Comprando
               </Button>
-              <Button
-                type="button"
-                variant="danger"
-                className="w-100 w-md-auto"
-                onClick={handleClearCart}
-                aria-haspopup="dialog"
-                aria-controls="clear-cart-modal"
-                disabled={clearingCart}
-              >
-                Vaciar carrito
-              </Button>
             </div>
 
             <div className="d-flex w-100 gap-2 flex-column flex-sm-row justify-content-end">
@@ -426,51 +415,6 @@ const CartPage = () => {
           )}
         </div>
       </div>
-
-      {/* Modal para vaciar carrito */}
-      <Modal
-        show={showClearCartModal}
-        onHide={() => setShowClearCartModal(false)}
-        centered
-        aria-labelledby="clearCartTitle"
-        aria-describedby="clearCartDesc"
-        id="clear-cart-modal"
-      >
-        <Modal.Header closeButton className="bg-dark text-white">
-          <Modal.Title id="clearCartTitle">Vaciar Carrito</Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body className="bg-dark text-white">
-          <div className="text-center">
-            <span aria-hidden="true" style={{ fontSize: '2rem', color: '#ffc107' }}>🗑️</span>
-            <h2 id="clearCartHeading" className="h5 mt-3">¿Estás seguro de que quieres vaciar tu carrito?</h2>
-            <p id="clearCartDesc" className="text-muted">
-              Se eliminarán {cart.length} producto{cart.length !== 1 ? 's' : ''} de tu carrito. Esta acción no se puede deshacer.
-            </p>
-          </div>
-        </Modal.Body>
-
-        <Modal.Footer className="bg-dark">
-          <Button variant="secondary" onClick={() => setShowClearCartModal(false)} autoFocus disabled={clearingCart}>
-            Cancelar
-          </Button>
-          <Button
-            variant="danger"
-            onClick={confirmClearCart}
-            aria-label="Confirmar vaciar carrito"
-            disabled={clearingCart}
-          >
-            {clearingCart ? (
-              <>
-                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
-                Vaciarando...
-              </>
-            ) : (
-              'Sí, vaciar carrito'
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </main>
   );
 };
