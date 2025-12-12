@@ -1,5 +1,3 @@
-// src/CartContext.js
-
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { UserContext } from './UserContext';
 
@@ -12,221 +10,237 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [syncing, setSyncing] = useState(false);
 
+  // URLs de la API - memoizadas
   const API_URL = process.env.REACT_APP_API_URL;
-
   const endpoints = useMemo(() => ({
     GUARDAR_CARRITO: `${API_URL}/carrito/guardar`,
     OBTENER_CARRITO: `${API_URL}/carrito/obtener`,
+    LIMPIAR_CARRITO: `${API_URL}/carrito/limpiar`
   }), [API_URL]);
 
-  // --------------------------------------------
-  // CARGAR CARRITO DESDE BD O LOCAL STORAGE
-  // --------------------------------------------
+  // Cargar carrito cuando el usuario cambia - optimizado
   useEffect(() => {
     if (loadingUser) return;
 
     const loadCart = async () => {
       if (user) {
+        // Usuario logueado: cargar desde BD
         try {
           const token = localStorage.getItem('token');
           const response = await fetch(`${endpoints.OBTENER_CARRITO}/${user.id}`, {
             headers: {
-              Authorization: `Bearer ${token}`,
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           });
 
           if (response.ok) {
-            const cartBD = await response.json();
-            setCart(cartBD);
-
+            const cartFromDB = await response.json();
+            setCart(cartFromDB);
+            
+            // Sincronizar localStorage con datos de BD
             try {
-              localStorage.setItem(storageKey, JSON.stringify(cartBD));
-            } catch (e) {}
+              localStorage.setItem(storageKey, JSON.stringify(cartFromDB));
+            } catch (e) {
+              //pass
+            }
           } else {
+            // Fallback a localStorage
             const saved = localStorage.getItem(storageKey);
-            if (saved) setCart(JSON.parse(saved));
+            if (saved) {
+              try {
+                setCart(JSON.parse(saved));
+              } catch (e) {
+                setCart([]);
+              }
+            }
           }
-        } catch (e) {
-          console.error("Error cargando carrito DB:", e);
+        } catch (error) {
+          // Fallback a localStorage
           const saved = localStorage.getItem(storageKey);
-          if (saved) setCart(JSON.parse(saved));
+          if (saved) {
+            try {
+              setCart(JSON.parse(saved));
+            } catch (e) {
+              setCart([]);
+            }
+          }
         }
       } else {
+        // Usuario no logueado: cargar desde localStorage
         const saved = localStorage.getItem(storageKey);
-        if (saved) setCart(JSON.parse(saved));
+        if (saved) {
+          try {
+            setCart(JSON.parse(saved));
+          } catch (e) {
+            
+            setCart([]);
+          }
+        }
       }
     };
 
     loadCart();
   }, [user, loadingUser, storageKey, endpoints.OBTENER_CARRITO]);
 
-  // --------------------------------------------
-  // SINCRONIZAR CARRITO A LA BD
-  // --------------------------------------------
+  // Sincronizar carrito con BD cuando el usuario está logueado
   const syncCartWithDB = useCallback(async (cartData) => {
-    if (!user) return false;
+    if (!user || syncing) return;
 
     setSyncing(true);
     try {
       const token = localStorage.getItem('token');
-
-      const res = await fetch(endpoints.GUARDAR_CARRITO, {
-        method: "POST",
+      await fetch(endpoints.GUARDAR_CARRITO, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": token ? `Bearer ${token}` : undefined
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           cliente_id: user.id,
           carrito: cartData
         })
       });
-
-      if (!res.ok) {
-        console.error("❌ Error en syncCartWithDB", await res.text());
-        return false;
-      }
-
-      return true;
-
     } catch (error) {
-      console.error("❌ Error grave en syncCartWithDB:", error);
-      return false;
+      
     } finally {
       setSyncing(false);
     }
-  }, [user, endpoints.GUARDAR_CARRITO]);
+  }, [user, syncing, endpoints.GUARDAR_CARRITO]);
 
-  // --------------------------------------------
-  // GUARDAR AUTOMÁTICAMENTE EN BD Y LOCAL
-  // --------------------------------------------
+  // Persistir cambios en localStorage y BD - optimizado
   useEffect(() => {
     if (loadingUser || syncing) return;
-
+    
+    // Guardar en localStorage
     try {
       localStorage.setItem(storageKey, JSON.stringify(cart));
-    } catch (e) {}
-
+    } catch (e) {
+      //pass
+    }
+    
+    // Sincronizar con BD si hay usuario
     if (user) {
       syncCartWithDB(cart);
     }
-  }, [cart, storageKey, user, loadingUser, syncing, syncCartWithDB]);
+  }, [cart, storageKey, loadingUser, user, syncing, syncCartWithDB]);
 
-  // --------------------------------------------
-  // AGREGAR AL CARRITO
-  // --------------------------------------------
   const addToCart = useCallback((item) => {
-    const existing = cart.find(c => c.id === item.id);
-
-    if (existing) {
-      if (existing.quantity < item.stock) {
-        updateCartItem(item.id, existing.quantity + 1);
+    const existingItem = cart.find(cartItem => cartItem.id === item.id);
+    
+    if (existingItem) {
+      // Si ya existe, aumentar cantidad si hay stock
+      if (existingItem.quantity < item.stock) {
+        updateCartItem(item.id, existingItem.quantity + 1);
       } else {
-        alert(`Stock disponible: ${item.stock}`);
+        alert(`No hay suficiente stock. Stock disponible: ${item.stock}`);
       }
     } else {
+      // Si no existe, agregar con cantidad 1
       if (item.stock > 0) {
-        setCart(prev => [...prev, { ...item, quantity: 1 }]);
+        setCart(prevCart => [...prevCart, { ...item, quantity: 1 }]);
       } else {
-        alert("Este producto no tiene stock.");
+        alert('Este producto no tiene stock disponible');
       }
     }
   }, [cart]);
 
-  // --------------------------------------------
-  // ACTUALIZAR CANTIDAD
-  // --------------------------------------------
-  const updateCartItem = useCallback((id, quantity) => {
-    setCart(prev =>
-      prev.map(item => {
-        if (item.id === id) {
-          const finalQty = Math.min(quantity, item.stock);
-          if (finalQty < quantity) {
-            alert(`Stock disponible: ${item.stock}`);
-          }
-          return { ...item, quantity: finalQty };
+  const updateCartItem = useCallback((itemId, quantity) => {
+    setCart(prevCart => prevCart.map(item => {
+      if (item.id === itemId) {
+        // No permitir más de lo que hay en stock
+        const finalQuantity = Math.min(quantity, item.stock);
+        if (finalQuantity < quantity) {
+          alert(`No hay suficiente stock. Stock disponible: ${item.stock}`);
         }
-        return item;
-      })
-    );
+        return { ...item, quantity: finalQuantity };
+      }
+      return item;
+    }));
   }, []);
 
-  // --------------------------------------------
-  // ELIMINAR ITEM INDIVIDUAL
-  // --------------------------------------------
-  const removeCartItem = useCallback((id) => {
+  const removeCartItem = useCallback((itemId) => {
     if (cart.length === 1) {
       clearCart();
       return;
     }
-    setCart(prev => prev.filter(item => item.id !== id));
+
+    setCart(prevCart => prevCart.filter(item => item.id !== itemId));
   }, [cart.length]);
 
-  // --------------------------------------------
-  // VACÍAR CARRITO (AHORA TAMBIÉN BD)
-  // --------------------------------------------
   const clearCart = useCallback(async () => {
+    // Borramos local inmediatamente
     setCart([]);
-
     try {
       localStorage.removeItem(storageKey);
-    } catch (e) {}
-
-    if (user) {
-      await syncCartWithDB([]); // <- ESTA LÍNEA SOLUCIONA TU PROBLEMA
+    } catch (e) {
+      //PASS
     }
-  }, [storageKey, user, syncCartWithDB]);
 
-  // --------------------------------------------
-  // VACÍAR DESPUÉS DE PAGO
-  // --------------------------------------------
+    // Si hay usuario, intentamos limpiar en BD
+    if (user) {
+      try {
+        const token = localStorage.getItem('token');
+        await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      } catch (error) {
+        //PASS
+      }
+    }
+  }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
+
   const clearCartAfterPurchase = useCallback(async () => {
     if (user) {
-      const ok = await syncCartWithDB([]);
-      if (!ok) return false;
+      try {
+        const token = localStorage.getItem('token');
+        await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      } catch (error) {
+        //PASS
+      }
     }
-
+    // Limpiar siempre el localStorage
     try {
       localStorage.removeItem(storageKey);
-    } catch (e) {}
-
+    } catch (e) {
+      //PASS
+    }
     setCart([]);
-    return true;
-  }, [user, storageKey, syncCartWithDB]);
+  }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
 
-  // --------------------------------------------
-  // SINCRONIZAR AL CERRAR SESIÓN
-  // --------------------------------------------
   const syncCartOnLogout = useCallback(async () => {
     if (user && cart.length > 0) {
-      const ok = await syncCartWithDB(cart);
-
+      await syncCartWithDB(cart);
       try {
         localStorage.removeItem(storageKey);
-      } catch (e) {}
-
-      return ok;
+      } catch (e) { 
+        //PASS 
+      }
     }
-    return true;
   }, [user, cart, storageKey, syncCartWithDB]);
 
-  // --------------------------------------------
-  // CONTEXTO
-  // --------------------------------------------
-  const contextValue = useMemo(() => ({
-    cart,
-    addToCart,
-    updateCartItem,
-    removeCartItem,
+  // Memoizar el valor del contexto para evitar rerenders innecesarios
+  const contextValue = useMemo(() => ({ 
+    cart, 
+    addToCart, 
+    updateCartItem, 
+    removeCartItem, 
     clearCart,
     clearCartAfterPurchase,
     syncCartOnLogout
   }), [
-    cart,
-    addToCart,
-    updateCartItem,
-    removeCartItem,
+    cart, 
+    addToCart, 
+    updateCartItem, 
+    removeCartItem, 
     clearCart,
     clearCartAfterPurchase,
     syncCartOnLogout
