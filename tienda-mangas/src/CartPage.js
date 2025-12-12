@@ -37,17 +37,36 @@ const CartPage = () => {
     }
   };
 
+  // IMPORTANTE: devolvemos lo que retorne removeCartItem para que confirmClearCart pueda awaitearlo si es una promesa
   const handleRemove = (item) => {
-    removeCartItem(item.id);
+    return removeCartItem(item.id);
   };
 
   const handleClearCart = () => {
     setShowClearCartModal(true);
   };
 
+  // Ahora confirmClearCart llama a handleRemove por cada item del carrito
   const confirmClearCart = async () => {
-    await clearCartAfterPurchase();
-    setShowClearCartModal(false);
+    try {
+      // hacemos copia por seguridad
+      const itemsToRemove = [...cart];
+
+      // map a promesas; handleRemove puede devolver promesa o undefined/síncrono
+      const removerPromises = itemsToRemove.map(item => {
+        const result = handleRemove(item);
+        return result instanceof Promise ? result : Promise.resolve(result);
+      });
+
+      // esperamos todas las eliminaciones
+      await Promise.all(removerPromises);
+    } catch (err) {
+      console.error('Error al vaciar el carrito:', err);
+      alert('Ocurrió un error al intentar vaciar el carrito. Intenta nuevamente.');
+    } finally {
+      // cerramos modal siempre
+      setShowClearCartModal(false);
+    }
   };
 
   // Validaciones antes del pago
@@ -168,7 +187,6 @@ const CartPage = () => {
 
       window.location.href = approve_url;
     } catch (err) {
-      
       alert(`No se pudo iniciar el pago con PayPal: ${err.message || 'Error desconocido'}`);
       setProcessingPayment(false);
       setPaymentMethod(null);
@@ -238,7 +256,6 @@ const CartPage = () => {
                 key={item.id}
                 className={`d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom ${!tieneStockSuficiente ? 'bg-warning bg-opacity-10' : 'bg-dark'} text-white`}
                 aria-labelledby={`product-title-${item.id}`}
-                // NO ponemos role="group" ni roles incompatibles: <article> ya es semántico
               >
                 <Image
                   src={imageUrl}
@@ -252,7 +269,6 @@ const CartPage = () => {
                 />
 
                 <div className="flex-grow-1">
-                  {/* Encabezado del producto: usamos h2 semántico (visual lo ajustamos con clases) */}
                   <h2 id={`product-title-${item.id}`} className="h5 mb-1">
                     {item.manga?.titulo} - Tomo {item.numero_tomo}
                     {!tieneStockSuficiente && (
@@ -277,7 +293,6 @@ const CartPage = () => {
                       <span className="visually-hidden"> Disminuir cantidad</span>
                     </Button>
 
-                    {/* Cantidad visible */}
                     <span className="mx-2" aria-live="polite" aria-atomic="true">{item.quantity}</span>
 
                     <Button
@@ -300,7 +315,6 @@ const CartPage = () => {
                       onClick={() => handleRemove(item)}
                       aria-label={`Eliminar ${item.manga?.titulo} del carrito`}
                     >
-                      {/* icono decorativo */}
                       <i className="fas fa-trash" aria-hidden="true" /> <span className="ms-1">Eliminar</span>
                     </Button>
                   </div>
@@ -317,13 +331,11 @@ const CartPage = () => {
         <div className="p-3 border-top bg-dark">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <strong>Total</strong>
-            {/* Región aria-live para anunciar cambios en el total */}
             <div aria-live="polite" aria-atomic="true">
               <strong>${totalAmount.toFixed(2)}</strong>
             </div>
           </div>
 
-          {/* Botones organizados para responsive */}
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch gap-2">
             <div className="d-flex w-100 gap-2 flex-column flex-sm-row">
               <Button
@@ -413,7 +425,6 @@ const CartPage = () => {
 
         <Modal.Body className="bg-dark text-white">
           <div className="text-center">
-            {/* icono decorativo */}
             <span aria-hidden="true" style={{ fontSize: '2rem', color: '#ffc107' }}>🗑️</span>
             <h2 id="clearCartHeading" className="h5 mt-3">¿Estás seguro de que quieres vaciar tu carrito?</h2>
             <p id="clearCartDesc" className="text-muted">
@@ -423,7 +434,6 @@ const CartPage = () => {
         </Modal.Body>
 
         <Modal.Footer className="bg-dark">
-          {/* Cancelar (autofocus para teclado) */}
           <Button variant="secondary" onClick={() => setShowClearCartModal(false)} autoFocus>
             Cancelar
           </Button>
