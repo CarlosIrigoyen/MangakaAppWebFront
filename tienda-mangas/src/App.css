@@ -304,3 +304,49 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
     height: 42px;
   }
 }
+
+/* === Cart page: botones igual largo === */
+.cart-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* En móvil queremos que los botones estén apilados y llenen el ancho */
+@media (max-width: 575.98px) {
+  .cart-actions {
+    flex-direction: column;
+  }
+  .cart-btn {
+    width: 100%;
+  }
+}
+
+/* En tablet+ los colocamos en fila y hacemos que cada botón ocupe el mismo ancho */
+@media (min-width: 576px) {
+  .cart-actions {
+    flex-direction: row;
+  }
+  .cart-actions .cart-btn {
+    flex: 1 1 0;
+    min-width: 0; /* evita que el contenido forze el ancho */
+  }
+}
+
+/* Opcional: ajustar altura / padding para que coincida visualmente con el estilo de la app */
+.cart-btn {
+  padding: 10px 14px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+/* Si quieres un ancho fijo en desktop (en lugar de dividir espacio), cambia la regla anterior por ejemplo:
+@media (min-width: 768px) {
+  .cart-actions .cart-btn { width: 260px; flex: 0 0 260px; }
+}
+*/

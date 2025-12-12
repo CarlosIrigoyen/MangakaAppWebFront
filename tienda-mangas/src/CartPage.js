@@ -3,7 +3,7 @@ import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
 import { UserContext } from './UserContext';
-import { Button, Image, Alert, Modal, Spinner } from 'react-bootstrap';
+import { Button, Image, Alert, Spinner } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
@@ -351,26 +351,25 @@ const CartPage = () => {
             </div>
           </div>
 
+          {/* === CONTROLES DE BOTONES: contenedor unico para igualar anchos === */}
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch gap-2">
-            <div className="d-flex w-100 gap-2 flex-column flex-sm-row">
+            <div className="d-flex w-100 gap-2 flex-column flex-sm-row cart-actions">
               <Button
                 type="button"
                 variant="outline-light"
                 onClick={() => navigate('/')}
-                className="w-100 w-md-auto"
+                className="cart-btn"
                 aria-label="Seguir comprando, ir al inicio"
                 disabled={clearingCart}
               >
                 Seguir Comprando
               </Button>
-            </div>
 
-            <div className="d-flex w-100 gap-2 flex-column flex-sm-row justify-content-end">
               <Button
                 type="button"
                 variant="warning"
-                className="w-100 w-md-auto"
                 onClick={handlePayPalBuy}
+                className="cart-btn"
                 disabled={productosConProblemas.length > 0 || processingPayment || clearingCart}
                 title="Pagar con PayPal"
                 aria-label="Pagar con PayPal"
@@ -388,8 +387,8 @@ const CartPage = () => {
               <Button
                 type="button"
                 variant="primary"
-                className="w-100 w-md-auto"
                 onClick={handleMercadoPagoBuy}
+                className="cart-btn"
                 disabled={productosConProblemas.length > 0 || processingPayment || clearingCart}
                 title="Pagar con MercadoPago"
                 aria-label="Pagar con MercadoPago"
