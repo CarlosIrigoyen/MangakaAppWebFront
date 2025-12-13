@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
 import { UserContext } from './UserContext';
 import { Button, Image, Alert, Spinner } from 'react-bootstrap';
-import './CartPage.css'; // asegúrate de tener el CSS que te pasé en este archivo
+ 
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
