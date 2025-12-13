@@ -37,6 +37,12 @@ body {
   text-align: center;
 }
 
+.invoice-header-compact {
+  border-bottom: 2px solid #0d6efd;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
 .company-info {
   display: flex;
   align-items: center;
@@ -51,7 +57,8 @@ body {
   height: auto;
 }
 
-.company-info h5 {
+.company-info h5,
+.company-info h4 {
   font-weight: 600;
   color: #0d6efd;
   margin: 0;
@@ -71,6 +78,7 @@ body {
   border-radius: 0.25rem;
   background-color: #e9f5ff;
   margin-bottom: 1rem;
+  padding: 0;
 }
 
 .address-block h6 {
@@ -148,7 +156,7 @@ body {
 
 /* PRODUCTOS MÓVIL VERTICAL: items apilados uno debajo del otro (usado en mobile) */
 .productos-mobile {
-  display: block;
+  display: none; /* por defecto oculto en desktop; visible en mobile vía media query */
 }
 
 .productos-mobile .product-row {
@@ -446,3 +454,34 @@ button:focus, .btn:focus, a:focus {
   color: #6c757d;
   line-height: 1.2;
 }
+
+/* -----------------------
+   REGLAS FUERTE PARA MÓVIL
+   -----------------------
+   Forzar mostrar la lista móvil y ocultar la tabla desktop en ancho pequeño.
+   Esto corrige situaciones en las que otras reglas sobrescriben la visibilidad.
+*/
+@media (max-width: 767.98px) {
+  /* ocultar la tabla desktop y mostrar la lista móvil */
+  .invoice-table {
+    display: none !important;
+  }
+
+  .productos-mobile {
+    display: block !important;
+  }
+
+  /* asegurar texto oscuro sobre fondo claro para legibilidad */
+  .productos-mobile .product-row,
+  .productos-mobile .product-row .product-title-small,
+  .productos-mobile .product-row .product-details,
+  .productos-mobile .product-row .product-prices {
+    color: #212529 !important;
+  }
+
+  /* un poco más de padding para legibilidad */
+  .productos-mobile .product-row {
+    padding: 0.75rem 0 !important;
+  }
+}
+
