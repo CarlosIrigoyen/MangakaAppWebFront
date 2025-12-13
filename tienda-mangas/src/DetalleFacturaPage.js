@@ -9,7 +9,7 @@ import { CartContext } from './CartContext';
 import './DetalleFacturaPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-const API_URL='https://mangakaappweb-production.up.railway.app/api'
+const API_URL = 'https://mangakaappweb-production.up.railway.app/api';
 
 const DetalleFacturaPage = () => {
   const { id } = useParams();
@@ -51,17 +51,17 @@ const DetalleFacturaPage = () => {
 
   const descargarComoPdf = async () => {
     const element = facturaRef.current;
+    if (!element) return;
     const canvas = await html2canvas(element, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
+
     const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const margin = 40;
     const imgWidth = pageWidth - margin * 2;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
-    // Limitar número de factura a 6 dígitos
-    const numeroDigitos = (factura.numero || '').replace(/\D/g, '').slice(0, 6);
-    pdf.save(`Factura-${numeroDigitos}.pdf`);
+    const numeroDigitos = (factura?.numero || '').replace(/\D/g, '').slice(0, 6);
+    pdf.save(`Factura-${numeroDigitos || id}.pdf`);
   };
 
   const volverHome = () => {
@@ -99,61 +99,64 @@ const DetalleFacturaPage = () => {
     );
   }
 
-  const fechaSolo = factura.fecha
-    ? new Date(factura.fecha).toLocaleDateString()
-    : '';
-  // Obtener primeros 6 dígitos para mostrar
-  const numeroMostrar = String(factura.numero).replace(/\D/g, '').slice(0, 6);
+  const fechaSolo = factura.fecha ? new Date(factura.fecha).toLocaleDateString() : '';
+  const numeroMostrar = String(factura.numero || '').replace(/\D/g, '').slice(0, 6);
 
   return (
-    <div className="d-flex flex-column min-vh-100 bg-dark text-white">
-      <div className="container flex-grow-1 d-flex flex-column py-4">
-        <div ref={facturaRef} className="p-4 bg-white text-dark rounded">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <div className="d-flex align-items-center">
-              <img src="/img/Mangaka.png" alt="Logo" width={80} className="me-3 rounded-circle" />
-              <h4 className="mb-0">Mangaka Baka Shop</h4>
+    <div className="detalle-factura-page min-vh-100">
+      <div className="invoice-wrapper container py-4">
+        <div ref={facturaRef} className="invoice-container p-4">
+          <div className="invoice-header mb-3">
+            <div className="company-info d-flex align-items-center">
+              <h5 className="company-name mb-0">Mangaka Baka Shop</h5>
             </div>
-            <div className="text-end">
-              <h5 className="text-primary">FACTURA</h5>
-              <p className="mb-1"><strong>Nº:</strong> {numeroMostrar}</p>
-              <p className="mb-0"><strong>Fecha:</strong> {fechaSolo}</p>
+            <div className="invoice-meta text-end">
+              <div><small className="meta-label">N°:</small> <strong>{numeroMostrar}</strong></div>
+              <div><small className="meta-label">Fecha:</small> <span>{fechaSolo}</span></div>
             </div>
           </div>
 
-          <div className="mb-4 p-3 bg-light rounded">
-            <h6 className="text-primary mb-2">FACTURAR A:</h6>
-            <p className="mb-0">
-              {factura.cliente?.nombre || ''} {factura.cliente?.apellido || ''}
-            </p>
+          <hr className="divider" />
+
+          <div className="address-block mb-3 p-2">
+            <h6 className="address-title mb-1">FACTURAR A:</h6>
+            <div className="address-content">{factura.cliente?.nombre || ''} {factura.cliente?.apellido || ''}</div>
           </div>
 
-          <Table bordered className="invoice-table">
-            <thead>
-              <tr className="bg-primary text-white">
-                <th>DESCRIPCIÓN</th>
-                <th className="text-center">CANTIDAD</th>
-                <th className="text-end">PRECIO</th>
-                <th className="text-end">IMPORTE</th>
-              </tr>
-            </thead>
-            <tbody>
-              {factura.detalles.map(d => (
-                <tr key={d.tomo_id}>
-                  <td>{`${d.titulo} – Tomo ${d.numero_tomo}`}</td>
-                  <td className="text-center">{d.cantidad}</td>
-                  <td className="text-end">${(+d.precio_unitario).toFixed(2)}</td>
-                  <td className="text-end">${(+d.subtotal).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          <div className="table-section mb-3">
+            <div className="table-responsive">
+              <Table bordered className="invoice-table mb-0">
+                <thead>
+                  <tr className="table-head-row">
+                    <th>Producto</th>
+                    <th className="text-center">Cant</th>
+                    <th className="text-end">Precio</th>
+                    <th className="text-end">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {factura.detalles.map((d, idx) => (
+                    <tr key={d.tomo_id ?? idx}>
+                      <td>
+                        <div className="product-title">{d.titulo}</div>
+                        <div className="product-subtitle">Tomo {d.numero_tomo}</div>
+                      </td>
+                      <td className="text-center align-middle">{d.cantidad}</td>
+                      <td className="text-end align-middle">${(+d.precio_unitario).toFixed(2)}</td>
+                      <td className="text-end align-middle">${(+d.subtotal).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </div>
 
-          <div className="d-flex justify-content-end mt-3">
-            <div className="p-3 bg-light rounded" style={{ width: 240 }}>
-              <hr />
+          <hr className="divider" />
+
+          <div className="totals-row d-flex justify-content-end mt-3">
+            <div className="totals-box p-3">
               <div className="d-flex justify-content-between fw-bold">
-                <span>Total</span>
+                <span>Total:</span>
                 <span>${(+factura.total).toFixed(2)}</span>
               </div>
             </div>
@@ -161,13 +164,15 @@ const DetalleFacturaPage = () => {
         </div>
       </div>
 
-      <div className="p-3 bg-dark text-end">
-        <Button variant="secondary" className="me-2" onClick={volverHome}>
-          Volver al Home
-        </Button>
-        <Button variant="primary" onClick={descargarComoPdf}>
-          Descargar Factura (PDF)
-        </Button>
+      <div className="bottom-actions p-3 bg-light text-center">
+        <div className="container d-flex gap-2 justify-content-center">
+          <Button variant="secondary" className="w-50" onClick={volverHome}>
+            Volver al Home
+          </Button>
+          <Button variant="primary" className="w-50" onClick={descargarComoPdf}>
+            Descargar PDF
+          </Button>
+        </div>
       </div>
     </div>
   );
