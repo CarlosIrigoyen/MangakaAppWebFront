@@ -1,4 +1,4 @@
-// src/DetalleFacturaPage.js - VERSIÓN COMPLETA OPTIMIZADA (renderiza tabla + vista móvil)
+// src/DetalleFacturaPage.js - Forzar vista móvil sin console.log
 import React, { useEffect, useState, useRef, useContext, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Spinner, Alert, Button, Container, Table } from 'react-bootstrap';
@@ -8,17 +8,18 @@ import './DetalleFacturaPage.css';
 
 const API_URL = 'https://mangakaappweb-production.up.railway.app/api';
 
-// Componente FacturaTable (renderiza tabla desktop y lista móvil)
-const FacturaTable = React.memo(({ detalles }) => {
-  // seguridad: si detalles es null/undefined mostrar array vacío
+// Factor: componente que renderiza tabla desktop y lista móvil
+const FacturaTable = React.memo(({ detalles, forceMobile }) => {
   const items = Array.isArray(detalles) ? detalles : [];
 
-  // console.log('FacturaTable detalles:', items); // <-- descomentar para debug
+  // Estilo inline para forzar visibilidad de la lista móvil si forceMobile === true
+  const mobileStyle = forceMobile ? { display: 'block', color: '#212529' } : undefined;
+  const tableStyle = forceMobile ? { display: 'none' } : undefined;
 
   return (
     <>
-      {/* Tabla desktop (se ocultará en mobile por CSS) */}
-      <Table bordered className="invoice-table">
+      {/* Tabla desktop (ocultada si forceMobile) */}
+      <Table bordered className="invoice-table" style={tableStyle}>
         <thead>
           <tr className="bg-primary text-white">
             <th>DESCRIPCIÓN</th>
@@ -39,8 +40,9 @@ const FacturaTable = React.memo(({ detalles }) => {
         </tbody>
       </Table>
 
-      {/* Lista móvil (se mostrará en móvil por CSS) */}
-      <div className="productos-mobile">
+      {/* Lista móvil: siempre renderizada pero su visibilidad la controla style/CSS.
+          Aquí usamos mobileStyle para forzar visibilidad si detectamos pantalla pequeña. */}
+      <div className="productos-mobile" style={mobileStyle}>
         {items.map((d, idx) => (
           <div key={d.tomo_id ?? d.id ?? idx} className="product-row">
             <div className="product-title-small">
@@ -56,7 +58,6 @@ const FacturaTable = React.memo(({ detalles }) => {
           </div>
         ))}
 
-        {/* fallback si no hay items */}
         {items.length === 0 && (
           <div className="product-row">
             <div className="product-title-small text-muted">No hay productos.</div>
@@ -67,48 +68,38 @@ const FacturaTable = React.memo(({ detalles }) => {
   );
 });
 
-// Componente memoizado para el header (sin icono)
-const FacturaHeader = React.memo(({ numeroMostrar, fechaSolo }) => {
-  return (
-    <div className="d-flex justify-content-between align-items-center mb-4 invoice-header-compact">
-      <div className="d-flex align-items-center company-info">
-        {/* Icono eliminado: sólo nombre de la tienda */}
-        <h4 className="mb-0 text-primary">Mangaka Baka Shop</h4>
-      </div>
-      <div className="text-end invoice-meta">
-        <h6 className="mb-1 fw-bold">FACTURA</h6>
-        <p className="mb-1"><strong>Nº:</strong> {numeroMostrar}</p>
-        <p className="mb-0"><strong>Fecha:</strong> {fechaSolo}</p>
-      </div>
+const FacturaHeader = React.memo(({ numeroMostrar, fechaSolo }) => (
+  <div className="d-flex justify-content-between align-items-center mb-4 invoice-header-compact">
+    <div className="d-flex align-items-center company-info">
+      <h4 className="mb-0 text-primary">Mangaka Baka Shop</h4>
     </div>
-  );
-});
+    <div className="text-end invoice-meta">
+      <h6 className="mb-1 fw-bold">FACTURA</h6>
+      <p className="mb-1"><strong>Nº:</strong> {numeroMostrar}</p>
+      <p className="mb-0"><strong>Fecha:</strong> {fechaSolo}</p>
+    </div>
+  </div>
+));
 
-// Componente memoizado para el cliente
-const ClienteInfo = React.memo(({ factura }) => {
-  return (
-    <div className="mb-4 address-block">
-      <h6 className="mb-2">FACTURAR A:</h6>
-      <p className="mb-0">
-        {factura.cliente?.nombre ?? ''} {factura.cliente?.apellido ?? ''}
-      </p>
-    </div>
-  );
-});
+const ClienteInfo = React.memo(({ factura }) => (
+  <div className="mb-4 address-block">
+    <h6 className="mb-2">FACTURAR A:</h6>
+    <p className="mb-0">
+      {factura.cliente?.nombre ?? ''} {factura.cliente?.apellido ?? ''}
+    </p>
+  </div>
+));
 
-// Componente memoizado para el total
-const TotalSection = React.memo(({ total }) => {
-  return (
-    <div className="d-flex justify-content-end mt-3">
-      <div className="total-final p-3 bg-light rounded" style={{ width: 240 }}>
-        <div className="d-flex justify-content-between fw-bold">
-          <span>Total</span>
-          <span>${(+total).toFixed(2)}</span>
-        </div>
+const TotalSection = React.memo(({ total }) => (
+  <div className="d-flex justify-content-end mt-3">
+    <div className="total-final p-3 bg-light rounded" style={{ width: 240 }}>
+      <div className="d-flex justify-content-between fw-bold">
+        <span>Total</span>
+        <span>${(+total).toFixed(2)}</span>
       </div>
     </div>
-  );
-});
+  </div>
+));
 
 const DetalleFacturaPage = () => {
   const { id } = useParams();
@@ -118,22 +109,26 @@ const DetalleFacturaPage = () => {
   const [factura, setFactura] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const facturaRef = useRef();
 
-  // Preload de imagen crítica (mantengo preload en caso de usarla)
+  // Detectar ancho y actualizar isMobile
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 767.98);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   useEffect(() => {
     const link = document.createElement('link');
     link.rel = 'preload';
     link.href = '/img/Mangaka.webp';
     link.as = 'image';
     document.head.appendChild(link);
-
-    return () => {
-      try { document.head.removeChild(link); } catch {}
-    };
+    return () => { try { document.head.removeChild(link); } catch {} };
   }, []);
 
-  // Fetch de factura con useCallback
   const fetchFactura = useCallback(async () => {
     if (loadingUser) return;
     if (!user) {
@@ -145,101 +140,63 @@ const DetalleFacturaPage = () => {
     try {
       const token = localStorage.getItem('token');
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const res = await fetch(`${API_URL}/orders/invoices/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
-
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setFactura(data);
-
-      // console.log('fetchFactura detalles:', data?.detalles); // <-- descomentar para debug
     } catch (e) {
-      if (e.name === 'AbortError') {
-        setError('La solicitud tardó demasiado tiempo');
-      } else {
-        setError(e.message || 'Error desconocido');
-      }
+      if (e.name === 'AbortError') setError('La solicitud tardó demasiado tiempo');
+      else setError(e.message || 'Error desconocido');
     } finally {
       setLoading(false);
     }
   }, [id, user, loadingUser, navigate]);
 
-  useEffect(() => {
-    fetchFactura();
-  }, [fetchFactura]);
+  useEffect(() => { fetchFactura(); }, [fetchFactura]);
 
-  // Lazy load de librerías PDF solo cuando se necesiten
   const descargarComoPdf = useCallback(async () => {
     try {
-      // Dynamic imports para reducir bundle inicial
-      const [html2canvasModule, jsPDFModule] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf')
-      ]);
-
+      const [html2canvasModule, jsPDFModule] = await Promise.all([import('html2canvas'), import('jspdf')]);
       const html2canvas = html2canvasModule.default ?? html2canvasModule;
       const jsPDF = jsPDFModule.default ?? jsPDFModule;
-
       const element = facturaRef.current;
       if (!element) return;
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
       const imgData = canvas.toDataURL('image/png', 0.9);
       const pdf = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
-
       const pageWidth = pdf.internal.pageSize.getWidth();
       const margin = 40;
       const imgWidth = pageWidth - margin * 2;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
       pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
       const numeroDigitos = (factura?.numero ?? '').toString().replace(/\D/g, '').slice(0, 6) || id;
       pdf.save(`Factura-${numeroDigitos}.pdf`);
-    } catch (err) {
-      // no mostrar error técnico al usuario, solo aviso amigable
+    } catch {
       // eslint-disable-next-line no-alert
       alert('Error al generar el PDF. Intenta nuevamente.');
-      // console.error('Error generar PDF', err);
     }
   }, [factura, id]);
 
-  const volverHome = useCallback(() => {
-    clearCart();
-    navigate('/');
-  }, [clearCart, navigate]);
+  const volverHome = useCallback(() => { clearCart(); navigate('/'); }, [clearCart, navigate]);
 
-  // Memoizar cálculos costosos
   const { fechaSolo, numeroMostrar } = useMemo(() => {
     if (!factura) return { fechaSolo: '', numeroMostrar: '' };
-
     const fechaSolo = factura.fecha ? new Date(factura.fecha).toLocaleDateString() : '';
     const numeroMostrar = String(factura.numero ?? factura.id ?? '').replace(/\D/g, '').slice(0, 6);
-
     return { fechaSolo, numeroMostrar };
   }, [factura]);
 
-  // Estados de carga
   if (loadingUser || loading) {
     return (
       <Container className="d-flex justify-content-center align-items-center min-vh-100">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </Spinner>
+        <Spinner animation="border" role="status"><span className="visually-hidden">Cargando...</span></Spinner>
       </Container>
     );
   }
@@ -247,13 +204,8 @@ const DetalleFacturaPage = () => {
   if (error) {
     return (
       <Container className="p-4">
-        <Alert variant="danger">
-          <Alert.Heading>Error</Alert.Heading>
-          {error}
-        </Alert>
-        <Button variant="secondary" className="mt-3" onClick={volverHome}>
-          Volver al Home
-        </Button>
+        <Alert variant="danger"><Alert.Heading>Error</Alert.Heading>{error}</Alert>
+        <Button variant="secondary" className="mt-3" onClick={volverHome}>Volver al Home</Button>
       </Container>
     );
   }
@@ -261,13 +213,10 @@ const DetalleFacturaPage = () => {
   if (!factura) {
     return (
       <Container className="p-4">
-        <Alert variant="warning">
-          <Alert.Heading>Factura no encontrada</Alert.Heading>
+        <Alert variant="warning"><Alert.Heading>Factura no encontrada</Alert.Heading>
           La factura solicitada no existe o no tienes permisos para verla.
         </Alert>
-        <Button variant="secondary" className="mt-3" onClick={volverHome}>
-          Volver al Home
-        </Button>
+        <Button variant="secondary" className="mt-3" onClick={volverHome}>Volver al Home</Button>
       </Container>
     );
   }
@@ -277,22 +226,18 @@ const DetalleFacturaPage = () => {
       <div className="container flex-grow-1 d-flex flex-column py-4">
         <div ref={facturaRef} className="p-4 bg-white text-dark rounded invoice-container">
           <FacturaHeader numeroMostrar={numeroMostrar} fechaSolo={fechaSolo} />
-
           <ClienteInfo factura={factura} />
 
-          <FacturaTable detalles={factura.detalles ?? factura.items ?? []} />
+          {/* forceMobile = isMobile -> Forzamos la vista móvil si corresponde */}
+          <FacturaTable detalles={factura.detalles ?? factura.items ?? []} forceMobile={isMobile} />
 
           <TotalSection total={factura.total ?? factura.monto_total ?? 0} />
         </div>
       </div>
 
       <div className="p-3 bg-dark text-end botones-factura">
-        <Button variant="secondary" className="me-2" onClick={volverHome}>
-          Volver al Home
-        </Button>
-        <Button variant="primary" onClick={descargarComoPdf}>
-          Descargar Factura (PDF)
-        </Button>
+        <Button variant="secondary" className="me-2" onClick={volverHome}>Volver al Home</Button>
+        <Button variant="primary" onClick={descargarComoPdf}>Descargar Factura (PDF)</Button>
       </div>
     </div>
   );

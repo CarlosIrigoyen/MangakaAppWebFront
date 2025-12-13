@@ -485,3 +485,5 @@ button:focus, .btn:focus, a:focus {
   }
 }
 
+/* Verifica que el viewport esté presente (esto no lo añade CSS, pero ayuda si falta la meta viewport)
+   Asegúrate en public/index.html: <meta name="viewport" content="width=device-width, initial-scale=1"> */
