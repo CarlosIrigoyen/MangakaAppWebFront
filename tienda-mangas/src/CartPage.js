@@ -1,4 +1,3 @@
-// src/CartPage.js
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
@@ -352,8 +351,9 @@ const CartPage = () => {
           </div>
 
           {/* === CONTROLES DE BOTONES: contenedor unico para igualar anchos === */}
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch gap-2">
-            <div className="d-flex w-100 gap-2 flex-column flex-sm-row cart-actions">
+          {/* WRAPPER modificado para centrar correctamente el grupo de botones */}
+          <div className="d-flex justify-content-center">
+            <div className="d-flex gap-2 flex-column flex-sm-row cart-actions">
               <Button
                 type="button"
                 variant="outline-light"

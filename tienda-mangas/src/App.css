@@ -353,3 +353,28 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
   .cart-actions .cart-btn { width: 260px; flex: 0 0 260px; }
 }
 */
+
+/* === FALLBACK: Forzar centrado si alguna utilidad de Bootstrap fuerza ancho === */
+/* (No debería hacer falta si aplicaste el cambio en JSX; es solo para compatibilidad) */
+.p-3.border-top > .d-flex {
+  justify-content: center !important;
+}
+.p-3.border-top > .d-flex .cart-actions .cart-btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+}
+
+/* En móvil, si preferís que sigan apilados y ocupando ancho, ajustamos el fallback */
+@media (max-width: 575.98px) {
+  .p-3.border-top > .d-flex {
+    justify-content: flex-start !important; /* cambia a center si preferís centrado en móvil */
+  }
+  .p-3.border-top > .d-flex .cart-actions {
+    flex-direction: column !important;
+  }
+  .p-3.border-top > .d-flex .cart-actions .cart-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
