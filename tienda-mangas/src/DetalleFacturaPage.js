@@ -1,4 +1,4 @@
-// src/DetalleFacturaPage.js - Versión final: fallback móvil seguro sin console.log
+// src/DetalleFacturaPage.js - Versión final corregida
 import React, { useEffect, useState, useRef, useContext, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Spinner, Alert, Button, Container, Table, Collapse } from 'react-bootstrap';
@@ -49,15 +49,13 @@ function findItems(factura) {
   return null;
 }
 
-const FacturaTable = React.memo(({ items = [], forceMobile }) => {
-  const tableStyle = forceMobile ? { display: 'none' } : undefined;
-  const mobileStyle = forceMobile ? { display: 'block', color: '#212529' } : undefined;
+const FacturaTable = React.memo(({ items = [] }) => {
   const rows = Array.isArray(items) ? items : [];
 
   return (
     <>
-      {/* Tabla desktop */}
-      <Table bordered className="invoice-table" style={tableStyle}>
+      {/* Tabla desktop - se oculta en móvil con CSS */}
+      <Table bordered className="invoice-table">
         <thead>
           <tr className="bg-primary text-white">
             <th>DESCRIPCIÓN</th>
@@ -78,22 +76,32 @@ const FacturaTable = React.memo(({ items = [], forceMobile }) => {
         </tbody>
       </Table>
 
-      {/* Lista móvil (clásica) - depende de CSS, puede ser ocultada por reglas externas */}
-      <div className="productos-mobile" style={mobileStyle}>
+      {/* Lista móvil - se muestra solo en móvil con CSS */}
+      <div className="productos-mobile">
         {rows.map((d, idx) => (
           <div key={d.tomo_id ?? d.id ?? idx} className="product-row">
-            <div className="product-title-small">{`${d.titulo ?? d.nombre ?? d.title ?? 'Producto'}${d.numero_tomo ? ` – Tomo ${d.numero_tomo}` : ''}`}</div>
-            <div className="product-details small text-muted">Cantidad: {d.cantidad ?? d.qty ?? d.quantity ?? 0}</div>
+            <div className="product-title-small">
+              {`${d.titulo ?? d.nombre ?? d.title ?? 'Producto'}${d.numero_tomo ? ` – Tomo ${d.numero_tomo}` : ''}`}
+            </div>
+            <div className="product-details small text-muted">
+              Cantidad: {d.cantidad ?? d.qty ?? d.quantity ?? 0}
+            </div>
             <div className="price-row">
-              <div className="product-prices">Precio: ${(+ (d.precio_unitario ?? d.precio ?? d.price ?? 0)).toFixed(2)}</div>
-              <div className="product-prices">Importe: ${(+ (d.subtotal ?? d.total ?? ((d.cantidad ?? 0) * (d.precio_unitario ?? d.precio ?? d.price ?? 0)))).toFixed(2)}</div>
+              <div className="product-prices">
+                Precio: ${(+ (d.precio_unitario ?? d.precio ?? d.price ?? 0)).toFixed(2)}
+              </div>
+              <div className="product-prices">
+                Importe: ${(+ (d.subtotal ?? d.total ?? ((d.cantidad ?? 0) * (d.precio_unitario ?? d.precio ?? d.price ?? 0)))).toFixed(2)}
+              </div>
             </div>
           </div>
         ))}
 
         {rows.length === 0 && (
-          <div className="product-row">
-            <div className="product-title-small text-muted">No hay productos.</div>
+          <div className="product-row text-center py-4">
+            <div className="product-title-small text-muted">
+              No hay productos en esta factura.
+            </div>
           </div>
         )}
       </div>
@@ -136,25 +144,8 @@ const DetalleFacturaPage = () => {
   const [factura, setFactura] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
   const facturaRef = useRef();
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth <= 767.98);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.href = '/img/Mangaka.webp';
-    link.as = 'image';
-    document.head.appendChild(link);
-    return () => { try { document.head.removeChild(link); } catch {} };
-  }, []);
 
   const fetchFactura = useCallback(async () => {
     if (loadingUser) return;
@@ -200,7 +191,6 @@ const DetalleFacturaPage = () => {
       const numeroDigitos = (factura?.numero ?? '').toString().replace(/\D/g, '').slice(0, 6) || id;
       pdf.save(`Factura-${numeroDigitos}.pdf`);
     } catch {
-      // eslint-disable-next-line no-alert
       alert('Error al generar el PDF. Intenta nuevamente.');
     }
   }, [factura, id]);
@@ -215,32 +205,6 @@ const DetalleFacturaPage = () => {
   }, [factura]);
 
   const items = useMemo(() => findItems(factura) ?? [], [factura]);
-
-  // --- FALLBACK MÓVIL SIMPLE: markup muy básico y styles inline para garantizar visibilidad ---
-  const fallbackMobileList = isMobile ? (
-    <div style={{ display: 'block', padding: '0.5rem 0', marginBottom: 8 }}>
-      {items.length === 0 ? (
-        <div style={{ color: '#6c757d', padding: '0.5rem 0' }}>No hay productos.</div>
-      ) : (
-        items.map((d, i) => {
-          const title = `${d.titulo ?? d.nombre ?? d.title ?? 'Producto'}${d.numero_tomo ? ` – Tomo ${d.numero_tomo}` : ''}`;
-          const qty = d.cantidad ?? d.qty ?? d.quantity ?? 0;
-          const price = (+ (d.precio_unitario ?? d.precio ?? d.price ?? 0)).toFixed(2);
-          const subtotal = (+ (d.subtotal ?? d.total ?? (qty * (d.precio_unitario ?? d.precio ?? d.price ?? 0)))).toFixed(2);
-          return (
-            <div key={d.tomo_id ?? d.id ?? i} style={{ padding: '0.6rem 0', borderBottom: '1px solid #e9ecef', color: '#212529' }}>
-              <div style={{ fontWeight: 600, color: '#0d6efd', marginBottom: 4 }}>{title}</div>
-              <div style={{ fontSize: 13, color: '#6c757d', marginBottom: 6 }}>Cantidad: {qty}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                <div>Precio: ${price}</div>
-                <div>Importe: ${subtotal}</div>
-              </div>
-            </div>
-          );
-        })
-      )}
-    </div>
-  ) : null;
 
   if (loadingUser || loading) {
     return (
@@ -285,10 +249,7 @@ const DetalleFacturaPage = () => {
           </div>
 
           {/* Tabla / Lista controlada por CSS */}
-          <FacturaTable items={items} forceMobile={isMobile} />
-
-          {/* --- Fallback móvil muy simple y seguro (inline styles) --- */}
-          {fallbackMobileList}
+          <FacturaTable items={items} />
 
           <Collapse in={debugOpen}>
             <div className="p-2" style={{ background: '#f8f9fa', color: '#222', borderRadius: 6, overflow: 'auto', maxHeight: 260 }}>
@@ -298,6 +259,13 @@ const DetalleFacturaPage = () => {
           </Collapse>
 
           <TotalSection total={factura.total ?? factura.monto_total ?? 0} />
+          
+          {/* Debug info */}
+          <div className="mt-3 p-2 bg-warning bg-opacity-10 rounded">
+            <small className="text-muted">
+              Debug: {items.length} productos encontrados
+            </small>
+          </div>
         </div>
       </div>
 
