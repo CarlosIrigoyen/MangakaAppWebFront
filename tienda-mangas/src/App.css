@@ -1,4 +1,4 @@
-/* App.css optimizado - Solo modificaciones para menú desplegable */
+/* App.css optimizado - Archivo completo */
 
 /* --- Básicos --- */
 .App {
@@ -305,32 +305,35 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
   }
 }
 
-/* === Cart page: botones igual largo === */
+/* === Cart page: botones centrados con separación === */
 .cart-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;                 /* separación entre botones */
+  justify-content: center;   /* centra el grupo de botones */
+  align-items: center;
   width: 100%;
-  align-items: stretch;
+  flex-wrap: wrap;           /* permite que los botones bajen de fila si no entran */
 }
 
-/* En móvil queremos que los botones estén apilados y llenen el ancho */
+/* En móvil: apilados y ocupando ancho completo */
 @media (max-width: 575.98px) {
   .cart-actions {
     flex-direction: column;
   }
-  .cart-btn {
+  .cart-actions .cart-btn {
     width: 100%;
   }
 }
 
-/* En tablet+ los colocamos en fila y hacemos que cada botón ocupe el mismo ancho */
+/* En tablet+ y desktop: botones centrados, con ancho limitado para separar bien */
 @media (min-width: 576px) {
   .cart-actions {
     flex-direction: row;
   }
   .cart-actions .cart-btn {
-    flex: 1 1 0;
-    min-width: 0; /* evita que el contenido forze el ancho */
+    flex: 0 0 auto;         /* evita que se expandan para llenar el espacio */
+    min-width: 160px;       /* ancho mínimo (ajusta a tu gusto) */
+    max-width: 260px;       /* ancho máximo (ajusta a tu gusto) */
   }
 }
 
