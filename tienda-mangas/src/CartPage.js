@@ -1,17 +1,16 @@
-// src/CartPage.js
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
 import { UserContext } from './UserContext';
 import { Button, Image, Alert, Spinner } from 'react-bootstrap';
- 
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
 const REACT_PAYPAL_CREATE_ORDER = `${process.env.REACT_APP_API_URL}/paypal/create-order`;
+const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
 
 const CartPage = () => {
-  const { cart, updateCartItem, clearCartAfterPurchase, removeCartItem, serverCartLoaded, serverCartEmpty } = useContext(CartContext);
+  const { cart, updateCartItem, clearCartAfterPurchase, removeCartItem } = useContext(CartContext);
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
 
@@ -22,12 +21,13 @@ const CartPage = () => {
   const [clearingCart, setClearingCart] = useState(false); // nuevo estado para vaciado masivo
 
   // Total y accesibilidad: usamos aria-live para anunciar cambios
-  const totalAmount = cart.reduce((sum, item) => sum + (item.precio || 0) * (item.quantity || 0), 0);
+  const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
 
   const handleIncrease = (item) => {
     if (item.quantity < item.stock) {
       updateCartItem(item.id, item.quantity + 1);
     } else {
+      // Mensaje visual; para producción conviene usar un toast accesible
       alert(`No hay suficiente stock. Stock disponible: ${item.stock}`);
     }
   };
@@ -48,23 +48,31 @@ const CartPage = () => {
     setShowClearCartModal(true);
   };
 
+  // confirmClearCart elimina los items **secuencialmente** usando handleRemove(item)
   const confirmClearCart = async () => {
     setClearingCart(true);
     try {
+      // Hacemos copia del carrito actual para iterar sin problemas si el estado cambia
       const itemsToRemove = [...cart];
       const failed = [];
 
       for (const item of itemsToRemove) {
         try {
+          // Soportamos tanto removeCartItem síncrono como asíncrono
           const result = handleRemove(item);
           await (result instanceof Promise ? result : Promise.resolve(result));
         } catch (err) {
           console.error(`Error eliminando item ${item.id}:`, err);
           failed.push(item);
+          // Opcional: si preferís detenerte al primer error, descomenta la siguiente línea:
+          // break;
         }
       }
 
-      if (failed.length > 0) {
+      if (failed.length === 0) {
+        // Todo bien: si tu context actualiza el estado del carrito, acá ya debería estar vacío
+        // Si tenés una función que limpia todo en backend (clearCartAfterPurchase) podrías llamarla como fallback.
+      } else {
         alert(`No se pudieron eliminar ${failed.length} item(s). Revisa la consola para más detalle.`);
       }
     } catch (err) {
@@ -219,14 +227,8 @@ const CartPage = () => {
     );
   }
 
-  // NUEVA LÓGICA: Carrito vacío
-  const isCartEmptyForServer = user ? (serverCartLoaded && serverCartEmpty) : false;
-  const isGuestCartEmpty = !user && cart.length === 0;
-
-  if (isCartEmptyForServer || isGuestCartEmpty) {
-    // si el usuario estaba en una página concreta antes, la guardamos en sessionStorage (ya la guarda MainApp, pero por si acaso leemos)
-    const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
-
+  // Carrito vacío: título semántico h1
+  if (!cart.length) {
     return (
       <main
         role="main"
@@ -234,14 +236,13 @@ const CartPage = () => {
         className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white"
       >
         <h1>Tu carrito está vacío</h1>
-        <Button variant="secondary" className="mt-3" onClick={() => navigate(`/?page=${lastPage}`)}>
-          Volver a la Tienda
-        </Button>
+           <Button variant="secondary" className="mt-3" onClick={() => navigate(`/?page=${lastPage}`)}>
+              Volver a la Tienda
+           </Button>
       </main>
     );
   }
 
-  // Carrito con items (render normal)
   const productosConProblemas = cart.filter(item => item.quantity > item.stock);
 
   return (
@@ -260,7 +261,7 @@ const CartPage = () => {
 
         <div className="overflow-auto flex-grow-1 bg-dark p-3 rounded" aria-live="polite" aria-atomic="true">
           {cart.map(item => {
-            const itemTotal = (item.precio || 0) * (item.quantity || 0);
+            const itemTotal = item.precio * item.quantity;
             const imageUrl = item.portada?.startsWith('http') ? item.portada : `${CLOUDINARY_BASE_URL}/${item.portada}`;
 
             const tieneStockSuficiente = item.quantity <= item.stock;
@@ -351,13 +352,13 @@ const CartPage = () => {
           </div>
 
           {/* === CONTROLES DE BOTONES: contenedor unico para igualar anchos === */}
+          {/* WRAPPER modificado para centrar correctamente el grupo de botones */}
           <div className="d-flex justify-content-center">
             <div className="d-flex gap-2 flex-column flex-sm-row cart-actions">
               <Button
                 type="button"
                 variant="outline-light"
-                onClick={() => {
-                  const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
+                  onClick={() => {
                   navigate(`/?page=${lastPage}`);
                 }}
                 className="cart-btn"
