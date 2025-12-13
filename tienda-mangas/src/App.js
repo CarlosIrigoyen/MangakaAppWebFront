@@ -1,11 +1,12 @@
-// App.js
+// src/App.js (reemplaza o actualiza el MainApp con este)
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Link,
-  useNavigate
+  useNavigate,
+  useLocation
 } from 'react-router-dom';
 import {
   Navbar,
@@ -31,9 +32,6 @@ const SuccessPage = lazy(() => import('./SuccessPage'));
 const FailurePage = lazy(() => import('./FailurePage'));
 const PendingPage = lazy(() => import('./PendingPage'));
 const PayPalReturn = lazy(() => import('./PayPalReturn'));
-
-// Modal controlado (sin botón interno)
-//es SubscriptionManager
 const SubscriptionManagerModal = lazy(() => import('./SubscriptionManager'));
 
 import { CartProvider, CartContext } from './CartContext';
@@ -56,6 +54,8 @@ const SmallSpinner = () => (
 
 const MainApp = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const { user, login, logout, loadingUser } = useContext(UserContext);
   const { cart } = useContext(CartContext);
   const cartCount = cart.length;
@@ -74,6 +74,17 @@ const MainApp = () => {
     minPrice: '',
     maxPrice: ''
   });
+
+  // PAGINACIÓN: inicializar desde URL ?page= o desde sessionStorage
+  const getInitialPage = () => {
+    const qs = new URLSearchParams(location.search);
+    const qp = parseInt(qs.get('page'), 10);
+    if (qp && qp > 0) return qp;
+    const stored = parseInt(sessionStorage.getItem('tomos_current_page'), 10);
+    return (stored && stored > 0) ? stored : 1;
+  };
+
+  const [currentPage, setCurrentPage] = useState(getInitialPage);
 
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -111,32 +122,41 @@ const MainApp = () => {
       const data = await res.json();
       setTomos(data.data || []);
       setPagination({
-        currentPage: data.current_page || 1,
+        currentPage: data.current_page || page,
         lastPage: data.last_page || 1,
         total: data.total || 0
       });
+
+      // guardar el page actual en sessionStorage y en la URL
+      sessionStorage.setItem('tomos_current_page', page);
+      // actualizar URL sin forzar recarga
+      navigate(`/?page=${page}`, { replace: true });
     } catch (error) {
       console.error('Error fetch tomos:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
+  // Cargar tomos cuando filters o currentPage cambian
   useEffect(() => {
-    fetchTomos(filters, 1);
-  }, [fetchTomos, filters]);
+    fetchTomos(filters, currentPage);
+  }, [fetchTomos, filters, currentPage]);
 
   const handlePageChange = useCallback((page) => {
-    fetchTomos(filters, page);
-  }, [fetchTomos, filters]);
+    if (!page || page < 1) page = 1;
+    setCurrentPage(page);
+    // fetchTomos será llamado por el useEffect que escucha currentPage
+  }, []);
 
   const handleSearch = useCallback(() => {
     const f = { ...filters, searchText: searchQuery };
     setFilters(f);
-    fetchTomos(f, 1);
+    setCurrentPage(1);
+    // fetchTomos se invoca por el useEffect
     setNavExpanded(false);
     setShowMobileSearch(false);
-  }, [filters, searchQuery, fetchTomos]);
+  }, [filters, searchQuery]);
 
   const handleShowInfo = useCallback((tomo) => {
     setSelectedTomo(tomo);
@@ -145,8 +165,8 @@ const MainApp = () => {
 
   const handleFilterChange = useCallback((f) => {
     setFilters(f);
-    fetchTomos(f, 1);
-  }, [fetchTomos]);
+    setCurrentPage(1);
+  }, []);
 
   const resetFilters = useCallback(() => {
     const defaultFilters = {
@@ -162,10 +182,10 @@ const MainApp = () => {
     };
     setFilters(defaultFilters);
     setSearchQuery('');
-    fetchTomos(defaultFilters, 1);
+    setCurrentPage(1);
     setSuccessMessage('Filtros eliminados correctamente');
     setTimeout(() => setSuccessMessage(''), 3000);
-  }, [fetchTomos]);
+  }, []);
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
@@ -267,7 +287,7 @@ const MainApp = () => {
         style={{ zIndex: 1040 }}
       >
         <Container fluid>
-          <Navbar.Brand as={Link} to="/" onClick={() => setNavExpanded(false)}>
+          <Navbar.Brand as={Link} to="/" onClick={() => { setNavExpanded(false); navigate('/'); }}>
             <span className="ms-2 fw-bold">Mangaka Baka Shop</span>
           </Navbar.Brand>
 
@@ -319,8 +339,11 @@ const MainApp = () => {
                 <Button 
                   type="button" 
                   variant="outline-light" 
-                  as={Link} 
-                  to="/cart" 
+                  onClick={() => {
+                    // antes de ir al carrito guardamos la página actual
+                    sessionStorage.setItem('tomos_current_page', pagination?.currentPage || currentPage || 1);
+                    navigate('/cart');
+                  }}
                   className="btn-black ms-2 btn-equal"
                   aria-label={`Carrito, ${cartCount} items`}
                 >
@@ -493,7 +516,10 @@ const MainApp = () => {
                 type="button"
                 size="sm"
                 className="btn-black btn-equal icon-btn"
-                onClick={() => navigate('/cart')}
+                onClick={() => {
+                  sessionStorage.setItem('tomos_current_page', pagination?.currentPage || currentPage || 1);
+                  navigate('/cart');
+                }}
                 aria-label={`Carrito, ${cartCount} items`}
               >
                 <FaShoppingCart />
