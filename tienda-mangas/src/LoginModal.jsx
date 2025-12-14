@@ -54,7 +54,7 @@ function LoginModal({ show, onHide, onSubmit, errors, clearErrors }) {
           <Alert variant="warning" className="mb-3">
             <div className="d-flex align-items-center">
               <FaExclamationCircle className="me-2" />
-              <span>{fieldErrors.credenciales}</span>
+              <span>Usuario o Contraseña incorrecto</span>
             </div>
           </Alert>
         )}
@@ -104,19 +104,7 @@ function LoginModal({ show, onHide, onSubmit, errors, clearErrors }) {
             )}
           </Form.Group>
 
-          <div className="mb-3 text-end">
-            <Button 
-              variant="link" 
-              className="p-0 text-info"
-              onClick={() => {
-                onHide();
-                // Aquí podrías abrir un modal de recuperación de contraseña
-                alert('Funcionalidad de recuperación de contraseña en desarrollo');
-              }}
-            >
-              ¿Olvidaste tu contraseña?
-            </Button>
-          </div>
+        
 
           <Button 
             variant="primary" 
@@ -137,23 +125,6 @@ function LoginModal({ show, onHide, onSubmit, errors, clearErrors }) {
             )}
           </Button>
         </Form>
-
-        <div className="mt-3 text-center">
-          <small className="text-muted">
-            ¿No tienes cuenta?{' '}
-            <Button 
-              variant="link" 
-              className="p-0 text-info"
-              onClick={() => {
-                onHide();
-                // Aquí deberías abrir el modal de registro
-                // Necesitarías una función prop para esto
-              }}
-            >
-              Regístrate aquí
-            </Button>
-          </small>
-        </div>
       </Modal.Body>
     </Modal>
   );
