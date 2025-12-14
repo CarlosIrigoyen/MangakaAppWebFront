@@ -1,3 +1,4 @@
+// src/CartPage.js
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
@@ -7,7 +8,6 @@ import { Button, Image, Alert, Spinner } from 'react-bootstrap';
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
 const REACT_PAYPAL_CREATE_ORDER = `${process.env.REACT_APP_API_URL}/paypal/create-order`;
-const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
 
 const CartPage = () => {
   const { cart, updateCartItem, clearCartAfterPurchase, removeCartItem } = useContext(CartContext);
@@ -229,6 +229,9 @@ const CartPage = () => {
 
   // Carrito vacío: título semántico h1
   if (!cart.length) {
+    // leemos la última página visitada (guardada por MainApp) para volver a ella
+    const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
+
     return (
       <main
         role="main"
@@ -236,9 +239,9 @@ const CartPage = () => {
         className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white"
       >
         <h1>Tu carrito está vacío</h1>
-           <Button variant="secondary" className="mt-3" onClick={() => navigate(`/?page=${lastPage}`)}>
-              Volver a la Tienda
-           </Button>
+        <Button variant="secondary" className="mt-3" onClick={() => navigate(`/?page=${lastPage}`)}>
+          Volver a la Tienda
+        </Button>
       </main>
     );
   }
@@ -358,7 +361,8 @@ const CartPage = () => {
               <Button
                 type="button"
                 variant="outline-light"
-                  onClick={() => {
+                onClick={() => {
+                  const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
                   navigate(`/?page=${lastPage}`);
                 }}
                 className="cart-btn"
