@@ -1,4 +1,4 @@
-// src/App.js (reemplaza o actualiza el MainApp con este)
+// src/App.js (con mejor control de errores en registro y login)
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import {
   BrowserRouter as Router,
@@ -17,7 +17,7 @@ import {
   Alert,
   InputGroup
 } from 'react-bootstrap';
-import { FaShoppingCart, FaSearch, FaBars, FaBell, FaFilter, FaHome } from 'react-icons/fa';
+import { FaShoppingCart, FaSearch, FaBars, FaBell, FaFilter, FaHome, FaExclamationTriangle } from 'react-icons/fa';
 
 const TomoList = lazy(() => import('./TomoList'));
 const SidebarFilters = lazy(() => import('./SideBarFilters'));
@@ -98,6 +98,8 @@ const MainApp = () => {
   const [showMobileDropdown, setShowMobileDropdown] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [registerErrors, setRegisterErrors] = useState({});
+  const [loginErrors, setLoginErrors] = useState({});
   
   const dropdownRef = useRef(null);
 
@@ -133,6 +135,7 @@ const MainApp = () => {
       navigate(`/?page=${page}`, { replace: true });
     } catch (error) {
       console.error('Error fetch tomos:', error);
+      setError('Error al cargar los tomos. Por favor, intenta nuevamente.');
     } finally {
       setIsLoading(false);
     }
@@ -190,10 +193,25 @@ const MainApp = () => {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setRegisterErrors({});
+    
     const nombre = e.target.formNombre?.value;
     const direccion = e.target.formDireccion?.value;
     const email = e.target.formEmailRegister?.value;
     const password = e.target.formPasswordRegister?.value;
+
+    // Validación básica del frontend
+    const errors = {};
+    if (!nombre?.trim()) errors.nombre = 'El nombre es requerido';
+    if (!direccion?.trim()) errors.direccion = 'La dirección es requerida';
+    if (!email?.trim()) errors.email = 'El email es requerido';
+    if (!password?.trim()) errors.password = 'La contraseña es requerida';
+    if (password && password.length < 6) errors.password = 'La contraseña debe tener al menos 6 caracteres';
+    
+    if (Object.keys(errors).length > 0) {
+      setRegisterErrors(errors);
+      return;
+    }
 
     try {
       const res = await fetch(REGISTER_URL, {
@@ -202,24 +220,49 @@ const MainApp = () => {
         body: JSON.stringify({ nombre, email, password, direccion })
       });
       const data = await res.json();
+      
       if (res.ok) {
         login(data.cliente, data.token);
         setShowRegister(false);
-        setSuccessMessage('¡Registro exitoso!');
+        setSuccessMessage('¡Registro exitoso! Bienvenido/a');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        setError(data.message || 'Error en el registro');
+        // Manejar errores del servidor
+        if (data.errors) {
+          const serverErrors = {};
+          Object.keys(data.errors).forEach(key => {
+            serverErrors[key] = Array.isArray(data.errors[key]) 
+              ? data.errors[key].join(', ') 
+              : data.errors[key];
+          });
+          setRegisterErrors(serverErrors);
+        } else {
+          setError(data.message || 'Error en el registro');
+        }
       }
     } catch (err) {
-      setError('Error de conexión. Intenta nuevamente.');
+      setError('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
     }
   };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoginErrors({});
+    
     const email = e.target.formEmailLogin?.value;
     const password = e.target.formPasswordLogin?.value;
+
+    // Validación básica del frontend
+    const errors = {};
+    if (!email?.trim()) errors.email = 'El email es requerido';
+    if (!password?.trim()) errors.password = 'La contraseña es requerida';
+    
+    if (Object.keys(errors).length > 0) {
+      setLoginErrors(errors);
+      return;
+    }
+
     try {
       const res = await fetch(LOGIN_URL, {
         method: 'POST',
@@ -227,16 +270,28 @@ const MainApp = () => {
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();
+      
       if (res.ok) {
         login(data.cliente, data.token);
         setShowLogin(false);
-        setSuccessMessage('¡Bienvenido!');
+        setSuccessMessage(`¡Bienvenido de nuevo, ${data.cliente.nombre}!`);
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        setError(data.message || 'Usuario o contraseña incorrectos');
+        // Manejar errores del servidor
+        if (data.errors) {
+          const serverErrors = {};
+          Object.keys(data.errors).forEach(key => {
+            serverErrors[key] = Array.isArray(data.errors[key]) 
+              ? data.errors[key].join(', ') 
+              : data.errors[key];
+          });
+          setLoginErrors(serverErrors);
+        } else {
+          setError(data.message || 'Usuario o contraseña incorrectos');
+        }
       }
     } catch (err) {
-      setError('Error de conexión. Intenta nuevamente.');
+      setError('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
     }
   };
 
@@ -260,18 +315,45 @@ const MainApp = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Limpiar errores al cerrar modales
+  useEffect(() => {
+    if (!showRegister) {
+      setRegisterErrors({});
+    }
+    if (!showLogin) {
+      setLoginErrors({});
+    }
+  }, [showRegister, showLogin]);
+
   return (
     <div className="bg-dark text-white min-vh-100">
-      {/* Mensajes de éxito */}
+      {/* Mensajes de éxito con mejor espaciado */}
       {successMessage && (
         <Alert
           variant="success"
-          className="position-fixed top-0 start-50 translate-middle-x mt-3 z-1050 floating-alert"
-          style={{ minWidth: '300px' }}
+          className="floating-alert"
           dismissible
           onClose={() => setSuccessMessage('')}
         >
-          {successMessage}
+          <div className="d-flex align-items-center">
+            <FaExclamationTriangle className="me-2" />
+            <span>{successMessage}</span>
+          </div>
+        </Alert>
+      )}
+
+      {/* Mensajes de error general */}
+      {error && (
+        <Alert
+          variant="danger"
+          className="floating-alert"
+          dismissible
+          onClose={() => setError('')}
+        >
+          <div className="d-flex align-items-center">
+            <FaExclamationTriangle className="me-2" />
+            <span>{error}</span>
+          </div>
         </Alert>
       )}
 
@@ -587,12 +669,6 @@ const MainApp = () => {
 
         {/* LISTA DE TOMOS - Solo muestra loading interno si está cargando */}
         <div className="main-content flex-grow-1 p-2">
-          {error && (
-            <Alert variant="danger" className="mb-3" dismissible onClose={() => setError('')}>
-              {error}
-            </Alert>
-          )}
-          
           {/* Indicador de carga mínima */}
           {isLoading && (
             <div className="text-center mb-3">
@@ -627,21 +703,21 @@ const MainApp = () => {
           show={showRegister}
           onHide={() => {
             setShowRegister(false);
-            setError('');
+            setRegisterErrors({});
           }}
           onSubmit={handleRegisterSubmit}
-          error={error}
-          setError={setError}
+          errors={registerErrors}
+          clearErrors={() => setRegisterErrors({})}
         />
         <LoginModal
           show={showLogin}
           onHide={() => {
             setShowLogin(false);
-            setError('');
+            setLoginErrors({});
           }}
           onSubmit={handleLoginSubmit}
-          error={error}
-          setError={setError}
+          errors={loginErrors}
+          clearErrors={() => setLoginErrors({})}
         />
         <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
         
