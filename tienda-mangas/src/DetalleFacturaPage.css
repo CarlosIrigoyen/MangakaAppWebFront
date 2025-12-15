@@ -1,9 +1,4 @@
-/* DetalleFacturaPage.css
-   Versión completa con modificaciones solicitadas:
-   - Se eliminan iconos/imágenes del header (solo queda el nombre de la tienda).
-   - En móvil los items de la factura se muestran apilados uno debajo del otro (sin cards).
-   - Ajustes responsivos y para impresión conservados.
-*/
+/* DetalleFacturaPage.css - sin imágenes en header y reglas para mobile/listado apilado */
 
 /* Fondo de la página */
 body {
@@ -37,6 +32,12 @@ body {
   text-align: center;
 }
 
+.invoice-header-compact {
+  border-bottom: 2px solid #0d6efd;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
 .company-info {
   display: flex;
   align-items: center;
@@ -44,14 +45,16 @@ body {
   gap: 0.75rem;
 }
 
-.company-info img {
-  /* Ocultamos cualquier imagen/logo para dejar solo nombre */
-  display: none;
-  max-width: 40px;
-  height: auto;
+/* Ocultar cualquier imagen/logo para dejar solo nombre (refuerzo) */
+.company-info img,
+.invoice-container img,
+.invoice-header img,
+.company-logo {
+  display: none !important;
 }
 
-.company-info h5 {
+.company-info h5,
+.company-info h4 {
   font-weight: 600;
   color: #0d6efd;
   margin: 0;
@@ -71,6 +74,7 @@ body {
   border-radius: 0.25rem;
   background-color: #e9f5ff;
   margin-bottom: 1rem;
+  padding: 0;
 }
 
 .address-block h6 {
@@ -111,44 +115,9 @@ body {
   vertical-align: middle;
 }
 
-/* TABLA COMPACTA PARA TABLET/MÓVIL HORIZONTAL (md a lg) */
-.invoice-table-compact {
-  width: 100%;
-  font-size: 0.8rem;
-  margin-bottom: 1rem;
-}
-
-.invoice-table-compact thead th {
-  background-color: #0d6efd !important;
-  border-color: #0d6efd !important;
-  color: #fff;
-  padding: 0.5rem;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.invoice-table-compact tbody td {
-  padding: 0.5rem;
-  border-color: #dee2e6;
-  vertical-align: top;
-}
-
-.product-title-small {
-  font-weight: 600;
-  font-size: 0.8rem;
-  line-height: 1.2;
-  margin-bottom: 0.2rem;
-}
-
-.product-subtitle {
-  font-size: 0.75rem;
-  color: #6c757d;
-  line-height: 1.2;
-}
-
 /* PRODUCTOS MÓVIL VERTICAL: items apilados uno debajo del otro (usado en mobile) */
 .productos-mobile {
-  display: block;
+  display: none; /* por defecto oculto en desktop; visible en mobile vía media query */
 }
 
 .productos-mobile .product-row {
@@ -187,13 +156,6 @@ body {
   margin-top: 6px;
 }
 
-/* Si existían cards, ocultarlos en mobile (ya no los usamos visualmente) */
-@media (max-width: 767.98px) {
-  .product-card {
-    display: none !important;
-  }
-}
-
 /* TOTAL */
 .totals-section {
   margin-top: 1.5rem;
@@ -210,7 +172,7 @@ body {
   border-radius: 0.25rem;
 }
 
-/* BOTONES */
+/* BOTONES (sin cambios en disposición ni colores) */
 .botones-factura {
   display: flex;
   flex-direction: column;
@@ -257,7 +219,6 @@ body {
     min-width: 140px;
   }
 
-  /* Si el layout usa .productos-mobile, asegurar espaciado legible */
   .productos-mobile .product-row {
     padding: 0.75rem 0;
   }
@@ -345,38 +306,6 @@ body {
   }
 }
 
-/* Móviles muy pequeños en horizontal */
-@media (max-width: 575.98px) and (orientation: landscape) {
-  .invoice-container {
-    padding: 0.75rem;
-  }
-
-  .invoice-header {
-    flex-direction: row;
-    gap: 0.5rem;
-  }
-
-  .company-info {
-    flex: 1;
-  }
-
-  .invoice-meta {
-    flex: 0 0 auto;
-  }
-
-  .company-info h5 {
-    font-size: 1rem;
-  }
-
-  .product-card .card-body {
-    padding: 0.75rem;
-  }
-
-  .product-info {
-    margin-bottom: 0.75rem;
-  }
-}
-
 /* ESTILOS PARA PDF */
 @media print {
   .invoice-container {
@@ -390,21 +319,10 @@ body {
     display: none;
   }
 
-  /* En PDF, mostrar siempre la tabla desktop */
-  .d-md-none,
-  .d-lg-none {
-    display: none !important;
-  }
-
-  .d-none.d-lg-block {
-    display: block !important;
-  }
-
   .table-responsive {
     overflow: visible !important;
   }
 
-  /* Asegurar contraste en impresión */
   body {
     background: #fff;
     color: #000;
@@ -421,28 +339,30 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Optimización para tablets en retrato */
-@media (min-width: 768px) and (max-width: 991.98px) and (orientation: portrait) {
-  .invoice-container {
-    max-width: 95%;
-  }
-}
-
-/* Eliminar iconos/imagenes dentro del header si los hubiera (refuerzo global) */
-.invoice-container img,
-.invoice-header img,
-.company-logo {
-  display: none !important;
-}
-
 /* Accesibilidad: foco claro en botones dentro de la factura */
 button:focus, .btn:focus, a:focus {
   outline: 3px solid rgba(13,110,253,0.18);
   outline-offset: 2px;
 }
 
-/* Pequeñas correcciones visuales */
-.product-details small {
-  color: #6c757d;
-  line-height: 1.2;
+/* REGLAS FUERTE PARA MÓVIL (asegurar visibilidad de lista) */
+@media (max-width: 767.98px) {
+  .invoice-table {
+    display: none !important;
+  }
+
+  .productos-mobile {
+    display: block !important;
+  }
+
+  .productos-mobile .product-row,
+  .productos-mobile .product-row .product-title-small,
+  .productos-mobile .product-row .product-details,
+  .productos-mobile .product-row .product-prices {
+    color: #212529 !important;
+  }
+
+  .productos-mobile .product-row {
+    padding: 0.75rem 0 !important;
+  }
 }

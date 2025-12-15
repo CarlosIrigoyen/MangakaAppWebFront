@@ -1,11 +1,12 @@
-// App.js
+// src/App.js (con mejor control de errores en registro y login)
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Link,
-  useNavigate
+  useNavigate,
+  useLocation
 } from 'react-router-dom';
 import {
   Navbar,
@@ -16,7 +17,7 @@ import {
   Alert,
   InputGroup
 } from 'react-bootstrap';
-import { FaShoppingCart, FaSearch, FaBars, FaBell, FaFilter, FaHome } from 'react-icons/fa';
+import { FaShoppingCart, FaSearch, FaBars, FaBell, FaFilter, FaHome, FaExclamationTriangle } from 'react-icons/fa';
 
 const TomoList = lazy(() => import('./TomoList'));
 const SidebarFilters = lazy(() => import('./SideBarFilters'));
@@ -31,9 +32,6 @@ const SuccessPage = lazy(() => import('./SuccessPage'));
 const FailurePage = lazy(() => import('./FailurePage'));
 const PendingPage = lazy(() => import('./PendingPage'));
 const PayPalReturn = lazy(() => import('./PayPalReturn'));
-
-// Modal controlado (sin botón interno)
-//es SubscriptionManager
 const SubscriptionManagerModal = lazy(() => import('./SubscriptionManager'));
 
 import { CartProvider, CartContext } from './CartContext';
@@ -56,6 +54,8 @@ const SmallSpinner = () => (
 
 const MainApp = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const { user, login, logout, loadingUser } = useContext(UserContext);
   const { cart } = useContext(CartContext);
   const cartCount = cart.length;
@@ -75,6 +75,17 @@ const MainApp = () => {
     maxPrice: ''
   });
 
+  // PAGINACIÓN: inicializar desde URL ?page= o desde sessionStorage
+  const getInitialPage = () => {
+    const qs = new URLSearchParams(location.search);
+    const qp = parseInt(qs.get('page'), 10);
+    if (qp && qp > 0) return qp;
+    const stored = parseInt(sessionStorage.getItem('tomos_current_page'), 10);
+    return (stored && stored > 0) ? stored : 1;
+  };
+
+  const [currentPage, setCurrentPage] = useState(getInitialPage);
+
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -87,6 +98,8 @@ const MainApp = () => {
   const [showMobileDropdown, setShowMobileDropdown] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [registerErrors, setRegisterErrors] = useState({});
+  const [loginErrors, setLoginErrors] = useState({});
   
   const dropdownRef = useRef(null);
 
@@ -111,32 +124,42 @@ const MainApp = () => {
       const data = await res.json();
       setTomos(data.data || []);
       setPagination({
-        currentPage: data.current_page || 1,
+        currentPage: data.current_page || page,
         lastPage: data.last_page || 1,
         total: data.total || 0
       });
+
+      // guardar el page actual en sessionStorage y en la URL
+      sessionStorage.setItem('tomos_current_page', page);
+      // actualizar URL sin forzar recarga
+      navigate(`/?page=${page}`, { replace: true });
     } catch (error) {
       console.error('Error fetch tomos:', error);
+      setError('Error al cargar los tomos. Por favor, intenta nuevamente.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
+  // Cargar tomos cuando filters o currentPage cambian
   useEffect(() => {
-    fetchTomos(filters, 1);
-  }, [fetchTomos, filters]);
+    fetchTomos(filters, currentPage);
+  }, [fetchTomos, filters, currentPage]);
 
   const handlePageChange = useCallback((page) => {
-    fetchTomos(filters, page);
-  }, [fetchTomos, filters]);
+    if (!page || page < 1) page = 1;
+    setCurrentPage(page);
+    // fetchTomos será llamado por el useEffect que escucha currentPage
+  }, []);
 
   const handleSearch = useCallback(() => {
     const f = { ...filters, searchText: searchQuery };
     setFilters(f);
-    fetchTomos(f, 1);
+    setCurrentPage(1);
+    // fetchTomos se invoca por el useEffect
     setNavExpanded(false);
     setShowMobileSearch(false);
-  }, [filters, searchQuery, fetchTomos]);
+  }, [filters, searchQuery]);
 
   const handleShowInfo = useCallback((tomo) => {
     setSelectedTomo(tomo);
@@ -145,8 +168,8 @@ const MainApp = () => {
 
   const handleFilterChange = useCallback((f) => {
     setFilters(f);
-    fetchTomos(f, 1);
-  }, [fetchTomos]);
+    setCurrentPage(1);
+  }, []);
 
   const resetFilters = useCallback(() => {
     const defaultFilters = {
@@ -162,18 +185,33 @@ const MainApp = () => {
     };
     setFilters(defaultFilters);
     setSearchQuery('');
-    fetchTomos(defaultFilters, 1);
+    setCurrentPage(1);
     setSuccessMessage('Filtros eliminados correctamente');
     setTimeout(() => setSuccessMessage(''), 3000);
-  }, [fetchTomos]);
+  }, []);
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setRegisterErrors({});
+    
     const nombre = e.target.formNombre?.value;
     const direccion = e.target.formDireccion?.value;
     const email = e.target.formEmailRegister?.value;
     const password = e.target.formPasswordRegister?.value;
+
+    // Validación básica del frontend
+    const errors = {};
+    if (!nombre?.trim()) errors.nombre = 'El nombre es requerido';
+    if (!direccion?.trim()) errors.direccion = 'La dirección es requerida';
+    if (!email?.trim()) errors.email = 'El email es requerido';
+    if (!password?.trim()) errors.password = 'La contraseña es requerida';
+    if (password && password.length < 6) errors.password = 'La contraseña debe tener al menos 6 caracteres';
+    
+    if (Object.keys(errors).length > 0) {
+      setRegisterErrors(errors);
+      return;
+    }
 
     try {
       const res = await fetch(REGISTER_URL, {
@@ -182,24 +220,49 @@ const MainApp = () => {
         body: JSON.stringify({ nombre, email, password, direccion })
       });
       const data = await res.json();
+      
       if (res.ok) {
         login(data.cliente, data.token);
         setShowRegister(false);
-        setSuccessMessage('¡Registro exitoso!');
+        setSuccessMessage('¡Registro exitoso! Bienvenido/a');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        setError(data.message || 'Error en el registro');
+        // Manejar errores del servidor
+        if (data.errors) {
+          const serverErrors = {};
+          Object.keys(data.errors).forEach(key => {
+            serverErrors[key] = Array.isArray(data.errors[key]) 
+              ? data.errors[key].join(', ') 
+              : data.errors[key];
+          });
+          setRegisterErrors(serverErrors);
+        } else {
+          setError(data.message || 'Error en el registro');
+        }
       }
     } catch (err) {
-      setError('Error de conexión. Intenta nuevamente.');
+      setError('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
     }
   };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoginErrors({});
+    
     const email = e.target.formEmailLogin?.value;
     const password = e.target.formPasswordLogin?.value;
+
+    // Validación básica del frontend
+    const errors = {};
+    if (!email?.trim()) errors.email = 'El email es requerido';
+    if (!password?.trim()) errors.password = 'La contraseña es requerida';
+    
+    if (Object.keys(errors).length > 0) {
+      setLoginErrors(errors);
+      return;
+    }
+
     try {
       const res = await fetch(LOGIN_URL, {
         method: 'POST',
@@ -207,16 +270,28 @@ const MainApp = () => {
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();
+      
       if (res.ok) {
         login(data.cliente, data.token);
         setShowLogin(false);
-        setSuccessMessage('¡Bienvenido!');
+        setSuccessMessage(`¡Bienvenido de nuevo, ${data.cliente.nombre}!`);
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        setError(data.message || 'Usuario o contraseña incorrectos');
+        // Manejar errores del servidor
+        if (data.errors) {
+          const serverErrors = {};
+          Object.keys(data.errors).forEach(key => {
+            serverErrors[key] = Array.isArray(data.errors[key]) 
+              ? data.errors[key].join(', ') 
+              : data.errors[key];
+          });
+          setLoginErrors(serverErrors);
+        } else {
+          setError(data.message || 'Usuario o contraseña incorrectos');
+        }
       }
     } catch (err) {
-      setError('Error de conexión. Intenta nuevamente.');
+      setError('Error de conexión. Verifica tu conexión a internet e intenta nuevamente.');
     }
   };
 
@@ -240,18 +315,45 @@ const MainApp = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Limpiar errores al cerrar modales
+  useEffect(() => {
+    if (!showRegister) {
+      setRegisterErrors({});
+    }
+    if (!showLogin) {
+      setLoginErrors({});
+    }
+  }, [showRegister, showLogin]);
+
   return (
     <div className="bg-dark text-white min-vh-100">
-      {/* Mensajes de éxito */}
+      {/* Mensajes de éxito con mejor espaciado */}
       {successMessage && (
         <Alert
           variant="success"
-          className="position-fixed top-0 start-50 translate-middle-x mt-3 z-1050 floating-alert"
-          style={{ minWidth: '300px' }}
+          className="floating-alert"
           dismissible
           onClose={() => setSuccessMessage('')}
         >
-          {successMessage}
+          <div className="d-flex align-items-center">
+            <FaExclamationTriangle className="me-2" />
+            <span>{successMessage}</span>
+          </div>
+        </Alert>
+      )}
+
+      {/* Mensajes de error general */}
+      {error && (
+        <Alert
+          variant="danger"
+          className="floating-alert"
+          dismissible
+          onClose={() => setError('')}
+        >
+          <div className="d-flex align-items-center">
+            <FaExclamationTriangle className="me-2" />
+            <span>{error}</span>
+          </div>
         </Alert>
       )}
 
@@ -267,7 +369,7 @@ const MainApp = () => {
         style={{ zIndex: 1040 }}
       >
         <Container fluid>
-          <Navbar.Brand as={Link} to="/" onClick={() => setNavExpanded(false)}>
+          <Navbar.Brand as={Link} to="/" onClick={() => { setNavExpanded(false); navigate('/'); }}>
             <span className="ms-2 fw-bold">Mangaka Baka Shop</span>
           </Navbar.Brand>
 
@@ -319,8 +421,11 @@ const MainApp = () => {
                 <Button 
                   type="button" 
                   variant="outline-light" 
-                  as={Link} 
-                  to="/cart" 
+                  onClick={() => {
+                    // antes de ir al carrito guardamos la página actual
+                    sessionStorage.setItem('tomos_current_page', pagination?.currentPage || currentPage || 1);
+                    navigate('/cart');
+                  }}
                   className="btn-black ms-2 btn-equal"
                   aria-label={`Carrito, ${cartCount} items`}
                 >
@@ -493,7 +598,10 @@ const MainApp = () => {
                 type="button"
                 size="sm"
                 className="btn-black btn-equal icon-btn"
-                onClick={() => navigate('/cart')}
+                onClick={() => {
+                  sessionStorage.setItem('tomos_current_page', pagination?.currentPage || currentPage || 1);
+                  navigate('/cart');
+                }}
                 aria-label={`Carrito, ${cartCount} items`}
               >
                 <FaShoppingCart />
@@ -561,12 +669,6 @@ const MainApp = () => {
 
         {/* LISTA DE TOMOS - Solo muestra loading interno si está cargando */}
         <div className="main-content flex-grow-1 p-2">
-          {error && (
-            <Alert variant="danger" className="mb-3" dismissible onClose={() => setError('')}>
-              {error}
-            </Alert>
-          )}
-          
           {/* Indicador de carga mínima */}
           {isLoading && (
             <div className="text-center mb-3">
@@ -601,21 +703,21 @@ const MainApp = () => {
           show={showRegister}
           onHide={() => {
             setShowRegister(false);
-            setError('');
+            setRegisterErrors({});
           }}
           onSubmit={handleRegisterSubmit}
-          error={error}
-          setError={setError}
+          errors={registerErrors}
+          clearErrors={() => setRegisterErrors({})}
         />
         <LoginModal
           show={showLogin}
           onHide={() => {
             setShowLogin(false);
-            setError('');
+            setLoginErrors({});
           }}
           onSubmit={handleLoginSubmit}
-          error={error}
-          setError={setError}
+          errors={loginErrors}
+          clearErrors={() => setLoginErrors({})}
         />
         <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
         

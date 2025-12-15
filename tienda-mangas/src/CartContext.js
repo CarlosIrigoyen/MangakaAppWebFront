@@ -1,3 +1,4 @@
+// src/CartContext.js
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { UserContext } from './UserContext';
 
@@ -9,6 +10,10 @@ export const CartProvider = ({ children }) => {
   
   const [cart, setCart] = useState([]);
   const [syncing, setSyncing] = useState(false);
+
+  // NUEVOS estados para saber si cargamos carrito desde el servidor y si está vacío en BD
+  const [serverCartLoaded, setServerCartLoaded] = useState(false);
+  const [serverCartEmpty, setServerCartEmpty] = useState(false);
 
   // URLs de la API - memoizadas
   const API_URL = process.env.REACT_APP_API_URL;
@@ -23,8 +28,12 @@ export const CartProvider = ({ children }) => {
     if (loadingUser) return;
 
     const loadCart = async () => {
+      // Reset flags por si cambia el usuario
+      setServerCartLoaded(false);
+      setServerCartEmpty(false);
+
       if (user) {
-        // Usuario logueado: cargar desde BD
+        // Usuario logueado: intentar cargar desde BD
         try {
           const token = localStorage.getItem('token');
           const response = await fetch(`${endpoints.OBTENER_CARRITO}/${user.id}`, {
@@ -38,13 +47,19 @@ export const CartProvider = ({ children }) => {
             const cartFromDB = await response.json();
             setCart(cartFromDB);
             
+            // marcar que ya cargamos desde servidor
+            setServerCartLoaded(true);
+            setServerCartEmpty(Array.isArray(cartFromDB) && cartFromDB.length === 0);
+
             // Sincronizar localStorage con datos de BD
             try {
               localStorage.setItem(storageKey, JSON.stringify(cartFromDB));
             } catch (e) {
-              //pass
+              // ignore
             }
           } else {
+            // No pudimos obtener del servidor: no afirmamos que esté vacío
+            setServerCartLoaded(false);
             // Fallback a localStorage
             const saved = localStorage.getItem(storageKey);
             if (saved) {
@@ -56,7 +71,8 @@ export const CartProvider = ({ children }) => {
             }
           }
         } catch (error) {
-          // Fallback a localStorage
+          // Error de conexión: no asumimos carrito vacío en BD
+          setServerCartLoaded(false);
           const saved = localStorage.getItem(storageKey);
           if (saved) {
             try {
@@ -68,12 +84,13 @@ export const CartProvider = ({ children }) => {
         }
       } else {
         // Usuario no logueado: cargar desde localStorage
+        setServerCartLoaded(false);
+        setServerCartEmpty(false);
         const saved = localStorage.getItem(storageKey);
         if (saved) {
           try {
             setCart(JSON.parse(saved));
           } catch (e) {
-            
             setCart([]);
           }
         }
@@ -81,6 +98,7 @@ export const CartProvider = ({ children }) => {
     };
 
     loadCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loadingUser, storageKey, endpoints.OBTENER_CARRITO]);
 
   // Sincronizar carrito con BD cuando el usuario está logueado
@@ -102,7 +120,7 @@ export const CartProvider = ({ children }) => {
         })
       });
     } catch (error) {
-      
+      // opcional: logging
     } finally {
       setSyncing(false);
     }
@@ -116,13 +134,14 @@ export const CartProvider = ({ children }) => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(cart));
     } catch (e) {
-      //pass
+      // ignore
     }
     
     // Sincronizar con BD si hay usuario
     if (user) {
       syncCartWithDB(cart);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart, storageKey, loadingUser, user, syncing, syncCartWithDB]);
 
   const addToCart = useCallback((item) => {
@@ -143,6 +162,7 @@ export const CartProvider = ({ children }) => {
         alert('Este producto no tiene stock disponible');
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart]);
 
   const updateCartItem = useCallback((itemId, quantity) => {
@@ -174,7 +194,7 @@ export const CartProvider = ({ children }) => {
     try {
       localStorage.removeItem(storageKey);
     } catch (e) {
-      //PASS
+      // ignore
     }
 
     // Si hay usuario, intentamos limpiar en BD
@@ -188,7 +208,7 @@ export const CartProvider = ({ children }) => {
           }
         });
       } catch (error) {
-        //PASS
+        //ignore
       }
     }
   }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
@@ -204,14 +224,14 @@ export const CartProvider = ({ children }) => {
           }
         });
       } catch (error) {
-        //PASS
+        //ignore
       }
     }
     // Limpiar siempre el localStorage
     try {
       localStorage.removeItem(storageKey);
     } catch (e) {
-      //PASS
+      //ignore
     }
     setCart([]);
   }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
@@ -222,7 +242,7 @@ export const CartProvider = ({ children }) => {
       try {
         localStorage.removeItem(storageKey);
       } catch (e) { 
-        //PASS 
+        // ignore 
       }
     }
   }, [user, cart, storageKey, syncCartWithDB]);
@@ -235,7 +255,11 @@ export const CartProvider = ({ children }) => {
     removeCartItem, 
     clearCart,
     clearCartAfterPurchase,
-    syncCartOnLogout
+    syncCartOnLogout,
+    // nuevos flags
+    serverCartLoaded,
+    serverCartEmpty,
+    syncing
   }), [
     cart, 
     addToCart, 
@@ -243,7 +267,10 @@ export const CartProvider = ({ children }) => {
     removeCartItem, 
     clearCart,
     clearCartAfterPurchase,
-    syncCartOnLogout
+    syncCartOnLogout,
+    serverCartLoaded,
+    serverCartEmpty,
+    syncing
   ]);
 
   return (

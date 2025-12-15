@@ -3,7 +3,7 @@ import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
 import { UserContext } from './UserContext';
-import { Button, Image, Alert, Modal, Spinner } from 'react-bootstrap';
+import { Button, Image, Alert, Spinner } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_MERCADO_PAGO_PREFERENCE = `${process.env.REACT_APP_API_URL}/mercadopago/preference`;
@@ -18,6 +18,7 @@ const CartPage = () => {
   const [showClearCartModal, setShowClearCartModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(null); // 'mercadopago' o 'paypal'
+  const [clearingCart, setClearingCart] = useState(false); // nuevo estado para vaciado masivo
 
   // Total y accesibilidad: usamos aria-live para anunciar cambios
   const totalAmount = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
@@ -37,17 +38,50 @@ const CartPage = () => {
     }
   };
 
+  // IMPORTANTE: devolvemos lo que retorne removeCartItem para poder awaitearlo
   const handleRemove = (item) => {
-    removeCartItem(item.id);
+    // Aquí usamos exactamente la misma llamada que el botón "Eliminar" usa.
+    return removeCartItem(item.id);
   };
 
   const handleClearCart = () => {
     setShowClearCartModal(true);
   };
 
+  // confirmClearCart elimina los items **secuencialmente** usando handleRemove(item)
   const confirmClearCart = async () => {
-    await clearCartAfterPurchase();
-    setShowClearCartModal(false);
+    setClearingCart(true);
+    try {
+      // Hacemos copia del carrito actual para iterar sin problemas si el estado cambia
+      const itemsToRemove = [...cart];
+      const failed = [];
+
+      for (const item of itemsToRemove) {
+        try {
+          // Soportamos tanto removeCartItem síncrono como asíncrono
+          const result = handleRemove(item);
+          await (result instanceof Promise ? result : Promise.resolve(result));
+        } catch (err) {
+          console.error(`Error eliminando item ${item.id}:`, err);
+          failed.push(item);
+          // Opcional: si preferís detenerte al primer error, descomenta la siguiente línea:
+          // break;
+        }
+      }
+
+      if (failed.length === 0) {
+        // Todo bien: si tu context actualiza el estado del carrito, acá ya debería estar vacío
+        // Si tenés una función que limpia todo en backend (clearCartAfterPurchase) podrías llamarla como fallback.
+      } else {
+        alert(`No se pudieron eliminar ${failed.length} item(s). Revisa la consola para más detalle.`);
+      }
+    } catch (err) {
+      console.error('Error al vaciar el carrito:', err);
+      alert('Ocurrió un error al intentar vaciar el carrito. Intenta nuevamente.');
+    } finally {
+      setClearingCart(false);
+      setShowClearCartModal(false);
+    }
   };
 
   // Validaciones antes del pago
@@ -168,7 +202,6 @@ const CartPage = () => {
 
       window.location.href = approve_url;
     } catch (err) {
-      
       alert(`No se pudo iniciar el pago con PayPal: ${err.message || 'Error desconocido'}`);
       setProcessingPayment(false);
       setPaymentMethod(null);
@@ -196,6 +229,9 @@ const CartPage = () => {
 
   // Carrito vacío: título semántico h1
   if (!cart.length) {
+    // leemos la última página visitada (guardada por MainApp) para volver a ella
+    const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
+
     return (
       <main
         role="main"
@@ -203,7 +239,7 @@ const CartPage = () => {
         className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white"
       >
         <h1>Tu carrito está vacío</h1>
-        <Button variant="secondary" className="mt-3" onClick={() => navigate('/')}>
+        <Button variant="secondary" className="mt-3" onClick={() => navigate(`/?page=${lastPage}`)}>
           Volver a la Tienda
         </Button>
       </main>
@@ -238,7 +274,6 @@ const CartPage = () => {
                 key={item.id}
                 className={`d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom ${!tieneStockSuficiente ? 'bg-warning bg-opacity-10' : 'bg-dark'} text-white`}
                 aria-labelledby={`product-title-${item.id}`}
-                // NO ponemos role="group" ni roles incompatibles: <article> ya es semántico
               >
                 <Image
                   src={imageUrl}
@@ -252,7 +287,6 @@ const CartPage = () => {
                 />
 
                 <div className="flex-grow-1">
-                  {/* Encabezado del producto: usamos h2 semántico (visual lo ajustamos con clases) */}
                   <h2 id={`product-title-${item.id}`} className="h5 mb-1">
                     {item.manga?.titulo} - Tomo {item.numero_tomo}
                     {!tieneStockSuficiente && (
@@ -277,7 +311,6 @@ const CartPage = () => {
                       <span className="visually-hidden"> Disminuir cantidad</span>
                     </Button>
 
-                    {/* Cantidad visible */}
                     <span className="mx-2" aria-live="polite" aria-atomic="true">{item.quantity}</span>
 
                     <Button
@@ -300,7 +333,6 @@ const CartPage = () => {
                       onClick={() => handleRemove(item)}
                       aria-label={`Eliminar ${item.manga?.titulo} del carrito`}
                     >
-                      {/* icono decorativo */}
                       <i className="fas fa-trash" aria-hidden="true" /> <span className="ms-1">Eliminar</span>
                     </Button>
                   </div>
@@ -317,43 +349,35 @@ const CartPage = () => {
         <div className="p-3 border-top bg-dark">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <strong>Total</strong>
-            {/* Región aria-live para anunciar cambios en el total */}
             <div aria-live="polite" aria-atomic="true">
               <strong>${totalAmount.toFixed(2)}</strong>
             </div>
           </div>
 
-          {/* Botones organizados para responsive */}
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch gap-2">
-            <div className="d-flex w-100 gap-2 flex-column flex-sm-row">
+          {/* === CONTROLES DE BOTONES: contenedor unico para igualar anchos === */}
+          {/* WRAPPER modificado para centrar correctamente el grupo de botones */}
+          <div className="d-flex justify-content-center">
+            <div className="d-flex gap-2 flex-column flex-sm-row cart-actions">
               <Button
                 type="button"
                 variant="outline-light"
-                onClick={() => navigate('/')}
-                className="w-100 w-md-auto"
+                onClick={() => {
+                  const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
+                  navigate(`/?page=${lastPage}`);
+                }}
+                className="cart-btn"
                 aria-label="Seguir comprando, ir al inicio"
+                disabled={clearingCart}
               >
                 Seguir Comprando
               </Button>
-              <Button
-                type="button"
-                variant="danger"
-                className="w-100 w-md-auto"
-                onClick={handleClearCart}
-                aria-haspopup="dialog"
-                aria-controls="clear-cart-modal"
-              >
-                Vaciar carrito
-              </Button>
-            </div>
 
-            <div className="d-flex w-100 gap-2 flex-column flex-sm-row justify-content-end">
               <Button
                 type="button"
                 variant="warning"
-                className="w-100 w-md-auto"
                 onClick={handlePayPalBuy}
-                disabled={productosConProblemas.length > 0 || processingPayment}
+                className="cart-btn"
+                disabled={productosConProblemas.length > 0 || processingPayment || clearingCart}
                 title="Pagar con PayPal"
                 aria-label="Pagar con PayPal"
               >
@@ -378,41 +402,6 @@ const CartPage = () => {
           )}
         </div>
       </div>
-
-      {/* Modal para vaciar carrito */}
-      <Modal
-        show={showClearCartModal}
-        onHide={() => setShowClearCartModal(false)}
-        centered
-        aria-labelledby="clearCartTitle"
-        aria-describedby="clearCartDesc"
-        id="clear-cart-modal"
-      >
-        <Modal.Header closeButton className="bg-dark text-white">
-          <Modal.Title id="clearCartTitle">Vaciar Carrito</Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body className="bg-dark text-white">
-          <div className="text-center">
-            {/* icono decorativo */}
-            <span aria-hidden="true" style={{ fontSize: '2rem', color: '#ffc107' }}>🗑️</span>
-            <h2 id="clearCartHeading" className="h5 mt-3">¿Estás seguro de que quieres vaciar tu carrito?</h2>
-            <p id="clearCartDesc" className="text-muted">
-              Se eliminarán {cart.length} producto{cart.length !== 1 ? 's' : ''} de tu carrito. Esta acción no se puede deshacer.
-            </p>
-          </div>
-        </Modal.Body>
-
-        <Modal.Footer className="bg-dark">
-          {/* Cancelar (autofocus para teclado) */}
-          <Button variant="secondary" onClick={() => setShowClearCartModal(false)} autoFocus>
-            Cancelar
-          </Button>
-          <Button variant="danger" onClick={confirmClearCart} aria-label="Confirmar vaciar carrito">
-            Sí, vaciar carrito
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </main>
   );
 };
