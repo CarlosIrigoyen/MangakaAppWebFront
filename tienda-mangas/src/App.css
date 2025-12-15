@@ -415,3 +415,147 @@ button:focus, .btn:focus, .form-check-input:focus, a:focus {
     max-width: none !important;
   }
 }
+
+/* ========== ESTILOS ESPECÍFICOS PARA LOGIN MODAL ========== */
+
+.login-modal-dark .modal-content {
+  background-color: #1a1d20;
+  border: 1px solid #495057;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-modal-dark .modal-header {
+  border-bottom: 1px solid #495057;
+  padding: 1.2rem 1.5rem;
+}
+
+.login-modal-dark .modal-title h4 {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.login-modal-dark .modal-body {
+  padding: 1.5rem;
+}
+
+.login-modal-dark .modal-footer {
+  border-top: 1px solid #495057;
+  padding: 1rem 1.5rem;
+}
+
+/* Estilos para el botón de Google */
+.login-modal-dark .google-login-button {
+  transition: all 0.3s ease;
+}
+
+.login-modal-dark .google-login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3);
+}
+
+/* Estilos para el separador */
+.login-modal-dark .separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: #6c757d;
+}
+
+.login-modal-dark .separator::before,
+.login-modal-dark .separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #495057;
+}
+
+.login-modal-dark .separator span {
+  padding: 0 1rem;
+  font-size: 0.9rem;
+  color: #adb5bd;
+}
+
+/* Estilos para inputs deshabilitados */
+.login-modal-dark .form-control:disabled {
+  background-color: #2a2d32 !important;
+  color: #868e96 !important;
+  cursor: not-allowed;
+}
+
+/* Estilos para botones deshabilitados */
+.login-modal-dark .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Animación para mensajes de éxito */
+.animate__fadeIn {
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .login-modal-dark .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .login-modal-dark .border-end {
+    border-right: none !important;
+    border-bottom: 1px solid #495057;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .login-modal-dark .pe-md-4 {
+    padding-right: 0 !important;
+  }
+  
+  .login-modal-dark .ps-md-4 {
+    padding-left: 0 !important;
+  }
+  
+  .login-modal-dark .modal-body {
+    padding: 1rem;
+  }
+}
+
+/* Estilos para el loading de Google */
+.google-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: rgba(66, 133, 244, 0.1);
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
+.google-loading .spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}

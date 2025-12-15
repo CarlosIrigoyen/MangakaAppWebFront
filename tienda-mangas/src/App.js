@@ -1,4 +1,4 @@
-// src/App.js (con mejor control de errores en registro y login)
+// src/App.js (con mejor control de errores en registro y login y Google Login)
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import {
   BrowserRouter as Router,
@@ -17,7 +17,21 @@ import {
   Alert,
   InputGroup
 } from 'react-bootstrap';
-import { FaShoppingCart, FaSearch, FaBars, FaBell, FaFilter, FaHome, FaExclamationTriangle } from 'react-icons/fa';
+import { 
+  FaShoppingCart, 
+  FaSearch, 
+  FaBars, 
+  FaBell, 
+  FaFilter, 
+  FaHome, 
+  FaExclamationTriangle,
+  FaGoogle,
+  FaSignInAlt,
+  FaUserPlus
+} from 'react-icons/fa';
+
+// Importar GoogleOAuthProvider para login con Google
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 const TomoList = lazy(() => import('./TomoList'));
 const SidebarFilters = lazy(() => import('./SideBarFilters'));
@@ -39,6 +53,7 @@ import { UserProvider, UserContext } from './UserContext';
 
 const REGISTER_URL = `${process.env.REACT_APP_API_URL}/register`;
 const LOGIN_URL = `${process.env.REACT_APP_API_URL}/login`;
+const GOOGLE_AUTH_URL = `${process.env.REACT_APP_API_URL}/auth/google`;
 const TOMOS_URL = `${process.env.REACT_APP_API_URL}/public/tomos`;
 
 // Loading componente optimizado sin bloquear LCP
@@ -100,8 +115,65 @@ const MainApp = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [registerErrors, setRegisterErrors] = useState({});
   const [loginErrors, setLoginErrors] = useState({});
+  const [googleLoading, setGoogleLoading] = useState(false);
   
   const dropdownRef = useRef(null);
+
+  // ==================== FUNCIÓN PARA LOGIN CON GOOGLE ====================
+  const handleGoogleLogin = async (credentialResponse) => {
+    setGoogleLoading(true);
+    setError('');
+    setLoginErrors({});
+    
+    try {
+      console.log('🔐 Enviando token Google al backend:', GOOGLE_AUTH_URL);
+      
+      const response = await fetch(GOOGLE_AUTH_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          token: credentialResponse.credential
+        })
+      });
+
+      const data = await response.json();
+      
+      console.log('📡 Respuesta del backend:', data);
+
+      if (response.ok && data.success) {
+        // Éxito - usar la función login del contexto
+        login(data.cliente, data.token);
+        
+        // Cerrar modal de login si está abierto
+        setShowLogin(false);
+        
+        // Mostrar mensaje de éxito
+        setSuccessMessage(`¡Bienvenido ${data.cliente.nombre}!`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+        
+      } else {
+        // Error del backend
+        setError(data.message || 'Error en autenticación con Google');
+        setTimeout(() => setError(''), 5000);
+      }
+      
+    } catch (error) {
+      console.error('🔥 Error en login Google:', error);
+      setError('Error de conexión con el servidor. Verifica tu conexión a internet.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.log('❌ Error en login Google (cliente)');
+    setError('El inicio de sesión con Google fue cancelado o falló.');
+    setTimeout(() => setError(''), 5000);
+  };
 
   // Carga inicial de tomos sin mostrar loading global
   const fetchTomos = useCallback(async (filtersParam = {}, page = 1) => {
@@ -437,10 +509,20 @@ const MainApp = () => {
               </>
             ) : (
               <>
-                <Button variant="primary" className="me-2 btn-equal" onClick={() => setShowRegister(true)}>
+                <Button 
+                  variant="primary" 
+                  className="me-2 btn-equal"
+                  onClick={() => setShowRegister(true)}
+                >
+                  <FaUserPlus className="me-1" />
                   Registro
                 </Button>
-                <Button variant="secondary" className="btn-equal" onClick={() => setShowLogin(true)}>
+                <Button 
+                  variant="secondary" 
+                  className="btn-equal"
+                  onClick={() => setShowLogin(true)}
+                >
+                  <FaSignInAlt className="me-1" />
                   Login
                 </Button>
               </>
@@ -559,6 +641,7 @@ const MainApp = () => {
                           onClick={() => { setShowRegister(true); setShowMobileDropdown(false); }}
                           className="w-100 mb-2 btn-equal"
                         >
+                          <FaUserPlus className="me-2" />
                           Registrarse
                         </Button>
                         
@@ -567,6 +650,7 @@ const MainApp = () => {
                           onClick={() => { setShowLogin(true); setShowMobileDropdown(false); }}
                           className="w-100 btn-equal"
                         >
+                          <FaSignInAlt className="me-2" />
                           Iniciar Sesión
                         </Button>
                       </div>
@@ -709,16 +793,138 @@ const MainApp = () => {
           errors={registerErrors}
           clearErrors={() => setRegisterErrors({})}
         />
-        <LoginModal
-          show={showLogin}
-          onHide={() => {
-            setShowLogin(false);
-            setLoginErrors({});
-          }}
-          onSubmit={handleLoginSubmit}
-          errors={loginErrors}
-          clearErrors={() => setLoginErrors({})}
-        />
+        
+        {/* MODAL DE LOGIN MODIFICADO CON GOOGLE */}
+        {showLogin && (
+          <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
+            <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '500px' }}>
+              <div className="modal-content bg-dark text-white border border-secondary">
+                <div className="modal-header border-secondary">
+                  <h5 className="modal-title">
+                    <FaSignInAlt className="me-2" />
+                    Iniciar Sesión
+                  </h5>
+                  <button 
+                    type="button" 
+                    className="btn-close btn-close-white" 
+                    onClick={() => {
+                      setShowLogin(false);
+                      setLoginErrors({});
+                    }}
+                  ></button>
+                </div>
+                
+                <div className="modal-body">
+                  {/* Botón de Google Login */}
+                  <div className="text-center mb-4">
+                    <h6 className="text-warning mb-3">
+                      <FaGoogle className="me-2" />
+                      Acceso Rápido con Google
+                    </h6>
+                    
+                    <GoogleLogin
+                      onSuccess={handleGoogleLogin}
+                      onError={handleGoogleError}
+                      theme="filled_blue"
+                      size="large"
+                      text="signin_with"
+                      shape="rectangular"
+                      width="100%"
+                      locale="es"
+                    />
+                    
+                    {googleLoading && (
+                      <div className="mt-3">
+                        <Spinner animation="border" size="sm" variant="light" className="me-2" />
+                        <span>Autenticando con Google...</span>
+                      </div>
+                    )}
+                    
+                    <div className="mt-4 mb-3 position-relative">
+                      <hr className="border-secondary" />
+                      <span className="position-absolute top-50 start-50 translate-middle bg-dark px-3 text-muted">
+                        O
+                      </span>
+                    </div>
+                    
+                    <h6 className="text-info mb-3">Iniciar sesión con email</h6>
+                  </div>
+                  
+                  {/* Formulario de login tradicional */}
+                  {loginErrors.general && (
+                    <Alert variant="danger" className="mb-3">
+                      <FaExclamationTriangle className="me-2" />
+                      {loginErrors.general}
+                    </Alert>
+                  )}
+                  
+                  <Form onSubmit={handleLoginSubmit}>
+                    <Form.Group className="mb-3" controlId="formEmailLogin">
+                      <Form.Label>Correo electrónico</Form.Label>
+                      <Form.Control
+                        type="email"
+                        name="formEmailLogin"
+                        placeholder="ejemplo@correo.com"
+                        className={`bg-secondary text-white ${loginErrors.email ? 'border-danger' : 'border-dark'}`}
+                        isInvalid={!!loginErrors.email}
+                      />
+                      {loginErrors.email && (
+                        <Form.Text className="text-danger">
+                          {loginErrors.email}
+                        </Form.Text>
+                      )}
+                    </Form.Group>
+
+                    <Form.Group className="mb-4" controlId="formPasswordLogin">
+                      <Form.Label>Contraseña</Form.Label>
+                      <Form.Control
+                        type="password"
+                        name="formPasswordLogin"
+                        placeholder="Tu contraseña"
+                        className={`bg-secondary text-white ${loginErrors.password ? 'border-danger' : 'border-dark'}`}
+                        isInvalid={!!loginErrors.password}
+                      />
+                      {loginErrors.password && (
+                        <Form.Text className="text-danger">
+                          {loginErrors.password}
+                        </Form.Text>
+                      )}
+                    </Form.Group>
+
+                    <Button variant="primary" type="submit" className="w-100 mb-3">
+                      <FaSignInAlt className="me-2" />
+                      Iniciar Sesión
+                    </Button>
+                  </Form>
+                  
+                  <div className="text-center">
+                    <p className="text-muted mb-2">
+                      ¿No tienes una cuenta?
+                    </p>
+                    <Button
+                      variant="outline-success"
+                      className="w-100"
+                      onClick={() => {
+                        setShowLogin(false);
+                        setTimeout(() => setShowRegister(true), 300);
+                      }}
+                    >
+                      <FaUserPlus className="me-2" />
+                      Crear Cuenta Nueva
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="modal-footer border-secondary justify-content-center">
+                  <small className="text-muted">
+                    Al iniciar sesión, aceptas nuestros términos y condiciones
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <InfoModal show={showInfoModal} onClose={() => setShowInfoModal(false)} tomo={selectedTomo} />
         
         {/* Modal de suscripciones CONTROLADO desde App.js */}
@@ -731,25 +937,55 @@ const MainApp = () => {
   );
 };
 
-const App = () => (
-  <UserProvider>
-    <CartProvider>
-      <Router>
-        <Suspense fallback={null}>
-          <Routes>
-            <Route path="/" element={<MainApp />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/facturas" element={<FacturasPage />} />
-            <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
-            <Route path="/checkout/success" element={<SuccessPage />} />
-            <Route path="/checkout/failure" element={<FailurePage />} />
-            <Route path="/checkout/pending" element={<PendingPage />} />
-            <Route path="/paypal-return" element={<PayPalReturn />} />
-          </Routes>
-        </Suspense>
-      </Router>
-    </CartProvider>
-  </UserProvider>
-);
+// Componente App principal con GoogleOAuthProvider
+const App = () => {
+  // Obtener el Google Client ID de las variables de entorno
+  const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+  
+  // Verificar que el Client ID esté configurado
+  if (!googleClientId || googleClientId === 'TU_CLIENT_ID_DE_GOOGLE_AQUÍ') {
+    console.error('❌ ERROR: REACT_APP_GOOGLE_CLIENT_ID no está configurado correctamente');
+    
+    return (
+      <div className="alert alert-danger m-5">
+        <h4>Error de Configuración Google OAuth</h4>
+        <p>Por favor configura la variable de entorno:</p>
+        <pre>REACT_APP_GOOGLE_CLIENT_ID=tu_client_id_de_google_aquí</pre>
+        <p className="mt-3">
+          <strong>URL del Backend:</strong> {process.env.REACT_APP_API_URL}<br/>
+          <strong>Google Client ID:</strong> {googleClientId || 'NO CONFIGURADO'}
+        </p>
+      </div>
+    );
+  }
+  
+  return (
+    <UserProvider>
+      <CartProvider>
+        {/* ENVOLVER LA APLICACIÓN CON EL PROVEEDOR DE GOOGLE */}
+        <GoogleOAuthProvider clientId={googleClientId}>
+          <Router>
+            <Suspense fallback={
+              <div className="d-flex justify-content-center align-items-center vh-100 bg-dark">
+                <Spinner animation="border" variant="primary" />
+              </div>
+            }>
+              <Routes>
+                <Route path="/" element={<MainApp />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/facturas" element={<FacturasPage />} />
+                <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
+                <Route path="/checkout/success" element={<SuccessPage />} />
+                <Route path="/checkout/failure" element={<FailurePage />} />
+                <Route path="/checkout/pending" element={<PendingPage />} />
+                <Route path="/paypal-return" element={<PayPalReturn />} />
+              </Routes>
+            </Suspense>
+          </Router>
+        </GoogleOAuthProvider>
+      </CartProvider>
+    </UserProvider>
+  );
+};
 
 export default App;
