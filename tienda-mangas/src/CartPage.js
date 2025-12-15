@@ -366,25 +366,6 @@ const CartPage = () => {
                   <>PayPal</>
                 )}
               </Button>
-
-              <Button
-                type="button"
-                variant="primary"
-                className="w-100 w-md-auto"
-                onClick={handleMercadoPagoBuy}
-                disabled={productosConProblemas.length > 0 || processingPayment}
-                title="Pagar con MercadoPago"
-                aria-label="Pagar con MercadoPago"
-              >
-                {processingPayment && paymentMethod === 'mercadopago' ? (
-                  <>
-                    <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
-                    MercadoPago...
-                  </>
-                ) : (
-                  <>MercadoPago</>
-                )}
-              </Button>
             </div>
           </div>
 
