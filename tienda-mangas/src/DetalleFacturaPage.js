@@ -1,4 +1,3 @@
-// src/DetalleFacturaPage.js
 import React, { useEffect, useState, useRef, useContext, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Spinner, Alert, Button, Container, Table } from 'react-bootstrap';
@@ -35,7 +34,7 @@ function findItems(factura) {
   return [];
 }
 
-// Renderiza tabla (desktop) + lista apilada (mobile) — sin cards, usando las clases existentes
+// Renderiza tabla (desktop) + lista apilada (mobile)
 const FacturaTable = React.memo(({ items = [] }) => {
   const rows = Array.isArray(items) ? items : [];
 
@@ -130,6 +129,7 @@ const DetalleFacturaPage = () => {
   const [error, setError] = useState(null);
   const facturaRef = useRef();
 
+  // Preload imagen (optimización)
   useEffect(() => {
     const link = document.createElement('link');
     link.rel = 'preload';
@@ -165,13 +165,60 @@ const DetalleFacturaPage = () => {
 
   useEffect(() => { fetchFactura(); }, [fetchFactura]);
 
+  /**
+   * Descargar PDF:
+   * - Si estamos en móvil (<= MOBILE_MAX), aplicamos meta viewport y clase .mobile-zoom-50,
+   *   forzamos repaint, capturamos y luego restauramos.
+   * - En desktop capturamos directamente.
+   */
   const descargarComoPdf = useCallback(async () => {
+    const MOBILE_MAX = 767.98;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= MOBILE_MAX;
+
+    const element = facturaRef.current;
+    if (!element) return;
+
+    // Helpers para meta viewport
+    const metaSelector = 'meta[name="viewport"]';
+    const ensureMeta = () => {
+      let m = document.querySelector(metaSelector);
+      let created = false;
+      if (!m) {
+        m = document.createElement('meta');
+        m.name = 'viewport';
+        document.head.appendChild(m);
+        created = true;
+      }
+      return { meta: m, created };
+    };
+
+    let previousViewportContent = null;
+    let createdViewportMeta = false;
+
     try {
+      // Si es móvil: aplicar zoom out (meta + clase)
+      if (isMobile) {
+        const { meta, created } = ensureMeta();
+        createdViewportMeta = created;
+        previousViewportContent = meta.getAttribute('content') || '';
+        meta.setAttribute('content', 'width=device-width, initial-scale=0.5, maximum-scale=1');
+
+        if (!element.classList.contains('mobile-zoom-50')) {
+          element.classList.add('mobile-zoom-50');
+        }
+
+        // Forzar repintado breve para que el DOM se renderice con la escala aplicada
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        // un pequeño timeout adicional para asegurar que fonts/imagenes se re-rendericen
+        await new Promise(resolve => setTimeout(resolve, 120));
+      }
+
+      // Import dinámico de html2canvas y jspdf
       const [html2canvasModule, jsPDFModule] = await Promise.all([import('html2canvas'), import('jspdf')]);
       const html2canvas = html2canvasModule.default ?? html2canvasModule;
       const jsPDF = jsPDFModule.default ?? jsPDFModule;
-      const element = facturaRef.current;
-      if (!element) return;
+
+      // Captura: mantener scale alto para mejor resolución
       const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
       const imgData = canvas.toDataURL('image/png', 0.9);
       const pdf = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
@@ -180,9 +227,33 @@ const DetalleFacturaPage = () => {
       pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
       const numeroDigitos = (factura?.numero ?? '').toString().replace(/\D/g, '').slice(0, 6) || id;
       pdf.save(`Factura-${numeroDigitos}.pdf`);
-    } catch {
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Error al generar PDF:', err);
       // eslint-disable-next-line no-alert
       alert('Error al generar el PDF. Intenta nuevamente.');
+    } finally {
+      // Restaurar viewport y clase si aplicamos zoom
+      if (isMobile) {
+        const meta = document.querySelector(metaSelector);
+        if (meta) {
+          if (previousViewportContent !== null && previousViewportContent !== undefined && previousViewportContent !== '') {
+            meta.setAttribute('content', previousViewportContent);
+          } else if (createdViewportMeta) {
+            // eliminamos el meta si lo creamos y no había contenido previo
+            try { meta.parentNode.removeChild(meta); } catch {}
+          } else {
+            meta.setAttribute('content', 'width=device-width, initial-scale=1');
+          }
+        }
+
+        if (element.classList.contains('mobile-zoom-50')) {
+          element.classList.remove('mobile-zoom-50');
+        }
+
+        // Forzar repintado para restauración visual
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      }
     }
   }, [factura, id]);
 
@@ -234,14 +305,12 @@ const DetalleFacturaPage = () => {
 
           <h6 className="mb-2">Productos</h6>
 
-          {/* Tabla desktop y lista móvil (apilada) — sin cards y sin cambios en botones/colors */}
           <FacturaTable items={items} />
 
           <TotalSection total={factura.total ?? factura.monto_total ?? 0} />
         </div>
       </div>
 
-      {/* Botones (misma disposición y colores que ya tenías) */}
       <div className="p-3 bg-dark text-end botones-factura">
         <Button variant="secondary" className="me-2" onClick={volverHome}>Volver al Home</Button>
         <Button variant="primary" onClick={descargarComoPdf}>Descargar Factura (PDF)</Button>
@@ -251,3 +320,4 @@ const DetalleFacturaPage = () => {
 };
 
 export default React.memo(DetalleFacturaPage);
+
