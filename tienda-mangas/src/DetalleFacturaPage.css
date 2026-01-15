@@ -366,3 +366,32 @@ button:focus, .btn:focus, a:focus {
     padding: 0.75rem 0 !important;
   }
 }
+
+/* Clase que aplica zoom out al 50% en el contenedor de la factura.
+   width:200% combinado con scale(0.5) mantiene la anchura visual original. */
+.mobile-zoom-50 {
+  -webkit-transform: scale(0.5);
+  -ms-transform: scale(0.5);
+  transform: scale(0.5);
+  -webkit-transform-origin: top center;
+  -ms-transform-origin: top center;
+  transform-origin: top center;
+  width: 200% !important;
+  /* Evitar que el layout se desplace horizontalmente por el cambio de width */
+  display: block;
+}
+
+/* Si hay overflow horizontal por el scaling, ocultamos scroll lateral en mobile */
+@media (max-width: 767.98px) {
+  body, html {
+    overflow-x: hidden;
+  }
+
+  /* Aseguramos que la factura no se corte en el eje vertical por el scale */
+  .invoice-container {
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
+
