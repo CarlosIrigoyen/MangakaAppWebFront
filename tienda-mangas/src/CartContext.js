@@ -23,17 +23,15 @@ export const CartProvider = ({ children }) => {
     LIMPIAR_CARRITO: `${API_URL}/carrito/limpiar`
   }), [API_URL]);
 
-  // Cargar carrito cuando el usuario cambia - optimizado
+  // Cargar carrito cuando el usuario cambia
   useEffect(() => {
     if (loadingUser) return;
 
     const loadCart = async () => {
-      // Reset flags por si cambia el usuario
       setServerCartLoaded(false);
       setServerCartEmpty(false);
 
       if (user) {
-        // Usuario logueado: intentar cargar desde BD
         try {
           const token = localStorage.getItem('token');
           const response = await fetch(`${endpoints.OBTENER_CARRITO}/${user.id}`, {
@@ -46,53 +44,29 @@ export const CartProvider = ({ children }) => {
           if (response.ok) {
             const cartFromDB = await response.json();
             setCart(cartFromDB);
-            
-            // marcar que ya cargamos desde servidor
             setServerCartLoaded(true);
             setServerCartEmpty(Array.isArray(cartFromDB) && cartFromDB.length === 0);
-
-            // Sincronizar localStorage con datos de BD
-            try {
-              localStorage.setItem(storageKey, JSON.stringify(cartFromDB));
-            } catch (e) {
-              // ignore
-            }
+            try { localStorage.setItem(storageKey, JSON.stringify(cartFromDB)); } catch(e) { /* ignore */ }
           } else {
-            // No pudimos obtener del servidor: no afirmamos que esté vacío
             setServerCartLoaded(false);
-            // Fallback a localStorage
             const saved = localStorage.getItem(storageKey);
             if (saved) {
-              try {
-                setCart(JSON.parse(saved));
-              } catch (e) {
-                setCart([]);
-              }
+              try { setCart(JSON.parse(saved)); } catch (e) { setCart([]); }
             }
           }
         } catch (error) {
-          // Error de conexión: no asumimos carrito vacío en BD
           setServerCartLoaded(false);
           const saved = localStorage.getItem(storageKey);
           if (saved) {
-            try {
-              setCart(JSON.parse(saved));
-            } catch (e) {
-              setCart([]);
-            }
+            try { setCart(JSON.parse(saved)); } catch (e) { setCart([]); }
           }
         }
       } else {
-        // Usuario no logueado: cargar desde localStorage
         setServerCartLoaded(false);
         setServerCartEmpty(false);
         const saved = localStorage.getItem(storageKey);
         if (saved) {
-          try {
-            setCart(JSON.parse(saved));
-          } catch (e) {
-            setCart([]);
-          }
+          try { setCart(JSON.parse(saved)); } catch (e) { setCart([]); }
         }
       }
     };
@@ -126,89 +100,127 @@ export const CartProvider = ({ children }) => {
     }
   }, [user, syncing, endpoints.GUARDAR_CARRITO]);
 
-  // Persistir cambios en localStorage y BD - optimizado
+  // Persistir cambios en localStorage y BD
   useEffect(() => {
     if (loadingUser || syncing) return;
     
-    // Guardar en localStorage
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(cart));
-    } catch (e) {
-      // ignore
-    }
+    try { localStorage.setItem(storageKey, JSON.stringify(cart)); } catch (e) { /* ignore */ }
     
-    // Sincronizar con BD si hay usuario
     if (user) {
       syncCartWithDB(cart);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart, storageKey, loadingUser, user, syncing, syncCartWithDB]);
 
-  const addToCart = useCallback((item) => {
-    const existingItem = cart.find(cartItem => cartItem.id === item.id);
-    
-    if (existingItem) {
-      // Si ya existe, aumentar cantidad si hay stock
-      if (existingItem.quantity < item.stock) {
-        updateCartItem(item.id, existingItem.quantity + 1);
-      } else {
-        alert(`No hay suficiente stock. Stock disponible: ${item.stock}`);
-      }
-    } else {
-      // Si no existe, agregar con cantidad 1
-      if (item.stock > 0) {
-        setCart(prevCart => [...prevCart, { ...item, quantity: 1 }]);
-      } else {
-        alert('Este producto no tiene stock disponible');
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart]);
+  /**
+   * updateCartItemStock
+   * - Actualiza el `stock` conocido del item en el carrito.
+   * - Ajusta la `quantity` si excede el nuevo stock (asegura al menos 1 si stock > 0, o 0 si stock === 0).
+   * - Si se pasa desiredQuantity se usará (limitada por el stock).
+   */
+  const updateCartItemStock = useCallback((itemId, stockAvailable, desiredQuantity = null) => {
+    setCart(prevCart => prevCart.map(it => {
+      if (String(it.id) === String(itemId)) {
+        const newStock = Number(stockAvailable ?? 0);
+        let newQuantity;
 
-  const updateCartItem = useCallback((itemId, quantity) => {
-    setCart(prevCart => prevCart.map(item => {
-      if (item.id === itemId) {
-        // No permitir más de lo que hay en stock
-        const finalQuantity = Math.min(quantity, item.stock);
-        if (finalQuantity < quantity) {
-          alert(`No hay suficiente stock. Stock disponible: ${item.stock}`);
+        if (typeof desiredQuantity === 'number') {
+          newQuantity = Math.min(Math.max(desiredQuantity, 0), newStock);
+        } else {
+          // respetar cantidad actual pero no exceder stock; si stock === 0 dejar 0
+          if (newStock <= 0) {
+            newQuantity = 0;
+          } else {
+            newQuantity = Math.max(1, Math.min(Number(it.quantity || 1), newStock));
+          }
         }
-        return { ...item, quantity: finalQuantity };
+
+        return { ...it, stock: newStock, quantity: newQuantity };
       }
-      return item;
+      return it;
     }));
   }, []);
 
-  const removeCartItem = useCallback((itemId) => {
-    if (cart.length === 1) {
-      clearCart();
-      return;
-    }
+  /**
+   * addToCart: usa setCart funcional para evitar lecturas obsoletas.
+   */
+  const addToCart = useCallback((item) => {
+    setCart(prev => {
+      const existing = prev.find(ci => ci.id === item.id);
+      if (existing) {
+        const max = Number(existing.stock || 0);
+        const desired = existing.quantity + 1;
+        const final = Math.min(desired, max);
+        if (final === existing.quantity) {
+          alert(`No hay suficiente stock. Stock disponible: ${existing.stock}`);
+          return prev;
+        }
+        return prev.map(ci => ci.id === item.id ? { ...ci, quantity: final } : ci);
+      } else {
+        if (item.stock > 0) {
+          return [...prev, { ...item, quantity: 1 }];
+        } else {
+          alert('Este producto no tiene stock disponible');
+          return prev;
+        }
+      }
+    });
+  }, []);
 
-    setCart(prevCart => prevCart.filter(item => item.id !== itemId));
-  }, [cart.length]);
+  /**
+   * updateCartItem: actualiza la cantidad respetando el stock actual del item.
+   */
+  const updateCartItem = useCallback((itemId, quantity) => {
+    setCart(prev => prev.map(it => {
+      if (it.id === itemId) {
+        const max = Number(it.stock ?? 0);
+        const finalQuantity = Math.min(Math.max(Number(quantity || 0), 0), max);
+        if (finalQuantity < Number(quantity || 0)) {
+          alert(`No hay suficiente stock. Stock disponible: ${it.stock}`);
+        }
+        return { ...it, quantity: finalQuantity };
+      }
+      return it;
+    }));
+  }, []);
+
+  /**
+   * removeCartItem: usa setCart funcional; si queda vacío borra y limpia storage/BD
+   */
+  const removeCartItem = useCallback((itemId) => {
+    setCart(prev => {
+      const next = prev.filter(item => item.id !== itemId);
+      if (next.length === 0) {
+        try { localStorage.removeItem(storageKey); } catch(e) { /* ignore */ }
+        (async () => {
+          if (user) {
+            try {
+              const token = localStorage.getItem('token');
+              await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+            } catch (error) { /* ignore */ }
+          }
+        })();
+      }
+      return next;
+    });
+  }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
 
   const clearCart = useCallback(async () => {
-    // Borramos local inmediatamente
     setCart([]);
-    try {
-      localStorage.removeItem(storageKey);
-    } catch (e) {
-      // ignore
-    }
+    try { localStorage.removeItem(storageKey); } catch (e) { /* ignore */ }
 
-    // Si hay usuario, intentamos limpiar en BD
     if (user) {
       try {
         const token = localStorage.getItem('token');
         await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
       } catch (error) {
-        //ignore
+        // ignore
       }
     }
   }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
@@ -219,44 +231,33 @@ export const CartProvider = ({ children }) => {
         const token = localStorage.getItem('token');
         await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
       } catch (error) {
         //ignore
       }
     }
-    // Limpiar siempre el localStorage
-    try {
-      localStorage.removeItem(storageKey);
-    } catch (e) {
-      //ignore
-    }
+    try { localStorage.removeItem(storageKey); } catch (e) { /* ignore */ }
     setCart([]);
   }, [storageKey, user, endpoints.LIMPIAR_CARRITO]);
 
   const syncCartOnLogout = useCallback(async () => {
     if (user && cart.length > 0) {
       await syncCartWithDB(cart);
-      try {
-        localStorage.removeItem(storageKey);
-      } catch (e) { 
-        // ignore 
-      }
+      try { localStorage.removeItem(storageKey); } catch (e) { /* ignore */ }
     }
   }, [user, cart, storageKey, syncCartWithDB]);
 
-  // Memoizar el valor del contexto para evitar rerenders innecesarios
+  // Memoizar el valor del contexto
   const contextValue = useMemo(() => ({ 
     cart, 
     addToCart, 
     updateCartItem, 
+    updateCartItemStock,
     removeCartItem, 
     clearCart,
     clearCartAfterPurchase,
     syncCartOnLogout,
-    // nuevos flags
     serverCartLoaded,
     serverCartEmpty,
     syncing
@@ -264,6 +265,7 @@ export const CartProvider = ({ children }) => {
     cart, 
     addToCart, 
     updateCartItem, 
+    updateCartItemStock,
     removeCartItem, 
     clearCart,
     clearCartAfterPurchase,

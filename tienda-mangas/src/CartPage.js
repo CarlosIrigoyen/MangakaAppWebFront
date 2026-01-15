@@ -1,9 +1,9 @@
 // src/CartPage.js
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
 import { UserContext } from './UserContext';
-import { Button, Image, Alert, Spinner, Modal } from 'react-bootstrap';
+import { Button, Image, Alert, Spinner, Modal, InputGroup, FormControl } from 'react-bootstrap';
 
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_URL;
 const REACT_PAYPAL_CREATE_ORDER = `${process.env.REACT_APP_API_URL}/paypal/create-order`;
@@ -16,12 +16,24 @@ const CartPage = () => {
 
   const [showClearCartModal, setShowClearCartModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState(null); // 'paypal'
+  const [paymentMethod, setPaymentMethod] = useState(null);
   const [clearingCart, setClearingCart] = useState(false);
 
-  // Modal para stock insuficiente
+  // Stock modal state
   const [showStockModal, setShowStockModal] = useState(false);
   const [stockModalData, setStockModalData] = useState(null); // { id, titulo, numero_tomo, stock, message }
+  const [modalQuantity, setModalQuantity] = useState(1);
+
+  useEffect(() => {
+    // keep modalQuantity in sync if stockModalData changes
+    if (stockModalData) {
+      const cartItem = cart.find(it => String(it.id) === String(stockModalData.id));
+      const currentQty = cartItem ? Number(cartItem.quantity || 1) : 1;
+      const stock = Number(stockModalData.stock ?? 0);
+      const initial = stock <= 0 ? 0 : Math.max(1, Math.min(currentQty, stock));
+      setModalQuantity(initial);
+    }
+  }, [stockModalData, cart]);
 
   const totalAmount = cart.reduce((sum, item) => sum + (Number(item.precio) || 0) * (Number(item.quantity) || 0), 0);
 
@@ -31,6 +43,7 @@ const CartPage = () => {
     if (qty < stock) {
       updateCartItem(item.id, qty + 1);
     } else {
+      // open modal with updated info
       setStockModalData({ id: item.id, titulo: item.manga?.titulo || 'Producto', numero_tomo: item.numero_tomo, stock: item.stock });
       setShowStockModal(true);
     }
@@ -67,9 +80,6 @@ const CartPage = () => {
     }
   };
 
-  /**
-   * validatePurchase: si detecta stock insuficiente en el carrito, abre el modal
-   */
   const validatePurchase = () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -111,27 +121,30 @@ const CartPage = () => {
   });
 
   /**
-   * Maneja errores de pago relacionados con stock. Ahora SIEMPRE muestra modal (no alert),
-   * intenta obtener datos del tomo desde la API y, si no puede, usa la info del carrito o del propio error JSON.
+   * handlePaymentError: intenta extraer tomo_id y stock del error y obtener datos actualizados.
+   * Actualiza el stock en el cart context (updateCartItemStock) y abre el modal permitiendo elegir la cantidad.
    */
   const handlePaymentError = async (errObj) => {
     const message = errObj && errObj.message ? errObj.message : String(errObj || 'Error desconocido');
-
     const tomoIdFromJson = errObj && (errObj.tomo_id || errObj.tomoId || errObj.id || (errObj.error && errObj.error.tomo_id));
     let tomoId = tomoIdFromJson ? String(tomoIdFromJson) : null;
     const stockFromJson = errObj && (errObj.stock || errObj.available);
 
-    // 1) Si tenemos ID del tomo: intentamos obtener datos actualizados desde la API
     if (tomoId) {
+      // try to fetch tomo fresh data
       try {
         const resp = await fetch(REACT_TOMOS_GET(tomoId), { headers: { Accept: 'application/json' } });
         if (resp.ok) {
           const tomoData = await resp.json();
-          // compatibilizar con respuestas paginadas u objetos directos
           const tomo = tomoData.data ? tomoData.data : tomoData;
           const titulo = tomo.manga?.titulo || tomo.titulo || 'Producto';
           const numero = tomo.numero_tomo || tomo.numero || '';
           const stock = Number(tomo.stock ?? stockFromJson ?? 0);
+
+          // update cart stock only (preserve quantity for now; modal lets user decide)
+          if (typeof updateCartItemStock === 'function') {
+            updateCartItemStock(tomoId, stock);
+          }
 
           setStockModalData({ id: tomoId, titulo, numero_tomo: numero, stock });
           setProcessingPayment(false);
@@ -140,14 +153,19 @@ const CartPage = () => {
           return;
         }
       } catch (e) {
-        // fallback: seguimos intentando con datos locales
+        // fallback to cart info
       }
 
-      // 2) Fallback si la llamada falló: usar info disponible en el carrito o en el error
+      // fallback: use cart item if fetch failed
       const cartItem = cart.find(it => String(it.id) === String(tomoId));
       const titulo = cartItem?.manga?.titulo || 'Producto';
       const numero = cartItem?.numero_tomo || '';
       const stock = Number(stockFromJson ?? cartItem?.stock ?? 0);
+
+      if (typeof updateCartItemStock === 'function' && cartItem) {
+        // update stock but keep quantity adjusted not exceeding stock
+        updateCartItemStock(tomoId, stock);
+      }
 
       setStockModalData({ id: tomoId, titulo, numero_tomo: numero, stock });
       setProcessingPayment(false);
@@ -156,16 +174,13 @@ const CartPage = () => {
       return;
     }
 
-    // 3) Si no hay ID, mostrar modal genérico informando el problema y permitiendo al usuario volver al carrito
+    // Generic fallback
     setStockModalData({ id: null, titulo: null, numero_tomo: null, stock: null, message: message });
     setProcessingPayment(false);
     setPaymentMethod(null);
     setShowStockModal(true);
   };
 
-  /**
-   * Manejo de compra con PayPal (único método ahora).
-   */
   const handlePayPalBuy = async () => {
     if (!validatePurchase()) return;
     try {
@@ -249,6 +264,7 @@ const CartPage = () => {
             const itemTotal = (Number(item.precio) || 0) * (Number(item.quantity) || 0);
             const imageUrl = item.portada?.startsWith('http') ? item.portada : `${CLOUDINARY_BASE_URL}/${item.portada}`;
             const tieneStockSuficiente = Number(item.quantity) <= Number(item.stock);
+            const stockNum = Number(item.stock ?? 0);
 
             return (
               <article key={item.id} className={`d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 p-3 border-bottom ${!tieneStockSuficiente ? 'bg-warning bg-opacity-10' : 'bg-dark'} text-white`} aria-labelledby={`product-title-${item.id}`}>
@@ -261,7 +277,7 @@ const CartPage = () => {
                   </h2>
 
                   <p className="mb-1">Idioma: {item.idioma}</p>
-                  <p className="mb-1">Stock disponible: <strong>{item.stock}</strong></p>
+                  <p className="mb-1">Stock disponible: <strong>{stockNum}</strong></p>
 
                   <div>
                     <Button type="button" variant="secondary" size="sm" className="me-2" onClick={() => handleDecrease(item)} disabled={Number(item.quantity) <= 1} aria-label={`Disminuir cantidad de ${item.manga?.titulo}, actualmente ${item.quantity}`}>
@@ -271,7 +287,7 @@ const CartPage = () => {
 
                     <span className="mx-2" aria-live="polite" aria-atomic="true">{item.quantity}</span>
 
-                    <Button type="button" variant="secondary" size="sm" onClick={() => handleIncrease(item)} disabled={Number(item.quantity) >= Number(item.stock)} aria-label={`Aumentar cantidad de ${item.manga?.titulo}, máximo ${item.stock}`}>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => handleIncrease(item)} disabled={Number(item.quantity) >= stockNum} aria-label={`Aumentar cantidad de ${item.manga?.titulo}, máximo ${stockNum}`}>
                       <span aria-hidden="true">+</span>
                       <span className="visually-hidden"> Aumentar cantidad</span>
                     </Button>
@@ -310,24 +326,47 @@ const CartPage = () => {
         </div>
       </div>
 
-      {/* Modal: aviso de stock insuficiente */}
+      {/* Modal: aviso de stock insuficiente y selector de cantidad */}
       <Modal show={showStockModal} onHide={() => setShowStockModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Disculpas — stock insuficiente</Modal.Title>
+          <Modal.Title>Stock insuficiente</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {stockModalData ? (
-            <> 
+            <>
               {stockModalData.message ? (
-                <>
-                  <p>{stockModalData.message}</p>
-                </>
+                <p>{stockModalData.message}</p>
               ) : (
                 <>
-                  <p>Te pedimos disculpas, pero el siguiente producto:</p>
+                  <p>Disculpa — el siguiente producto tiene menos stock del que solicitaste:</p>
                   <p className="fw-bold">{stockModalData.titulo} {stockModalData.numero_tomo ? `- Tomo ${stockModalData.numero_tomo}` : ''}</p>
-                  <p>tiene <strong>{stockModalData.stock}</strong> unidades disponibles actualmente.</p>
-                  <p>Por favor elige una nueva cantidad o intenta la compra más tarde.</p>
+                  <p>Stock disponible: <strong>{stockModalData.stock}</strong></p>
+
+                  {Number(stockModalData.stock) === 0 ? (
+                    <p className="text-danger">Actualmente no hay unidades disponibles. Puedes quitar el producto o volver más tarde.</p>
+                  ) : (
+                    <>
+                      <p>Elige una nueva cantidad válida:</p>
+                      <InputGroup className="mb-2" style={{ maxWidth: 160 }}>
+                        <Button variant="outline-secondary" onClick={() => setModalQuantity(q => Math.max(1, q - 1))} disabled={modalQuantity <= 1}>−</Button>
+                        <FormControl
+                          type="number"
+                          min={1}
+                          max={Number(stockModalData.stock)}
+                          value={modalQuantity}
+                          onChange={(e) => {
+                            const v = Number(e.target.value || 0);
+                            if (Number.isNaN(v)) return;
+                            const clamped = Math.max(1, Math.min(v, Number(stockModalData.stock)));
+                            setModalQuantity(clamped);
+                          }}
+                          aria-label="Cantidad a comprar"
+                        />
+                        <Button variant="outline-secondary" onClick={() => setModalQuantity(q => Math.min(Number(stockModalData.stock), q + 1))} disabled={modalQuantity >= Number(stockModalData.stock)}>+</Button>
+                      </InputGroup>
+                      <small className="text-muted">Máximo disponible: {stockModalData.stock}</small>
+                    </>
+                  )}
                 </>
               )}
             </>
@@ -338,31 +377,30 @@ const CartPage = () => {
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowStockModal(false)}>Cerrar</Button>
           <Button variant="primary" onClick={() => {
-            // Al aceptar: actualizamos el stock en el carrito y volvemos/cargamos el CartPage
             if (!stockModalData) {
               setShowStockModal(false);
               return;
             }
             if (!stockModalData.id) {
-              // Si no hay id no podemos actualizar; solo cerramos y volvemos al carrito
               setShowStockModal(false);
               navigate('/cart');
               return;
             }
 
-            const item = cart.find(it => String(it.id) === String(stockModalData.id));
-            if (item) {
-              const nuevaCantidad = Math.max(1, Math.min(Number(item.quantity || 1), Number(stockModalData.stock || 0)));
-              if (typeof updateCartItemStock === 'function') {
-                updateCartItemStock(item.id, stockModalData.stock, nuevaCantidad);
-              } else {
-                updateCartItem(item.id, nuevaCantidad);
-              }
+            // Actualizar stock y cantidad en el cart context
+            const chosen = Number(modalQuantity || 1);
+            if (typeof updateCartItemStock === 'function') {
+              updateCartItemStock(stockModalData.id, Number(stockModalData.stock || 0), chosen);
+            } else {
+              // fallback: actualizar solo cantidad
+              updateCartItem(stockModalData.id, chosen);
             }
+
             setShowStockModal(false);
-            // Navegar para asegurarnos de volver al CartPage (y forzar re-render si veníamos de otra ruta)
             navigate('/cart');
-          }}>Aceptar</Button>
+          }} disabled={Number(stockModalData?.stock ?? 0) === 0}>
+            Actualizar carrito
+          </Button>
         </Modal.Footer>
       </Modal>
 
