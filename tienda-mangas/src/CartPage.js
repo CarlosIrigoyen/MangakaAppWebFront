@@ -21,7 +21,7 @@ const CartPage = () => {
 
   // Modal para stock insuficiente
   const [showStockModal, setShowStockModal] = useState(false);
-  const [stockModalData, setStockModalData] = useState(null); // { id, titulo, numero_tomo, stock }
+  const [stockModalData, setStockModalData] = useState(null); // { id, titulo, numero_tomo, stock, message }
 
   const totalAmount = cart.reduce((sum, item) => sum + (Number(item.precio) || 0) * (Number(item.quantity) || 0), 0);
 
@@ -59,7 +59,6 @@ const CartPage = () => {
         }
       }
       if (failed.length > 0) {
-        // Mensaje simple para fallback (no relacionado con stock insuficiente)
         alert(`No se pudieron eliminar ${failed.length} item(s).`);
       }
     } finally {
@@ -69,8 +68,7 @@ const CartPage = () => {
   };
 
   /**
-   * validatePurchase: si detecta stock insuficiente en el carrito, NO usa alert:
-   * en su lugar abre el modal para que el usuario acepte y vuelva al carrito.
+   * validatePurchase: si detecta stock insuficiente en el carrito, abre el modal
    */
   const validatePurchase = () => {
     const token = localStorage.getItem('token');
@@ -88,12 +86,7 @@ const CartPage = () => {
     const itemsSinStock = cart.filter(item => Number(item.quantity) > Number(item.stock));
     if (itemsSinStock.length > 0) {
       const item = itemsSinStock[0];
-      setStockModalData({
-        id: item.id,
-        titulo: item.manga?.titulo || 'Producto',
-        numero_tomo: item.numero_tomo,
-        stock: item.stock
-      });
+      setStockModalData({ id: item.id, titulo: item.manga?.titulo || 'Producto', numero_tomo: item.numero_tomo, stock: item.stock });
       setShowStockModal(true);
       return false;
     }
@@ -118,31 +111,27 @@ const CartPage = () => {
   });
 
   /**
-   * Maneja errores de pago relacionados con stock.
-   * Muestra modal con info actual del tomo (no hace alert).
-   * El usuario debe aceptar el modal para que se actualice el stock en el carrito.
+   * Maneja errores de pago relacionados con stock. Ahora SIEMPRE muestra modal (no alert),
+   * intenta obtener datos del tomo desde la API y, si no puede, usa la info del carrito o del propio error JSON.
    */
   const handlePaymentError = async (errObj) => {
     const message = errObj && errObj.message ? errObj.message : String(errObj || 'Error desconocido');
 
     const tomoIdFromJson = errObj && (errObj.tomo_id || errObj.tomoId || errObj.id || (errObj.error && errObj.error.tomo_id));
     let tomoId = tomoIdFromJson ? String(tomoIdFromJson) : null;
+    const stockFromJson = errObj && (errObj.stock || errObj.available);
 
-    if (!tomoId) {
-      const re = /tomo\s*ID\s*(\d+)|ID\s*(\d+)/i;
-      const m = String(message).match(re);
-      tomoId = m ? (m[1] || m[2]) : null;
-    }
-
+    // 1) Si tenemos ID del tomo: intentamos obtener datos actualizados desde la API
     if (tomoId) {
       try {
         const resp = await fetch(REACT_TOMOS_GET(tomoId), { headers: { Accept: 'application/json' } });
         if (resp.ok) {
           const tomoData = await resp.json();
+          // compatibilizar con respuestas paginadas u objetos directos
           const tomo = tomoData.data ? tomoData.data : tomoData;
           const titulo = tomo.manga?.titulo || tomo.titulo || 'Producto';
           const numero = tomo.numero_tomo || tomo.numero || '';
-          const stock = Number(tomo.stock ?? tomo.cantidad ?? 0);
+          const stock = Number(tomo.stock ?? stockFromJson ?? 0);
 
           setStockModalData({ id: tomoId, titulo, numero_tomo: numero, stock });
           setProcessingPayment(false);
@@ -151,14 +140,27 @@ const CartPage = () => {
           return;
         }
       } catch (e) {
-        // silencioso intencional
+        // fallback: seguimos intentando con datos locales
       }
+
+      // 2) Fallback si la llamada falló: usar info disponible en el carrito o en el error
+      const cartItem = cart.find(it => String(it.id) === String(tomoId));
+      const titulo = cartItem?.manga?.titulo || 'Producto';
+      const numero = cartItem?.numero_tomo || '';
+      const stock = Number(stockFromJson ?? cartItem?.stock ?? 0);
+
+      setStockModalData({ id: tomoId, titulo, numero_tomo: numero, stock });
+      setProcessingPayment(false);
+      setPaymentMethod(null);
+      setShowStockModal(true);
+      return;
     }
 
-    // fallback general
-    alert(`No se pudo iniciar el pago: ${message}`);
+    // 3) Si no hay ID, mostrar modal genérico informando el problema y permitiendo al usuario volver al carrito
+    setStockModalData({ id: null, titulo: null, numero_tomo: null, stock: null, message: message });
     setProcessingPayment(false);
     setPaymentMethod(null);
+    setShowStockModal(true);
   };
 
   /**
@@ -315,11 +317,19 @@ const CartPage = () => {
         </Modal.Header>
         <Modal.Body>
           {stockModalData ? (
-            <>
-              <p>Te pedimos disculpas, pero el siguiente producto:</p>
-              <p className="fw-bold">{stockModalData.titulo} {stockModalData.numero_tomo ? `- Tomo ${stockModalData.numero_tomo}` : ''}</p>
-              <p>tiene <strong>{stockModalData.stock}</strong> unidades disponibles actualmente.</p>
-              <p>Por favor elige una nueva cantidad o intenta la compra más tarde.</p>
+            <> 
+              {stockModalData.message ? (
+                <>
+                  <p>{stockModalData.message}</p>
+                </>
+              ) : (
+                <>
+                  <p>Te pedimos disculpas, pero el siguiente producto:</p>
+                  <p className="fw-bold">{stockModalData.titulo} {stockModalData.numero_tomo ? `- Tomo ${stockModalData.numero_tomo}` : ''}</p>
+                  <p>tiene <strong>{stockModalData.stock}</strong> unidades disponibles actualmente.</p>
+                  <p>Por favor elige una nueva cantidad o intenta la compra más tarde.</p>
+                </>
+              )}
             </>
           ) : (
             <p>No se pudo obtener la información del producto. Intenta recargar la página.</p>
@@ -333,6 +343,13 @@ const CartPage = () => {
               setShowStockModal(false);
               return;
             }
+            if (!stockModalData.id) {
+              // Si no hay id no podemos actualizar; solo cerramos y volvemos al carrito
+              setShowStockModal(false);
+              navigate('/cart');
+              return;
+            }
+
             const item = cart.find(it => String(it.id) === String(stockModalData.id));
             if (item) {
               const nuevaCantidad = Math.max(1, Math.min(Number(item.quantity || 1), Number(stockModalData.stock || 0)));
