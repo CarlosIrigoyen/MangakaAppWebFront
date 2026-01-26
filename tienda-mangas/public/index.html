@@ -12,22 +12,12 @@
 
     <title>Mangaka Baka Shop - Tu tienda de mangas favorita</title>
 
-    <!-- Preconnect -->
-    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
-    <link rel="preconnect" href="https://mangakaappweb-production.up.railway.app" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin="anonymous">
+    <link rel="preconnect" href="https://mangakaappweb-production.up.railway.app" crossorigin="anonymous">
+    
     <link rel="dns-prefetch" href="https://res.cloudinary.com">
     <link rel="dns-prefetch" href="https://mangakaappweb-production.up.railway.app">
 
-    <!-- Preload LCP (opcional) -->
-    <link
-      rel="preload"
-      as="image"
-      href="https://res.cloudinary.com/dcgyq3ajm/image/upload/w_400,q_50,f_webp/v1763416674/tomo_portada_chainsaw-man.jpg"
-      fetchpriority="high"
-      crossorigin="anonymous"
-    />
-
-    <!-- Preload CSS -->
     <link rel="preload" href="%PUBLIC_URL%/static/css/main.chunk.css" as="style">
 
     <style>
@@ -40,7 +30,7 @@
         -webkit-font-smoothing: antialiased;
       }
 
-      /* Skip link para accesibilidad */
+      /* Skip link para accesibilidad (Lighthouse lo ama) */
       .skip-link {
         position:absolute;
         left:-9999px;
@@ -61,13 +51,13 @@
         z-index:9999;
       }
 
-      /* Loader inicial sin fondo blanco */
+      /* Loader inicial */
       .initial-loading {
         display:flex;
         align-items:center;
         justify-content:center;
         height:100vh;
-        background:#212529; /* 🔥 evita fondo blanco */
+        background:#212529;
       }
       .loading-spinner {
         width:40px;
@@ -90,29 +80,18 @@
   <body>
     <a class="skip-link" href="#main-content">Saltar al contenido</a>
 
-
-
-    <!-- React root -->
     <div id="root" aria-live="polite"></div>
 
-    <!-- CSS asíncrono -->
     <script>
       (function() {
         var href = '%PUBLIC_URL%/static/css/main.chunk.css';
         var link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = href;
-
-        link.onload = function() {
-          var init = document.getElementById('initial-loading');
-          if (init) init.style.display = 'none';
-        };
-
         document.head.appendChild(link);
       })();
     </script>
 
-    <!-- Foco accesible del skip link -->
     <script>
       (function() {
         var skip = document.querySelector('.skip-link');
@@ -126,6 +105,5 @@
         });
       })();
     </script>
-
   </body>
 </html>
