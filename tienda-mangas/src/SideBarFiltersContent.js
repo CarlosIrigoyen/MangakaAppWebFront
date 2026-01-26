@@ -1,10 +1,9 @@
-// SideBarFiltersContent.js
 import React from 'react';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
 const SideBarFiltersContent = ({
   filters,
-  availableFilters,
+  availableFilters = {}, // puede venir como null/undefined
   openSections,
   toggleSection,
   handleExclusiveChange,
@@ -12,10 +11,10 @@ const SideBarFiltersContent = ({
   applyPrice,
   clearPriceFilter,
   clearAllFilters,
-  onApplyFilters, // opcional: función pasada desde el modal o sidebar para aplicar
-  onClose // opcional: cerrar modal si se usa dentro de modal
+  onApplyFilters,
+  onClose,
+  filtersLoading = false // nuevo prop opcional
 }) => {
-  // helper para aplicar filtros vacíos (mismo shape que handleApply)
   const applyEmptyFilters = () => {
     const transformedFilters = {
       authors: [],
@@ -26,33 +25,28 @@ const SideBarFiltersContent = ({
       sortBy: 'titulo,numero_tomo',
       applyPriceFilter: 0
     };
-    if (typeof onApplyFilters === 'function') {
-      onApplyFilters(transformedFilters);
-    }
-    // si el clearAllFilters provisto es local (ej. limpia estado del sidebar) lo ejecutamos
-    if (typeof clearAllFilters === 'function') {
-      clearAllFilters();
-    }
-    // si queremos cerrar el modal después de limpiar
-    if (typeof onClose === 'function') {
-      onClose();
-    }
+    if (typeof onApplyFilters === 'function') onApplyFilters(transformedFilters);
+    if (typeof clearAllFilters === 'function') clearAllFilters();
+    if (typeof onClose === 'function') onClose();
   };
+
+  const sections = [
+    { key: 'authors', label: 'Autores', items: availableFilters?.authors || [] },
+    { key: 'languages', label: 'Idiomas', items: availableFilters?.languages || [] },
+    { key: 'mangas', label: 'Mangas', items: availableFilters?.mangas || [] },
+    { key: 'editorials', label: 'Editoriales', items: availableFilters?.editorials || [] },
+  ];
 
   return (
     <>
       {/* ====== SECCIONES DE FILTROS ====== */}
-      {[
-        { key: 'authors', label: 'Autores', items: availableFilters.authors || [] },
-        { key: 'languages', label: 'Idiomas', items: availableFilters.languages || [] },
-        { key: 'mangas', label: 'Mangas', items: availableFilters.mangas || [] },
-        { key: 'editorials', label: 'Editoriales', items: availableFilters.editorials || [] },
-      ].map(({ key, label, items }) => (
+      {sections.map(({ key, label, items }) => (
         <div key={key} className="mb-2 border-bottom border-light pb-2">
           <button
             className="btn btn-sm btn-dark w-100 d-flex justify-content-between align-items-center"
             onClick={() => toggleSection(key)}
             aria-expanded={!!openSections[key]}
+            disabled={filtersLoading} // opcional: evitar abrir mientras carga
           >
             <span>{label}</span>
             {openSections[key] ? <FiChevronUp /> : <FiChevronDown />}
@@ -61,87 +55,84 @@ const SideBarFiltersContent = ({
           <div
             className={`mt-2 ps-2 ${openSections[key] ? 'd-block animate__animated animate__fadeIn' : 'd-none'}`}
           >
-            {items.length === 0 && <small className="text-light">Sin opciones</small>}
+            {filtersLoading ? (
+              <div className="d-flex align-items-center">
+                <div className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                <small className="text-light">Cargando...</small>
+              </div>
+            ) : (
+              <>
+                {items.length === 0 && <small className="text-light">Sin opciones</small>}
 
-            {key === 'authors' &&
-              items.map((a) => (
-                <div key={a.id} className="form-check mt-1">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    id={`author-${a.id}`}
-                    name="author"
-                    checked={filters.author === a.id}
-                    onChange={() => handleExclusiveChange('author', a.id)}
-                  />
-                  <label
-                    className="form-check-label ms-1"
-                    htmlFor={`author-${a.id}`}
-                  >
-                    {a.nombre} {a.apellido}
-                  </label>
-                </div>
-              ))}
+                {key === 'authors' &&
+                  items.map((a) => (
+                    <div key={a.id} className="form-check mt-1">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        id={`author-${a.id}`}
+                        name="author"
+                        checked={filters.author === a.id}
+                        onChange={() => handleExclusiveChange('author', a.id)}
+                      />
+                      <label className="form-check-label ms-1" htmlFor={`author-${a.id}`}>
+                        {a.nombre} {a.apellido}
+                      </label>
+                    </div>
+                  ))}
 
-            {key === 'languages' &&
-              items.map((lang, i) => (
-                <div key={i} className="form-check mt-1">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    id={`language-${lang}`}
-                    name="language"
-                    checked={filters.language === lang}
-                    onChange={() => handleExclusiveChange('language', lang)}
-                  />
-                  <label
-                    className="form-check-label ms-1"
-                    htmlFor={`language-${lang}`}
-                  >
-                    {lang}
-                  </label>
-                </div>
-              ))}
+                {key === 'languages' &&
+                  items.map((lang, i) => (
+                    <div key={i} className="form-check mt-1">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        id={`language-${lang}`}
+                        name="language"
+                        checked={filters.language === lang}
+                        onChange={() => handleExclusiveChange('language', lang)}
+                      />
+                      <label className="form-check-label ms-1" htmlFor={`language-${lang}`}>
+                        {lang}
+                      </label>
+                    </div>
+                  ))}
 
-            {key === 'mangas' &&
-              items.map((m) => (
-                <div key={m.id} className="form-check mt-1">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    id={`manga-${m.id}`}
-                    name="manga"
-                    checked={filters.manga === m.id}
-                    onChange={() => handleExclusiveChange('manga', m.id)}
-                  />
-                  <label
-                    className="form-check-label ms-1"
-                    htmlFor={`manga-${m.id}`}
-                  >
-                    {m.titulo}
-                  </label>
-                </div>
-              ))}
+                {key === 'mangas' &&
+                  items.map((m) => (
+                    <div key={m.id} className="form-check mt-1">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        id={`manga-${m.id}`}
+                        name="manga"
+                        checked={filters.manga === m.id}
+                        onChange={() => handleExclusiveChange('manga', m.id)}
+                      />
+                      <label className="form-check-label ms-1" htmlFor={`manga-${m.id}`}>
+                        {m.titulo}
+                      </label>
+                    </div>
+                  ))}
 
-            {key === 'editorials' &&
-              items.map((e) => (
-                <div key={e.id} className="form-check mt-1">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    id={`editorial-${e.id}`}
-                    name="editorial"
-                    checked={filters.editorial === e.id}
-                    onChange={() => handleExclusiveChange('editorial', e.id)}
-                  />
-                  <label
-                    className="form-check-label ms-1"
-                    htmlFor={`editorial-${e.id}`}
-                  >
-                    {e.nombre}
-                  </label>
-                </div>
-              ))}
+                {key === 'editorials' &&
+                  items.map((e) => (
+                    <div key={e.id} className="form-check mt-1">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        id={`editorial-${e.id}`}
+                        name="editorial"
+                        checked={filters.editorial === e.id}
+                        onChange={() => handleExclusiveChange('editorial', e.id)}
+                      />
+                      <label className="form-check-label ms-1" htmlFor={`editorial-${e.id}`}>
+                        {e.nombre}
+                      </label>
+                    </div>
+                  ))}
+              </>
+            )}
           </div>
         </div>
       ))}
@@ -152,6 +143,7 @@ const SideBarFiltersContent = ({
           className="btn btn-sm btn-dark w-100 d-flex justify-content-between align-items-center"
           onClick={() => toggleSection('price')}
           aria-expanded={!!openSections.price}
+          disabled={filtersLoading}
         >
           <span>Precio</span>
           {openSections.price ? <FiChevronUp /> : <FiChevronDown />}
@@ -210,6 +202,7 @@ const SideBarFiltersContent = ({
           className="btn btn-light text-dark w-100"
           onClick={applyEmptyFilters}
           aria-label="Quitar todos los filtros"
+          disabled={filtersLoading}
         >
           Quitar filtros
         </button>
