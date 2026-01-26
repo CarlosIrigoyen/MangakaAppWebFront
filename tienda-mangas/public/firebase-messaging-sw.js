@@ -1,141 +1,204 @@
-// public/firebase-messaging-sw.js
-
-/* ================================
-   CACHE OFFLINE
+/* ===============================
+   CONFIGURACIÓN GENERAL
 ================================ */
 
 const CACHE_NAME = 'mangaka-v3';
 
-const APP_SHELL = [
+const STATIC_ASSETS = [
   '/',
-  '/index.html',
   '/manifest.json',
   '/img/Mangaka.png',
 ];
 
-// Instalación
-self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando cache...');
-  self.skipWaiting();
+/* ===============================
+   INSTALACIÓN
+================================ */
 
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(APP_SHELL);
-    })
-  );
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
 });
 
-// Activación
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Activado cache');
+/* ===============================
+   ACTIVACIÓN
+================================ */
 
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
       self.clients.claim(),
-      caches.keys().then(cacheNames => {
+      caches.keys().then((cacheNames) => {
         return Promise.all(
-          cacheNames.map(cacheName => {
-            if (cacheName !== CACHE_NAME) {
-              return caches.delete(cacheName);
+          cacheNames.map((cache) => {
+            if (cache !== CACHE_NAME) {
+              return caches.delete(cache);
             }
           })
         );
-      })
+      }),
     ])
   );
 });
 
-/* ================================
-   FETCH – CACHE DINÁMICO
+/* ===============================
+   PUSH NOTIFICATIONS (Firebase)
 ================================ */
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-
-      return fetch(event.request)
-        .then(response => {
-          if (!response || response.status !== 200) {
-            return response;
-          }
-
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, clone);
-          });
-
-          return response;
-        })
-        .catch(() => {
-          // Fallback SPA offline
-          if (event.request.destination === 'document') {
-            return caches.match('/index.html');
-          }
-          return new Response('', { status: 503 });
-        });
-    })
-  );
-});
-
-/* ================================
-   FIREBASE PUSH (TU CÓDIGO)
-================================ */
-
-// 👉 A partir de acá dejás EXACTAMENTE tu código actual:
-
-// Manejo de notificaciones push optimizado
 self.addEventListener('push', (event) => {
   if (!event.data) return;
-  
+
   let payload;
   try {
     payload = event.data.json();
-  } catch (err) {
+  } catch (e) {
     return;
   }
 
-  const notificationTitle = payload.notification?.title || 'Mangaka Baka Shop';
-  const notificationOptions = {
+  const title = payload.notification?.title || 'Mangaka Baka Shop';
+
+  const options = {
     body: payload.notification?.body || 'Nuevo tomo disponible',
     icon: '/img/Mangaka.png',
     badge: '/img/Mangaka.png',
-    tag: payload.data?.manga_id || 'general',
     data: payload.data || {},
     requireInteraction: true,
-    actions: [
-      { action: 'open', title: 'Ver' },
-      { action: 'close', title: 'Cerrar' }
-    ]
   };
 
   event.waitUntil(
-    self.registration.showNotification(notificationTitle, notificationOptions)
+    self.registration.showNotification(title, options)
   );
 });
 
-// Click notificación
+/* ===============================
+   CLICK EN NOTIFICACIÓN
+================================ */
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
+
   const urlToOpen = new URL('/', self.location.origin).href;
 
   event.waitUntil(
-    self.clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true
-    }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin)) {
-          return client.focus();
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clients) => {
+        for (const client of clients) {
+          if (client.url.includes(self.location.origin)) {
+            return client.focus();
+          }
         }
-      }
-      return self.clients.openWindow(urlToOpen);
-    })
+        return self.clients.openWindow(urlToOpen);
+      })
   );
 });
 
-// Cierre notificación
-self.addEventListener('notificationclose', () => {});
+/* ===============================
+   ESTRATEGIAS DE CACHE
+================================ */
+
+// Cache First → estáticos / imágenes
+async function cacheFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  cache.put(request, response.clone());
+  return response;
+}
+
+// Network First → APIs públicas
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const fresh = await fetch(request);
+    cache.put(request, fresh.clone());
+    return fresh;
+  } catch (e) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw e;
+  }
+}
+
+/* ===============================
+   FETCH HANDLER
+================================ */
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+
+  // Solo GET
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+
+  /* ---------------------------------
+     ❌ RUTAS QUE NUNCA SE CACHEAN
+  ----------------------------------*/
+
+  if (
+    url.pathname.includes('/api/login') ||
+    url.pathname.includes('/api/register') ||
+    url.pathname.includes('/api/logout') ||
+    url.pathname.includes('/api/me') ||
+
+    // Carrito
+    url.pathname.includes('/api/carrito') ||
+
+    // Pagos
+    url.pathname.includes('/api/mercadopago') ||
+    url.pathname.includes('/api/paypal') ||
+
+    // Ordenes / facturas
+    url.pathname.includes('/api/orders') ||
+
+    // Suscripciones
+    url.pathname.includes('/api/suscripciones') ||
+
+    // Webhooks
+    url.pathname.includes('/api/webhook')
+  ) {
+    return; // siempre red
+  }
+
+  /* ---------------------------------
+     ✅ APIs PÚBLICAS (Network First)
+  ----------------------------------*/
+
+  if (
+    url.pathname.includes('/api/public/tomos') ||
+    url.pathname.includes('/api/filters')
+  ) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  /* ---------------------------------
+     ✅ IMÁGENES (Cache First)
+  ----------------------------------*/
+
+  if (
+    url.hostname.includes('cloudinary.com') ||
+    request.destination === 'image'
+  ) {
+    event.respondWith(cacheFirst(request));
+    return;
+  }
+
+  /* ---------------------------------
+     ✅ RECURSOS ESTÁTICOS REACT
+  ----------------------------------*/
+
+  if (
+    url.pathname.startsWith('/static/') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.jpg') ||
+    url.pathname.endsWith('.webp') ||
+    url.pathname === '/' ||
+    url.pathname === '/manifest.json'
+  ) {
+    event.respondWith(cacheFirst(request));
+    return;
+  }
+});
