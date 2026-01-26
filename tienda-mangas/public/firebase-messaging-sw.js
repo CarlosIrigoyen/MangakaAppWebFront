@@ -1,27 +1,37 @@
-// public/firebase-messaging-sw.js - VERSIÓN OPTIMIZADA
-const CACHE_NAME = 'mangaka-v2';
+// public/firebase-messaging-sw.js
+
+/* ================================
+   CACHE OFFLINE
+================================ */
+
+const CACHE_NAME = 'mangaka-v3';
+
 const APP_SHELL = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
+  '/index.html',
+  '/manifest.json',
   '/img/Mangaka.png',
-  '/manifest.json'
 ];
 
-// Instalación optimizada
+// Instalación
 self.addEventListener('install', (event) => {
- 
-  
-  // No cacheamos durante la instalación para mayor velocidad
+  console.log('[SW] Instalando cache...');
   self.skipWaiting();
+
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(APP_SHELL);
+    })
+  );
 });
 
-// Activación con limpieza de cachés antiguos
+// Activación
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activado cache');
+
   event.waitUntil(
     Promise.all([
       self.clients.claim(),
-      // Limpiar cachés antiguos
       caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames.map(cacheName => {
@@ -35,17 +45,55 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+/* ================================
+   FETCH – CACHE DINÁMICO
+================================ */
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+
+      return fetch(event.request)
+        .then(response => {
+          if (!response || response.status !== 200) {
+            return response;
+          }
+
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, clone);
+          });
+
+          return response;
+        })
+        .catch(() => {
+          // Fallback SPA offline
+          if (event.request.destination === 'document') {
+            return caches.match('/index.html');
+          }
+          return new Response('', { status: 503 });
+        });
+    })
+  );
+});
+
+/* ================================
+   FIREBASE PUSH (TU CÓDIGO)
+================================ */
+
+// 👉 A partir de acá dejás EXACTAMENTE tu código actual:
+
 // Manejo de notificaciones push optimizado
 self.addEventListener('push', (event) => {
-  if (!event.data) {
-    return;
-  }
+  if (!event.data) return;
   
   let payload;
   try {
     payload = event.data.json();
   } catch (err) {
- 
     return;
   }
 
@@ -58,14 +106,8 @@ self.addEventListener('push', (event) => {
     data: payload.data || {},
     requireInteraction: true,
     actions: [
-      {
-        action: 'open',
-        title: 'Ver'
-      },
-      {
-        action: 'close',
-        title: 'Cerrar'
-      }
+      { action: 'open', title: 'Ver' },
+      { action: 'close', title: 'Cerrar' }
     ]
   };
 
@@ -74,9 +116,8 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Manejo de clics en notificaciones optimizado
+// Click notificación
 self.addEventListener('notificationclick', (event) => {
- 
   event.notification.close();
   
   const urlToOpen = new URL('/', self.location.origin).href;
@@ -86,59 +127,15 @@ self.addEventListener('notificationclick', (event) => {
       type: 'window',
       includeUncontrolled: true
     }).then((clientList) => {
-      // Buscar ventana existente del mismo origen
       for (const client of clientList) {
         if (client.url.includes(self.location.origin)) {
-          return client.focus().then(() => client);
+          return client.focus();
         }
       }
-      
-      // Abrir nueva ventana si no existe
       return self.clients.openWindow(urlToOpen);
-    }).catch(err => {
- 
     })
   );
 });
 
-// Manejo de cierre de notificaciones
-self.addEventListener('notificationclose', (event) => {
-  //pass
-});
-
-// Cache estratégico para recursos críticos
-self.addEventListener('fetch', (event) => {
-  // Solo cacheamos recursos estáticos y el documento principal
-  const url = new URL(event.request.url);
-  
-  // Cache para recursos estáticos
-  if (url.pathname.startsWith('/static/') || 
-      url.pathname === '/' ||
-      url.pathname === '/manifest.json') {
-    
-    event.respondWith(
-      caches.match(event.request).then(response => {
-        // Retornar del cache si existe
-        if (response) {
-          return response;
-        }
-        
-        // Hacer fetch y cachear
-        return fetch(event.request).then(response => {
-          // Solo cacheamos respuestas válidas
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-          
-          // Clonar la respuesta para cachear
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
-          });
-          
-          return response;
-        });
-      })
-    );
-  }
-});
+// Cierre notificación
+self.addEventListener('notificationclose', () => {});
