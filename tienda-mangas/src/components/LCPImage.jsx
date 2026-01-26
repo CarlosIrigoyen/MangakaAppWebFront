@@ -13,23 +13,16 @@ const LCPImage = ({
   const [error, setError] = useState(false);
   const imgRef = useRef(null);
 
-  // Optimización AGRESIVA para Cloudinary
   const getOptimizedSrc = (baseSrc, quality = 60, format = 'webp') => {
     if (!baseSrc?.includes('cloudinary')) return baseSrc;
-    
-    // Forzar WebP y compresión agresiva
     return baseSrc.replace('/upload/', `/upload/w_${width},q_${quality},f_${format}/`);
   };
 
   const highQualitySrc = getOptimizedSrc(src, 70, 'webp');
-  const lowQualitySrc = getOptimizedSrc(src, 20, 'webp'); // Placeholder de muy baja calidad
+  const lowQualitySrc = getOptimizedSrc(src, 20, 'webp');
 
-  // Precarga AGRESIVA para imagen LCP
   useEffect(() => {
     if (isLCP && highQualitySrc) {
-     
-      
-      // Precargar con link preload (más efectivo)
       const link = document.createElement('link');
       link.rel = 'preload';
       link.as = 'image';
@@ -38,8 +31,9 @@ const LCPImage = ({
       link.setAttribute('crossorigin', 'anonymous');
       document.head.appendChild(link);
 
-      // También precargar con Image() como fallback
       const preloadImage = new Image();
+      // CAMBIO 1: Añadir crossOrigin al objeto de precarga
+      preloadImage.crossOrigin = "anonymous"; 
       preloadImage.src = highQualitySrc;
       
       return () => {
@@ -50,13 +44,8 @@ const LCPImage = ({
     }
   }, [isLCP, highQualitySrc]);
 
-  const handleLoad = () => {
-    
-    setLoaded(true);
-  };
-
+  const handleLoad = () => setLoaded(true);
   const handleError = () => {
-    
     setError(true);
     setLoaded(true);
   };
@@ -69,14 +58,15 @@ const LCPImage = ({
         height: `${height}px`,
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: '#f8f9fa'
+        backgroundColor: '#212529' // Cambiado a oscuro para que no de flash blanco
       }}
     >
-      {/* Placeholder de baja calidad (se carga instantáneamente) */}
       {!loaded && lowQualitySrc && (
         <img
           src={lowQualitySrc}
           alt=""
+          // CAMBIO 2: Añadir crossOrigin al placeholder
+          crossOrigin="anonymous" 
           style={{
             position: 'absolute',
             top: 0,
@@ -92,11 +82,12 @@ const LCPImage = ({
         />
       )}
       
-      {/* Imagen principal con prioridad máxima si es LCP */}
       <img
         ref={imgRef}
         src={highQualitySrc}
         alt={alt}
+        // CAMBIO 3: Añadir crossOrigin a la imagen principal
+        crossOrigin="anonymous" 
         width={width}
         height={height}
         loading={isLCP ? "eager" : "lazy"}
