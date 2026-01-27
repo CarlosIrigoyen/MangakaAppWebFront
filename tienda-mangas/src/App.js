@@ -141,8 +141,6 @@ const MainApp = () => {
 
       const data = await response.json();
       
-      console.log('📡 Respuesta del backend:', data);
-
       if (response.ok && data.success) {
         // Éxito - usar la función login del contexto
         login(data.cliente, data.token);
