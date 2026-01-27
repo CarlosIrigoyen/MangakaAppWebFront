@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo, useCallback, useRef } from 'react';
 import { UserContext } from './UserContext';
 
 export const CartContext = createContext();
@@ -10,7 +10,7 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [syncing, setSyncing] = useState(false);
 
-  // NUEVOS estados para saber si cargamos carrito desde el servidor y si está vacío en BD
+  // estados para saber si cargamos carrito desde el servidor y si está vacío en BD
   const [serverCartLoaded, setServerCartLoaded] = useState(false);
   const [serverCartEmpty, setServerCartEmpty] = useState(false);
 
@@ -21,6 +21,11 @@ export const CartProvider = ({ children }) => {
     OBTENER_CARRITO: `${API_URL}/carrito/obtener`,
     LIMPIAR_CARRITO: `${API_URL}/carrito/limpiar`
   }), [API_URL]);
+
+  // --- protección anti-spam de sync cuando hay errores repetidos (422)
+  const syncFailRef = useRef({ count: 0, lastFailedAt: 0 });
+  const SYNC_FAIL_THRESHOLD = 3; // después de 3 fallos, pausar
+  const SYNC_FAIL_COOLDOWN_MS = 60_000; // 1 minuto
 
   // Cargar carrito cuando el usuario cambia
   useEffect(() => {
@@ -41,9 +46,7 @@ export const CartProvider = ({ children }) => {
             }
           });
 
-          // si hay redirect (backend devolvió redirect HTML) o follow produjo cross-origin, forzamos logout
           if (response.redirected || (response.status >= 300 && response.status < 400)) {
-            console.warn('loadCart: detected redirected response, forcing SPA logout');
             window.dispatchEvent(new Event('auth:logout'));
             return;
           }
@@ -66,8 +69,7 @@ export const CartProvider = ({ children }) => {
             }
           }
         } catch (error) {
-          // Si hay error de red (posible redirect bloqueado por CORS), usamos localStorage como fallback.
-          console.warn('loadCart fetch error:', error);
+          // fallback localStorage
           setServerCartLoaded(false);
           const saved = localStorage.getItem(storageKey);
           if (saved) {
@@ -92,8 +94,34 @@ export const CartProvider = ({ children }) => {
   const syncCartWithDB = useCallback(async (cartData) => {
     if (!user || syncing) return;
 
+    // Si hemos tenido varios fallos recientemente, evitamos reintentos inmediatos
+    const now = Date.now();
+    const { count, lastFailedAt } = syncFailRef.current;
+    if (count >= SYNC_FAIL_THRESHOLD && (now - lastFailedAt) < SYNC_FAIL_COOLDOWN_MS) {
+      return; // pausa de reintentos
+    }
+
     setSyncing(true);
     try {
+      // Normalize & filter carrito: solo items con quantity >= 1
+      const carritoNormalized = (Array.isArray(cartData) ? cartData : [])
+        .map(i => ({
+          id: Number(i.id),
+          quantity: Number(i.quantity || 0)
+        }))
+        .filter(i => Number.isFinite(i.id) && i.id > 0 && Number(i.quantity) >= 1);
+
+      const payload = {
+        cliente_id: Number(user.id),
+        carrito: carritoNormalized
+      };
+
+      // Si no hay items válidos, evitamos llamar al endpoint (opcional: podrías llamar limpiar)
+      if (!Array.isArray(payload.carrito) || payload.carrito.length === 0) {
+        setSyncing(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
       const response = await fetch(endpoints.GUARDAR_CARRITO, {
         method: 'POST',
@@ -102,41 +130,42 @@ export const CartProvider = ({ children }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          cliente_id: user.id,
-          carrito: cartData
-        })
-        // Note: no credentials: 'include' because we use Bearer tokens
+        body: JSON.stringify(payload)
       });
 
-      // Si la respuesta fue redirect o 3xx -> probablemente el backend no aceptó la autenticación
+      // Si hay redirect/3xx -> forzar logout SPA
       if (response.redirected || (response.status >= 300 && response.status < 400)) {
-        console.warn('syncCartWithDB: detected redirect response, forcing SPA logout');
         window.dispatchEvent(new Event('auth:logout'));
         return;
       }
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
+        // Si es validación (422), registrar fallo y aplicar cooldown silenciosamente
+        if (response.status === 422) {
+          syncFailRef.current.count = (syncFailRef.current.count || 0) + 1;
+          syncFailRef.current.lastFailedAt = Date.now();
+        } else if (response.status === 401 || response.status === 403) {
           window.dispatchEvent(new Event('auth:logout'));
-        } else {
-          // opcional: manejar otros errores (logging)
-          console.warn('syncCartWithDB: response not ok', response.status);
         }
+        return;
       }
+
+      // Si llega OK, resetear contador de fallos
+      syncFailRef.current.count = 0;
+      syncFailRef.current.lastFailedAt = 0;
+
     } catch (error) {
-      // Si fetch falla por CORS/redirect/network, forzamos logout para evitar que el navegador siga redirects cross-origin
-      // y quede el SPA en estado inconsistente.
-      console.warn('syncCartWithDB fetch error:', error);
-      // Si quieres ser más agresivo: descomenta la siguiente línea.
-      // window.dispatchEvent(new Event('auth:logout'));
+      // en caso de error de red no hacemos nada visible (silencioso)
+      // opcional: podríamos incrementar contador para evitar bucles
+      syncFailRef.current.count = (syncFailRef.current.count || 0) + 1;
+      syncFailRef.current.lastFailedAt = Date.now();
     } finally {
       setSyncing(false);
     }
   }, [user, syncing, endpoints.GUARDAR_CARRITO]);
 
   useEffect(() => {
-    // ⛔ NO sincronizar hasta que el carrito del servidor esté cargado
+    // NO sincronizar hasta que el carrito del servidor esté cargado
     if (loadingUser || syncing || !serverCartLoaded) return;
 
     try {
@@ -157,9 +186,8 @@ export const CartProvider = ({ children }) => {
   ]);
 
 
-  /**
-   * updateCartItemStock
-   */
+  // Resto de funciones (sin cambios significativos de logging)
+
   const updateCartItemStock = useCallback((itemId, stockAvailable, desiredQuantity = null) => {
     setCart(prevCart => prevCart.map(it => {
       if (String(it.id) === String(itemId)) {
