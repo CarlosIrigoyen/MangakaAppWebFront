@@ -1,4 +1,3 @@
-// src/CartContext.js
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { UserContext } from './UserContext';
 
@@ -36,10 +35,18 @@ export const CartProvider = ({ children }) => {
           const token = localStorage.getItem('token');
           const response = await fetch(`${endpoints.OBTENER_CARRITO}/${user.id}`, {
             headers: {
+              'Accept': 'application/json',
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           });
+
+          // si hay redirect (backend devolvió redirect HTML) o follow produjo cross-origin, forzamos logout
+          if (response.redirected || (response.status >= 300 && response.status < 400)) {
+            console.warn('loadCart: detected redirected response, forcing SPA logout');
+            window.dispatchEvent(new Event('auth:logout'));
+            return;
+          }
 
           if (response.ok) {
             const cartFromDB = await response.json();
@@ -48,6 +55,10 @@ export const CartProvider = ({ children }) => {
             setServerCartEmpty(Array.isArray(cartFromDB) && cartFromDB.length === 0);
             try { localStorage.setItem(storageKey, JSON.stringify(cartFromDB)); } catch(e) { /* ignore */ }
           } else {
+            if (response.status === 401 || response.status === 403) {
+              window.dispatchEvent(new Event('auth:logout'));
+              return;
+            }
             setServerCartLoaded(false);
             const saved = localStorage.getItem(storageKey);
             if (saved) {
@@ -55,6 +66,8 @@ export const CartProvider = ({ children }) => {
             }
           }
         } catch (error) {
+          // Si hay error de red (posible redirect bloqueado por CORS), usamos localStorage como fallback.
+          console.warn('loadCart fetch error:', error);
           setServerCartLoaded(false);
           const saved = localStorage.getItem(storageKey);
           if (saved) {
@@ -82,9 +95,10 @@ export const CartProvider = ({ children }) => {
     setSyncing(true);
     try {
       const token = localStorage.getItem('token');
-      await fetch(endpoints.GUARDAR_CARRITO, {
+      const response = await fetch(endpoints.GUARDAR_CARRITO, {
         method: 'POST',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -92,41 +106,59 @@ export const CartProvider = ({ children }) => {
           cliente_id: user.id,
           carrito: cartData
         })
+        // Note: no credentials: 'include' because we use Bearer tokens
       });
+
+      // Si la respuesta fue redirect o 3xx -> probablemente el backend no aceptó la autenticación
+      if (response.redirected || (response.status >= 300 && response.status < 400)) {
+        console.warn('syncCartWithDB: detected redirect response, forcing SPA logout');
+        window.dispatchEvent(new Event('auth:logout'));
+        return;
+      }
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          window.dispatchEvent(new Event('auth:logout'));
+        } else {
+          // opcional: manejar otros errores (logging)
+          console.warn('syncCartWithDB: response not ok', response.status);
+        }
+      }
     } catch (error) {
-      // opcional: logging
+      // Si fetch falla por CORS/redirect/network, forzamos logout para evitar que el navegador siga redirects cross-origin
+      // y quede el SPA en estado inconsistente.
+      console.warn('syncCartWithDB fetch error:', error);
+      // Si quieres ser más agresivo: descomenta la siguiente línea.
+      // window.dispatchEvent(new Event('auth:logout'));
     } finally {
       setSyncing(false);
     }
   }, [user, syncing, endpoints.GUARDAR_CARRITO]);
 
   useEffect(() => {
-  // ⛔ NO sincronizar hasta que el carrito del servidor esté cargado
-  if (loadingUser || syncing || !serverCartLoaded) return;
+    // ⛔ NO sincronizar hasta que el carrito del servidor esté cargado
+    if (loadingUser || syncing || !serverCartLoaded) return;
 
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(cart));
-  } catch (e) {}
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(cart));
+    } catch (e) {}
 
-  if (user) {
-    syncCartWithDB(cart);
-  }
-}, [
-  cart,
-  storageKey,
-  loadingUser,
-  user,
-  syncing,
-  serverCartLoaded,
-  syncCartWithDB
-]);
+    if (user) {
+      syncCartWithDB(cart);
+    }
+  }, [
+    cart,
+    storageKey,
+    loadingUser,
+    user,
+    syncing,
+    serverCartLoaded,
+    syncCartWithDB
+  ]);
 
 
   /**
    * updateCartItemStock
-   * - Actualiza el `stock` conocido del item en el carrito.
-   * - Ajusta la `quantity` si excede el nuevo stock (asegura al menos 1 si stock > 0, o 0 si stock === 0).
-   * - Si se pasa desiredQuantity se usará (limitada por el stock).
    */
   const updateCartItemStock = useCallback((itemId, stockAvailable, desiredQuantity = null) => {
     setCart(prevCart => prevCart.map(it => {
@@ -137,7 +169,6 @@ export const CartProvider = ({ children }) => {
         if (typeof desiredQuantity === 'number') {
           newQuantity = Math.min(Math.max(desiredQuantity, 0), newStock);
         } else {
-          // respetar cantidad actual pero no exceder stock; si stock === 0 dejar 0
           if (newStock <= 0) {
             newQuantity = 0;
           } else {
@@ -151,9 +182,6 @@ export const CartProvider = ({ children }) => {
     }));
   }, []);
 
-  /**
-   * addToCart: usa setCart funcional para evitar lecturas obsoletas.
-   */
   const addToCart = useCallback((item) => {
     setCart(prev => {
       const existing = prev.find(ci => ci.id === item.id);
@@ -177,9 +205,6 @@ export const CartProvider = ({ children }) => {
     });
   }, []);
 
-  /**
-   * updateCartItem: actualiza la cantidad respetando el stock actual del item.
-   */
   const updateCartItem = useCallback((itemId, quantity) => {
     setCart(prev => prev.map(it => {
       if (it.id === itemId) {
@@ -194,9 +219,6 @@ export const CartProvider = ({ children }) => {
     }));
   }, []);
 
-  /**
-   * removeCartItem: usa setCart funcional; si queda vacío borra y limpia storage/BD
-   */
   const removeCartItem = useCallback((itemId) => {
     setCart(prev => {
       const next = prev.filter(item => item.id !== itemId);
@@ -208,7 +230,7 @@ export const CartProvider = ({ children }) => {
               const token = localStorage.getItem('token');
               await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
               });
             } catch (error) { /* ignore */ }
           }
@@ -227,7 +249,7 @@ export const CartProvider = ({ children }) => {
         const token = localStorage.getItem('token');
         await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
         });
       } catch (error) {
         // ignore
@@ -241,7 +263,7 @@ export const CartProvider = ({ children }) => {
         const token = localStorage.getItem('token');
         await fetch(`${endpoints.LIMPIAR_CARRITO}/${user.id}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
         });
       } catch (error) {
         //ignore
