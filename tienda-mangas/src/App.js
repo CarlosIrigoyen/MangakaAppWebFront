@@ -126,8 +126,6 @@ const MainApp = () => {
     setLoginErrors({});
     
     try {
-      console.log('🔐 Enviando token Google al backend:', GOOGLE_AUTH_URL);
-      
       const response = await fetch(GOOGLE_AUTH_URL, {
         method: 'POST',
         headers: {
