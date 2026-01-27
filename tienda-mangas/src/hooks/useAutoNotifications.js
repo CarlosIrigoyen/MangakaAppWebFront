@@ -7,7 +7,6 @@ import { UserContext } from '../UserContext';
 
 // URLs de la API (usa tus variables de entorno)
 const API_ACTUALIZAR_SUSCRIPCIONES = `${process.env.REACT_APP_API_URL}/suscripciones/actualizar-suscripciones`;
-const API_OBTENER_TOKEN = `${process.env.REACT_APP_API_URL}/suscripciones/obtener-token`;
 const API_MANGAS_DISPONIBLES = `${process.env.REACT_APP_API_URL}/suscripciones/mangas-disponibles`;
 const API_MIS_SUSCRIPCIONES = `${process.env.REACT_APP_API_URL}/suscripciones/mis-suscripciones`;
 const API_ACTUALIZAR_TOKEN = `${process.env.REACT_APP_API_URL}/suscripciones/actualizar-token`;
