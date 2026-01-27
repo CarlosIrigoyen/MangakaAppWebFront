@@ -100,17 +100,27 @@ export const CartProvider = ({ children }) => {
     }
   }, [user, syncing, endpoints.GUARDAR_CARRITO]);
 
-  // Persistir cambios en localStorage y BD
   useEffect(() => {
-    if (loadingUser || syncing) return;
-    
-    try { localStorage.setItem(storageKey, JSON.stringify(cart)); } catch (e) { /* ignore */ }
-    
-    if (user) {
-      syncCartWithDB(cart);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart, storageKey, loadingUser, user, syncing, syncCartWithDB]);
+  // ⛔ NO sincronizar hasta que el carrito del servidor esté cargado
+  if (loadingUser || syncing || !serverCartLoaded) return;
+
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(cart));
+  } catch (e) {}
+
+  if (user) {
+    syncCartWithDB(cart);
+  }
+}, [
+  cart,
+  storageKey,
+  loadingUser,
+  user,
+  syncing,
+  serverCartLoaded,
+  syncCartWithDB
+]);
+
 
   /**
    * updateCartItemStock
