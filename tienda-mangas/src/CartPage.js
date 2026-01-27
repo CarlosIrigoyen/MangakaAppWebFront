@@ -1,4 +1,3 @@
-// src/CartPage.js
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from './CartContext';
@@ -122,7 +121,6 @@ const CartPage = () => {
 
   /**
    * handlePaymentError: intenta extraer tomo_id y stock del error y obtener datos actualizados.
-   * Actualiza el stock en el cart context (updateCartItemStock) y abre el modal permitiendo elegir la cantidad.
    */
   const handlePaymentError = async (errObj) => {
     const message = errObj && errObj.message ? errObj.message : String(errObj || 'Error desconocido');
@@ -134,6 +132,10 @@ const CartPage = () => {
       // try to fetch tomo fresh data
       try {
         const resp = await fetch(REACT_TOMOS_GET(tomoId), { headers: { Accept: 'application/json' } });
+        if (resp.redirected || (resp.status >= 300 && resp.status < 400)) {
+          window.dispatchEvent(new Event('auth:logout'));
+          return;
+        }
         if (resp.ok) {
           const tomoData = await resp.json();
           const tomo = tomoData.data ? tomoData.data : tomoData;
@@ -141,7 +143,6 @@ const CartPage = () => {
           const numero = tomo.numero_tomo || tomo.numero || '';
           const stock = Number(tomo.stock ?? stockFromJson ?? 0);
 
-          // update cart stock only (preserve quantity for now; modal lets user decide)
           if (typeof updateCartItemStock === 'function') {
             updateCartItemStock(tomoId, stock);
           }
@@ -154,16 +155,15 @@ const CartPage = () => {
         }
       } catch (e) {
         // fallback to cart info
+        console.warn('handlePaymentError - fetch tomo failed:', e);
       }
 
-      // fallback: use cart item if fetch failed
       const cartItem = cart.find(it => String(it.id) === String(tomoId));
       const titulo = cartItem?.manga?.titulo || 'Producto';
       const numero = cartItem?.numero_tomo || '';
       const stock = Number(stockFromJson ?? cartItem?.stock ?? 0);
 
       if (typeof updateCartItemStock === 'function' && cartItem) {
-        // update stock but keep quantity adjusted not exceeding stock
         updateCartItemStock(tomoId, stock);
       }
 
@@ -200,6 +200,12 @@ const CartPage = () => {
         body: JSON.stringify(payload),
       });
 
+      if (response.redirected || (response.status >= 300 && response.status < 400)) {
+        // si el backend redirige por auth -> forzar logout SPA
+        window.dispatchEvent(new Event('auth:logout'));
+        return;
+      }
+
       if (!response.ok) {
         const errorJson = await response.json().catch(() => null);
         return handlePaymentError(errorJson || { message: `HTTP ${response.status}` });
@@ -216,6 +222,13 @@ const CartPage = () => {
 
       window.location.href = approve_url;
     } catch (err) {
+      // Si fetch falló por CORS/redirect, forzamos logout para evitar estado inconsistente
+      console.warn('handlePayPalBuy error:', err);
+      // Optativo: forzar logout en casos de TypeError/network issues
+      if (err instanceof TypeError) {
+        // posible CORS/redirect -> forzar logout para reiniciar estado SPA
+        // window.dispatchEvent(new Event('auth:logout'));
+      }
       await handlePaymentError(err);
     }
   };
@@ -235,13 +248,13 @@ const CartPage = () => {
     );
   }
   if (!serverCartLoaded) {
-  return (
-    <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white" role="status" aria-live="polite">
-      <Spinner animation="border" role="status" className="mb-3" />
-      <h2 className="h5">Cargando carrito...</h2>
-    </div>
-  );
-}
+    return (
+      <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white" role="status" aria-live="polite">
+        <Spinner animation="border" role="status" className="mb-3" />
+        <h2 className="h5">Cargando carrito...</h2>
+      </div>
+    );
+  }
 
   if (!cart.length) {
     const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
