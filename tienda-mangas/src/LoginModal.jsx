@@ -235,7 +235,6 @@ function LoginModal({ show, onHide, onSubmit, errors = {}, clearErrors, switchTo
                   size="large"
                   text="signin_with"
                   shape="rectangular"
-                  width="100%"
                   locale="es"
                   logo_alignment="left"
                 />
