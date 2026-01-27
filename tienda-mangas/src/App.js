@@ -1,4 +1,4 @@
-// src/App.js (con mejor control de errores en registro y login y Google Login)
+// src/App.js
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import {
   BrowserRouter as Router,
@@ -30,9 +30,9 @@ import {
   FaUserPlus
 } from 'react-icons/fa';
 
-// Importar GoogleOAuthProvider para login con Google
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+// NOTE: no import estático de @react-oauth/google (evita costear la carga inicial)
 
+// Lazy components de la app
 const TomoList = lazy(() => import('./TomoList'));
 const SidebarFilters = lazy(() => import('./SideBarFilters'));
 const SidebarFiltersModal = lazy(() => import('./SidebarFiltersModal'));
@@ -48,9 +48,15 @@ const PendingPage = lazy(() => import('./PendingPage'));
 const PayPalReturn = lazy(() => import('./PayPalReturn'));
 const SubscriptionManagerModal = lazy(() => import('./SubscriptionManager'));
 
+// Lazy-load Google OAuth components so they don't block initial load
+const GoogleOAuthProviderLazy = lazy(() => import('@react-oauth/google').then(mod => ({ default: mod.GoogleOAuthProvider })));
+const GoogleLoginLazy = lazy(() => import('@react-oauth/google').then(mod => ({ default: mod.GoogleLogin })));
+
+// Contexts
 import { CartProvider, CartContext } from './CartContext';
 import { UserProvider, UserContext } from './UserContext';
 
+// Endpoints
 const REGISTER_URL = `${process.env.REACT_APP_API_URL}/register`;
 const LOGIN_URL = `${process.env.REACT_APP_API_URL}/login`;
 const GOOGLE_AUTH_URL = `${process.env.REACT_APP_API_URL}/auth/google`;
@@ -67,7 +73,7 @@ const SmallSpinner = () => (
   <Spinner animation="border" size="sm" role="status" aria-hidden="true" />
 );
 
-const MainApp = () => {
+const MainApp = ({ googleClientId }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -89,6 +95,18 @@ const MainApp = () => {
     minPrice: '',
     maxPrice: ''
   });
+
+  // control para montar sidebar con requestIdleCallback (evita bloquear LCP)
+  const [showSidebar, setShowSidebar] = useState(false);
+  useEffect(() => {
+    if ('requestIdleCallback' in window) {
+      const id = requestIdleCallback(() => setShowSidebar(true), { timeout: 300 });
+      return () => cancelIdleCallback(id);
+    } else {
+      const t = setTimeout(() => setShowSidebar(true), 300);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   // PAGINACIÓN: inicializar desde URL ?page= o desde sessionStorage
   const getInitialPage = () => {
@@ -171,6 +189,24 @@ const MainApp = () => {
     setTimeout(() => setError(''), 5000);
   };
 
+  // Agregar preload dinámico para la imagen LCP (primera portada) -> reduce LCP
+  const addPreloadImage = (url) => {
+    try {
+      if (!url) return;
+      // evita duplicados
+      if (document.querySelector(`link[rel="preload"][href="${url}"]`)) return;
+      const l = document.createElement('link');
+      l.rel = 'preload';
+      l.as = 'image';
+      l.href = url;
+      // signal to browser it's important
+      l.setAttribute('importance', 'high');
+      document.head.appendChild(l);
+    } catch (e) {
+      // noop
+    }
+  };
+
   // Carga inicial de tomos sin mostrar loading global
   const fetchTomos = useCallback(async (filtersParam = {}, page = 1) => {
     setIsLoading(true);
@@ -196,6 +232,20 @@ const MainApp = () => {
         lastPage: data.last_page || 1,
         total: data.total || 0
       });
+
+      // Preload dinámico de la primera imagen (si existe) para mejorar LCP
+      if (data.data && data.data.length) {
+        const first = data.data[0];
+        let imageUrl = null;
+        const keys = ['imagen','image','cover','cover_url','portada','src','url'];
+        for (const k of keys) {
+          if (first[k]) { imageUrl = first[k]; break; }
+        }
+        if (!imageUrl && first.images && first.images[0]) {
+          imageUrl = first.images[0].url || first.images[0].src;
+        }
+        if (imageUrl) addPreloadImage(imageUrl);
+      }
 
       // guardar el page actual en sessionStorage y en la URL
       sessionStorage.setItem('tomos_current_page', page);
@@ -694,7 +744,7 @@ const MainApp = () => {
 
       {/* Overlay de búsqueda móvil con espacio */}
       {showMobileSearch && (
-        <div className="d-lg-none search-overlay-mobile">
+        <div className="d-lg-none search-overlay-mobile p-3" style={{ paddingTop: 72 }}>
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h5>Buscar</h5>
             <Button 
@@ -736,15 +786,22 @@ const MainApp = () => {
         }}
       >
         {/* SIDEBAR ESCRITORIO */}
-        <div className="d-none d-md-block sidebar-fixed">
-          <Suspense fallback={<div className="p-3 text-white">Cargando filtros...</div>}>
-            <SidebarFilters
-              onFilterChange={handleFilterChange}
-              onResetFilters={resetFilters}
-              setShowLogin={setShowLogin}
-              setShowRegister={setShowRegister}
-            />
-          </Suspense>
+        <div className="d-none d-md-block sidebar-fixed" style={{ width: 300 }}>
+          {showSidebar ? (
+            <Suspense fallback={<div className="p-3 text-white" style={{ minHeight: 200 }}>Cargando filtros...</div>}>
+              <SidebarFilters
+                onFilterChange={handleFilterChange}
+                onResetFilters={resetFilters}
+                setShowLogin={setShowLogin}
+                setShowRegister={setShowRegister}
+              />
+            </Suspense>
+          ) : (
+            // placeholder para evitar CLS (misma altura aproximada)
+            <div className="p-3 text-white" style={{ minHeight: 200 }}>
+              Cargando filtros...
+            </div>
+          )}
         </div>
 
         {/* LISTA DE TOMOS - Solo muestra loading interno si está cargando */}
@@ -790,7 +847,7 @@ const MainApp = () => {
           clearErrors={() => setRegisterErrors({})}
         />
         
-        {/* MODAL DE LOGIN MODIFICADO CON GOOGLE */}
+        {/* MODAL DE LOGIN: renderizamos Google components solo cuando se abre el modal */}
         {showLogin && (
           <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
             <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '500px' }}>
@@ -811,23 +868,27 @@ const MainApp = () => {
                 </div>
                 
                 <div className="modal-body">
-                  {/* Botón de Google Login */}
+                  {/* Botón de Google Login (se carga dinámicamente) */}
                   <div className="text-center mb-4">
                     <h6 className="text-warning mb-3">
                       <FaGoogle className="me-2" />
                       Acceso Rápido con Google
                     </h6>
                     
-                    <GoogleLogin
-                      onSuccess={handleGoogleLogin}
-                      onError={handleGoogleError}
-                      theme="filled_blue"
-                      size="large"
-                      text="signin_with"
-                      shape="rectangular"
-                      width="100%"
-                      locale="es"
-                    />
+                    <Suspense fallback={<div aria-hidden="true"><SmallSpinner /> Cargando Google...</div>}>
+                      <GoogleOAuthProviderLazy clientId={googleClientId}>
+                        <GoogleLoginLazy
+                          onSuccess={handleGoogleLogin}
+                          onError={handleGoogleError}
+                          theme="filled_blue"
+                          size="large"
+                          text="signin_with"
+                          shape="rectangular"
+                          width="100%"
+                          locale="es"
+                        />
+                      </GoogleOAuthProviderLazy>
+                    </Suspense>
                     
                     {googleLoading && (
                       <div className="mt-3">
@@ -933,7 +994,7 @@ const MainApp = () => {
   );
 };
 
-// Componente App principal con GoogleOAuthProvider
+// Componente App principal (ahora sin GoogleOAuthProvider global)
 const App = () => {
   // Obtener el Google Client ID de las variables de entorno
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -958,27 +1019,24 @@ const App = () => {
   return (
     <UserProvider>
       <CartProvider>
-        {/* ENVOLVER LA APLICACIÓN CON EL PROVEEDOR DE GOOGLE */}
-        <GoogleOAuthProvider clientId={googleClientId}>
-          <Router>
-            <Suspense fallback={
-              <div className="d-flex justify-content-center align-items-center vh-100 bg-dark">
-                <Spinner animation="border" variant="primary" />
-              </div>
-            }>
-              <Routes>
-                <Route path="/" element={<MainApp />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/facturas" element={<FacturasPage />} />
-                <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
-                <Route path="/checkout/success" element={<SuccessPage />} />
-                <Route path="/checkout/failure" element={<FailurePage />} />
-                <Route path="/checkout/pending" element={<PendingPage />} />
-                <Route path="/paypal-return" element={<PayPalReturn />} />
-              </Routes>
-            </Suspense>
-          </Router>
-        </GoogleOAuthProvider>
+        <Router>
+          <Suspense fallback={
+            <div className="d-flex justify-content-center align-items-center vh-100 bg-dark">
+              <Spinner animation="border" variant="primary" />
+            </div>
+          }>
+            <Routes>
+              <Route path="/" element={<MainApp googleClientId={googleClientId} />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/facturas" element={<FacturasPage />} />
+              <Route path="/facturas/:id" element={<DetalleFacturaPage />} />
+              <Route path="/checkout/success" element={<SuccessPage />} />
+              <Route path="/checkout/failure" element={<FailurePage />} />
+              <Route path="/checkout/pending" element={<PendingPage />} />
+              <Route path="/paypal-return" element={<PayPalReturn />} />
+            </Routes>
+          </Suspense>
+        </Router>
       </CartProvider>
     </UserProvider>
   );
