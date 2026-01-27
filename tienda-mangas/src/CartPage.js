@@ -10,7 +10,7 @@ const REACT_PAYPAL_CREATE_ORDER = `${process.env.REACT_APP_API_URL}/paypal/creat
 const REACT_TOMOS_GET = (id) => `${process.env.REACT_APP_API_URL}/tomos/${id}`;
 
 const CartPage = () => {
-  const { cart, updateCartItem, removeCartItem, updateCartItemStock } = useContext(CartContext);
+  const { cart, serverCartLoaded, updateCartItem, removeCartItem, updateCartItemStock } = useContext(CartContext);
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
 
@@ -234,6 +234,14 @@ const CartPage = () => {
       </div>
     );
   }
+  if (!serverCartLoaded) {
+  return (
+    <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white" role="status" aria-live="polite">
+      <Spinner animation="border" role="status" className="mb-3" />
+      <h2 className="h5">Cargando carrito...</h2>
+    </div>
+  );
+}
 
   if (!cart.length) {
     const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
