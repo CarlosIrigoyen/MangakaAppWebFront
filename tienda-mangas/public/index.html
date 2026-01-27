@@ -51,7 +51,7 @@
         z-index:9999;
       }
 
-      /* Loader inicial */
+      /* Loader inicial (reservar espacio para evitar CLS) */
       .initial-loading {
         display:flex;
         align-items:center;
@@ -80,7 +80,12 @@
   <body>
     <a class="skip-link" href="#main-content">Saltar al contenido</a>
 
-    <div id="root" aria-live="polite"></div>
+    <!-- Reservamos un loader visible antes de que React monte --> 
+    <div id="root" aria-live="polite">
+      <div class="initial-loading" aria-hidden="true">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
 
     <script>
       (function() {
@@ -107,3 +112,4 @@
     </script>
   </body>
 </html>
+
