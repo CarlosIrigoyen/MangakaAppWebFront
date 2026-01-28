@@ -1,22 +1,18 @@
 // src/UserContext.js
 import React, { createContext, useState, useEffect } from 'react';
 
-// Crea el contexto para el usuario
 export const UserContext = createContext();
 
-const REACT_LOGOUT='http://localhost:8000/api/logout'
-const REACT_ME= 'http://localhost:8000/api/me'
-const REACT_URL_LOGOUT= `${process.env.REACT_APP_API_URL}/logout`;
-const REACT_URL_ME=`${process.env.REACT_APP_API_URL}/me`;
-// Define el proveedor del contexto de usuario
+const REACT_URL_LOGOUT = `${process.env.REACT_APP_API_URL}/logout`;
+const REACT_URL_ME = `${process.env.REACT_APP_API_URL}/me`;
+
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true); // Para saber si ya se cargó la información del usuario
+  const [loadingUser, setLoadingUser] = useState(true);
 
-  // Efecto para verificar la autenticación al cargar la aplicación
   useEffect(() => {
     const checkAuth = async () => {
-      setLoadingUser(true); // Indicamos que estamos cargando
+      setLoadingUser(true);
       const token = localStorage.getItem('token');
 
       if (!token) {
@@ -31,33 +27,37 @@ export const UserProvider = ({ children }) => {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
-          }
+          },
+          cache: 'no-store'
         });
-        const result = await response.json();
+
         if (response.ok) {
-          setUser(result); // Si la respuesta es exitosa, establece el usuario
+          const result = await response.json();
+          setUser(result);
         } else {
-          // Si el token no es válido o hay un error, lo eliminamos
+          // token inválido
           localStorage.removeItem('token');
           setUser(null);
         }
       } catch (error) {
-        localStorage.removeItem('token'); // En caso de error de red, también limpiamos el token
+        // en error de red, mantenemos null para no romper la UX
+        localStorage.removeItem('token');
         setUser(null);
       } finally {
-        setLoadingUser(false); // La carga ha terminado
+        setLoadingUser(false);
       }
     };
-    checkAuth();
-  }, []); // Se ejecuta solo una vez al montar el componente
 
-  // Función para manejar el inicio de sesión
+    checkAuth();
+  }, []);
+
   const login = (userData, token) => {
     localStorage.setItem('token', token);
     setUser(userData);
+    // emitir evento para que otros contextos (carrito) puedan reintentar sincronizar
+    window.dispatchEvent(new Event('auth:login'));
   };
 
-  // Función para manejar el cierre de sesión
   const logout = async () => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -67,18 +67,24 @@ export const UserProvider = ({ children }) => {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
-          }
+          },
+          cache: 'no-store'
         });
       } catch (error) {
-       //pass
+        // ignore
       } finally {
         localStorage.removeItem('token');
         setUser(null);
+        window.dispatchEvent(new Event('auth:logout'));
       }
+    } else {
+      // si no hay token local, igual limpiamos
+      localStorage.removeItem('token');
+      setUser(null);
+      window.dispatchEvent(new Event('auth:logout'));
     }
   };
 
-  // Provee el estado del usuario y las funciones de login/logout a los componentes hijos
   return (
     <UserContext.Provider value={{ user, setUser, loadingUser, login, logout }}>
       {children}
