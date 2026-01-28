@@ -204,9 +204,10 @@ const CartPage = () => {
         body: JSON.stringify(payload),
       });
 
-      if (response.redirected || (response.status >= 300 && response.status < 400)) {
+      if (response.status===401) {
         // backend attempted redirect (likely unauthenticated) -> force SPA logout
-        window.dispatchEvent(new Event('auth:logout'));
+         window.dispatchEvent(new Event('auth:logout'));
+
         return;
       }
 
