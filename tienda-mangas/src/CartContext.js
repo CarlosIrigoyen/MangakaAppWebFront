@@ -1,3 +1,4 @@
+// src/CartContext.js
 import React, {
   createContext,
   useState,
@@ -35,7 +36,12 @@ export const CartProvider = ({ children }) => {
   const SYNC_FAIL_THRESHOLD = 3; // después de 3 fallos, pausar
   const SYNC_FAIL_COOLDOWN_MS = 60_000; // 1 minuto
 
-  // Cargar carrito cuando el usuario cambia
+  // refs para evitar loops / debounce
+  const syncingRef = useRef(false);
+  const debounceTimerRef = useRef(null);
+  const lastSyncHashRef = useRef(null);
+
+  // Cargar carrito cuando el usuario cambia (únicamente)
   useEffect(() => {
     if (loadingUser) return;
 
@@ -116,9 +122,9 @@ export const CartProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loadingUser, storageKey, endpoints.OBTENER_CARRITO]);
 
-  // Sincronizar carrito con BD cuando el usuario está logueado
+  // Función que sincroniza con el servidor (no depende de `syncing` para evitar recreaciones que causen loops)
   const syncCartWithDB = useCallback(async (cartData) => {
-    if (!user || syncing) return;
+    if (!user) return;
 
     // Si hemos tenido varios fallos recientemente, evitamos reintentos inmediatos
     const now = Date.now();
@@ -128,42 +134,44 @@ export const CartProvider = ({ children }) => {
       return; // pausa de reintentos
     }
 
+    // Normalizamos y filtramos
+    const carritoNormalized = (Array.isArray(cartData) ? cartData : [])
+      .map(i => ({ id: Number(i.id), quantity: Number(i.quantity || 0) }))
+      .filter(i => Number.isFinite(i.id) && i.id > 0 && Number(i.quantity) >= 1);
+
+    const payload = { cliente_id: Number(user.id), carrito: carritoNormalized };
+
+    // Si no hay items válidos, evitamos llamar al endpoint
+    if (!Array.isArray(payload.carrito) || payload.carrito.length === 0) {
+      return;
+    }
+
+    // Evitar reenvío de payload idéntico
+    const currentHash = JSON.stringify(payload);
+    if (lastSyncHashRef.current === currentHash) {
+      // ya sincronizado recientemente con el mismo payload
+      console.log('[syncCartWithDB] same payload — skipping');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('[syncCartWithDB] no token - aborting sync');
+      return;
+    }
+
+    // Marcar sincronización en curso (state + ref)
     setSyncing(true);
+    syncingRef.current = true;
+
+    const headers = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+
     try {
-      // Normalize & filter carrito: solo items con quantity >= 1
-      const carritoNormalized = (Array.isArray(cartData) ? cartData : [])
-        .map(i => ({
-          id: Number(i.id),
-          quantity: Number(i.quantity || 0)
-        }))
-        .filter(i => Number.isFinite(i.id) && i.id > 0 && Number(i.quantity) >= 1);
-
-      const payload = {
-        cliente_id: Number(user.id),
-        carrito: carritoNormalized
-      };
-
-      // Si no hay items válidos, evitamos llamar al endpoint (opcional: podrías llamar limpiar)
-      if (!Array.isArray(payload.carrito) || payload.carrito.length === 0) {
-        setSyncing(false);
-        return;
-      }
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.warn('[syncCartWithDB] no token - aborting sync');
-        setSyncing(false);
-        return;
-      }
-
-      const headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      };
-
-      console.log('[syncCartWithDB] POST', endpoints.GUARDAR_CARRITO, 'tokenExists:', !!token, 'payload:', payload);
-
+      console.log('[syncCartWithDB] POST', endpoints.GUARDAR_CARRITO, 'payload:', payload);
       const response = await fetch(endpoints.GUARDAR_CARRITO, {
         method: 'POST',
         headers,
@@ -172,14 +180,12 @@ export const CartProvider = ({ children }) => {
 
       console.log('[syncCartWithDB] status', response.status);
 
-      // Si hay redirect/3xx -> forzar logout SPA
       if (response.redirected || (response.status >= 300 && response.status < 400)) {
         window.dispatchEvent(new Event('auth:logout'));
         return;
       }
 
       if (!response.ok) {
-        // Si es validación (422), registrar fallo y aplicar cooldown silenciosamente
         if (response.status === 422) {
           syncFailRef.current.count = (syncFailRef.current.count || 0) + 1;
           syncFailRef.current.lastFailedAt = Date.now();
@@ -191,48 +197,68 @@ export const CartProvider = ({ children }) => {
         return;
       }
 
-      // Si llega OK, resetear contador de fallos
+      // OK: guardar hash para evitar reenvíos inmediatos
+      lastSyncHashRef.current = currentHash;
+      // resetear contador de fallos
       syncFailRef.current.count = 0;
       syncFailRef.current.lastFailedAt = 0;
-
     } catch (error) {
       console.error('[syncCartWithDB] error', error);
-      // en caso de error de red no hacemos nada visible (silencioso)
       syncFailRef.current.count = (syncFailRef.current.count || 0) + 1;
       syncFailRef.current.lastFailedAt = Date.now();
     } finally {
       setSyncing(false);
+      syncingRef.current = false;
     }
-  }, [user, syncing, endpoints.GUARDAR_CARRITO]);
+  }, [user, endpoints.GUARDAR_CARRITO]);
 
+  // Efecto que sincroniza con debounce cuando cambia el carrito
   useEffect(() => {
-    // NO sincronizar hasta que el carrito del servidor esté cargado
-    if (loadingUser || syncing || !serverCartLoaded) return;
+    // No sincronizamos hasta que hayamos cargado carrito desde servidor
+    if (loadingUser || !serverCartLoaded) return;
 
+    // Guardar localmente siempre
     try {
       localStorage.setItem(storageKey, JSON.stringify(cart));
     } catch (e) { /* ignore */ }
 
-    if (user) {
-      syncCartWithDB(cart);
-    }
-  }, [
-    cart,
-    storageKey,
-    loadingUser,
-    user,
-    syncing,
-    serverCartLoaded,
-    syncCartWithDB
-  ]);
+    // Si no hay user -> no sincronizamos al servidor
+    if (!user) return;
 
-  // Resto de funciones (sin cambios significativos de logging)
+    // Si ya hay una sincronización en curso, no lanzar nueva (la sync la limpiará)
+    if (syncingRef.current) {
+      console.log('[CartContext] skipping debounce sync because syncing is active');
+      return;
+    }
+
+    // Debounce: esperar 800ms de inactividad antes de sincronizar
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      // protección adicional: comprobar token y cooldown
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('[CartContext] debounce: no token — abort sync');
+        return;
+      }
+      syncCartWithDB(cart);
+    }, 800);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+    };
+    // intentionally NOT including `syncing` to avoid loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart, storageKey, loadingUser, user, serverCartLoaded, syncCartWithDB]);
+
+  // Resto de funciones (sin cambios significativos de lógica)
   const updateCartItemStock = useCallback((itemId, stockAvailable, desiredQuantity = null) => {
     setCart(prevCart => prevCart.map(it => {
       if (String(it.id) === String(itemId)) {
         const newStock = Number(stockAvailable ?? 0);
         let newQuantity;
-
         if (typeof desiredQuantity === 'number') {
           newQuantity = Math.min(Math.max(desiredQuantity, 0), newStock);
         } else {
@@ -242,7 +268,6 @@ export const CartProvider = ({ children }) => {
             newQuantity = Math.max(1, Math.min(Number(it.quantity || 1), newStock));
           }
         }
-
         return { ...it, stock: newStock, quantity: newQuantity };
       }
       return it;
@@ -346,7 +371,7 @@ export const CartProvider = ({ children }) => {
             }
           });
         } catch (error) {
-          //ignore
+          // ignore
         }
       }
     }
@@ -356,6 +381,7 @@ export const CartProvider = ({ children }) => {
 
   const syncCartOnLogout = useCallback(async () => {
     if (user && cart.length > 0) {
+      // Intentamos forzar una última sincronización inmediata
       await syncCartWithDB(cart);
       try { localStorage.removeItem(storageKey); } catch (e) { /* ignore */ }
     }
