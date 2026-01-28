@@ -134,7 +134,7 @@ const CartPage = () => {
       // try to fetch tomo fresh data
       try {
         const resp = await fetch(REACT_TOMOS_GET(tomoId), { headers: { Accept: 'application/json' } });
-        if (resp.redirected || (resp.status >= 300 && resp.status < 400)) {
+        if ( resp.status===401) {
           window.dispatchEvent(new Event('auth:logout'));
           return;
         }
