@@ -245,8 +245,7 @@ const CartPage = () => {
       </div>
     );
   }
-
-  if (!serverCartLoaded) {
+    if (user && !serverCartLoaded) {
     return (
       <div className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white" role="status" aria-live="polite">
         <Spinner animation="border" role="status" className="mb-3" />
@@ -254,7 +253,7 @@ const CartPage = () => {
       </div>
     );
   }
-
+  
   if (!cart.length) {
     const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
     return (
