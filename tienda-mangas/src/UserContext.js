@@ -1,23 +1,48 @@
-// src/UserContext.js
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 
 export const UserContext = createContext();
 
-const REACT_URL_LOGOUT = `${process.env.REACT_APP_API_URL}/logout`;
-const REACT_URL_ME = `${process.env.REACT_APP_API_URL}/me`;
+const API_URL = process.env.REACT_APP_API_URL || '';
+const REACT_URL_ME = `${API_URL}/me`;
+const REACT_URL_LOGOUT = `${API_URL}/logout`;
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
+  // Logout (usa useCallback para poder referenciarlo en listeners)
+  const logout = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        await fetch(REACT_URL_LOGOUT, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (e) {
+        // ignore network errors on logout
+      }
+    }
+    localStorage.removeItem('token');
+    setUser(null);
+    setLoadingUser(false);
+  }, []);
+
+  // Comprueba autenticación al montar y registra listener para auth:logout
   useEffect(() => {
+    let mounted = true;
+
     const checkAuth = async () => {
       setLoadingUser(true);
       const token = localStorage.getItem('token');
-
       if (!token) {
-        setUser(null);
-        setLoadingUser(false);
+        if (mounted) {
+          setUser(null);
+          setLoadingUser(false);
+        }
         return;
       }
 
@@ -25,64 +50,47 @@ export const UserProvider = ({ children }) => {
         const response = await fetch(REACT_URL_ME, {
           method: 'GET',
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-          },
-          cache: 'no-store'
+          }
         });
 
+        if (!mounted) return;
+
         if (response.ok) {
-          const result = await response.json();
-          setUser(result);
+          const data = await response.json();
+          setUser(data);
         } else {
-          // token inválido
+          // token inválido o expirado
           localStorage.removeItem('token');
           setUser(null);
         }
       } catch (error) {
-        // en error de red, mantenemos null para no romper la UX
+        console.error('[UserContext] checkAuth error', error);
         localStorage.removeItem('token');
         setUser(null);
       } finally {
-        setLoadingUser(false);
+        if (mounted) setLoadingUser(false);
       }
     };
 
     checkAuth();
-  }, []);
 
+    // Si otros módulos despachan window.dispatchEvent(new Event('auth:logout'))
+    const onAuthLogout = () => logout();
+    window.addEventListener('auth:logout', onAuthLogout);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('auth:logout', onAuthLogout);
+    };
+  }, [logout]);
+
+  // login: guarda token plain y usuario
   const login = (userData, token) => {
-    localStorage.setItem('token', token);
+    if (token) localStorage.setItem('token', token);
     setUser(userData);
-    // emitir evento para que otros contextos (carrito) puedan reintentar sincronizar
-    window.dispatchEvent(new Event('auth:login'));
-  };
-
-  const logout = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        await fetch(REACT_URL_LOGOUT, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          cache: 'no-store'
-        });
-      } catch (error) {
-        // ignore
-      } finally {
-        localStorage.removeItem('token');
-        setUser(null);
-        window.dispatchEvent(new Event('auth:logout'));
-      }
-    } else {
-      // si no hay token local, igual limpiamos
-      localStorage.removeItem('token');
-      setUser(null);
-      window.dispatchEvent(new Event('auth:logout'));
-    }
+    setLoadingUser(false);
   };
 
   return (
