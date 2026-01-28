@@ -254,7 +254,7 @@ const CartPage = () => {
     );
   }
   
-  if (!cart.length) {
+  if (user && !cart.length) {
     const lastPage = sessionStorage.getItem('tomos_current_page') || '1';
     return (
       <main role="main" aria-label="Carrito de compras" className="d-flex flex-column justify-content-center align-items-center min-vh-100 bg-dark text-white">
