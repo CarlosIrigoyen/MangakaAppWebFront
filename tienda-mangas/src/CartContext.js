@@ -86,8 +86,18 @@ export const CartProvider = ({ children }) => {
             try { localStorage.setItem(storageKey, JSON.stringify(cartFromDB)); } catch (e) { /* ignore */ }
           } else {
             if (response.status === 401 || response.status === 403) {
-              window.dispatchEvent(new Event('auth:logout'));
-              return;
+              const token = localStorage.getItem('token');
+              if (response.status === 401 || response.status === 403) {
+                  // Si no había token, no forzamos el logout global (es solo estado "guest")
+                  if (token) {
+                    console.warn('[CartContext] 401 recibido y token presente -> forzando logout');
+                    window.dispatchEvent(new Event('auth:logout'));
+                  }
+                  else {
+                    console.log('[CartContext] 401 recibido pero no hay token -> no forzamos logout');
+                  }
+            return;
+}
             }
             // fallback localStorage
             const saved = localStorage.getItem(storageKey);
@@ -190,7 +200,18 @@ export const CartProvider = ({ children }) => {
           syncFailRef.current.count = (syncFailRef.current.count || 0) + 1;
           syncFailRef.current.lastFailedAt = Date.now();
         } else if (response.status === 401 || response.status === 403) {
-          window.dispatchEvent(new Event('auth:logout'));
+         const token = localStorage.getItem('token');
+         if (response.status === 401 || response.status === 403) {
+          // Si no había token, no forzamos el logout global (es solo estado "guest")
+          if (token) {
+            console.warn('[CartContext] 401 recibido y token presente -> forzando logout');
+            window.dispatchEvent(new Event('auth:logout'));
+          } 
+          else {
+            console.log('[CartContext] 401 recibido pero no hay token -> no forzamos logout');
+          }
+  return;
+}
         }
         const text = await response.text().catch(() => null);
         console.warn('[syncCartWithDB] non-ok body:', text);
