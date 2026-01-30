@@ -1,10 +1,20 @@
-// SubscriptionManagerModal.jsx
+// src/SubscriptionManagerModal.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { Modal, Button, Card, Badge, Form, Alert, Spinner, Row, Col } from 'react-bootstrap';
 import { FaBell, FaSave } from 'react-icons/fa';
 import { UserContext } from './UserContext';
 import { useAutoNotifications } from './hooks/useAutoNotifications';
 
+/**
+ * SubscriptionManagerModal
+ *
+ * Notas importantes:
+ * - `fcmToken` que expone el hook es el token de Firebase Cloud Messaging (FCM).
+ *   NO tiene nada que ver con el Bearer token de sesión (Sanctum).
+ * - Las suscripciones se guardan por cliente (cliente_id + manga_id).
+ * - Las notificaciones se envían a TODOS los dispositivos registrados para ese cliente
+ *   (tabla cliente_dispositivos donde se guardan los fcm_tokens).
+ */
 const SubscriptionManagerModal = ({ show, onHide }) => {
   const [selectedMangas, setSelectedMangas] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -17,26 +27,30 @@ const SubscriptionManagerModal = ({ show, onHide }) => {
     suscripciones,
     loading,
     hasPermission,
-    fcmToken,
+    fcmToken, // <-- ESTE es el token de Firebase (FCM). No confundir con el token de sesión.
     actualizarSuscripciones,
     cargarMangasDisponibles,
     inicializarNotificaciones
   } = useAutoNotifications();
 
-  // sincronizar selección con suscripciones actuales
+  // Sincronizar la selección con las suscripciones actuales desde el backend
   useEffect(() => {
     setSelectedMangas(Array.isArray(suscripciones) ? suscripciones : []);
   }, [suscripciones]);
 
-  // cuando se abre el modal, cargar mangas y token si hace falta
+  // Cuando se abre el modal, cargar mangas y, si hace falta, inicializar notificaciones
   useEffect(() => {
     if (show && user) {
       cargarMangasDisponibles();
+
+      // Inicializamos el sistema de notificaciones en este dispositivo si aún no hay FCM token.
+      // Nota: inicializarNotificaciones registra el Service Worker y obtiene/registrará
+      // el FCM token de este dispositivo en backend (cliente_dispositivos).
       if (!fcmToken) {
         inicializarNotificaciones();
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, user]);
 
   const handleMangaToggle = (mangaId, isChecked) => {
@@ -65,6 +79,7 @@ const SubscriptionManagerModal = ({ show, onHide }) => {
 
     setSaving(true);
     try {
+      // actualizarSuscripciones guarda las suscripciones por cliente (NO envía fcm_token).
       const ok = await actualizarSuscripciones(selectedMangas);
       if (ok) {
         setSuccess(`✅ Suscrito a ${selectedMangas.length} manga(s) correctamente`);
@@ -112,16 +127,27 @@ const SubscriptionManagerModal = ({ show, onHide }) => {
               <Alert variant="success" className="mb-0 py-2">
                 <strong>✅ Sistema listo</strong>
                 <div className="small mt-1">
-                  {suscripciones?.length > 0 
-                    ? `Suscrito a ${suscripciones.length} manga(s)`
-                    : 'Selecciona los mangas que quieres seguir'}
+                  {suscripciones?.length > 0
+                    ? `Suscrito a ${suscripciones.length} manga(s).`
+                    : 'Selecciona los mangas que quieres seguir.'}
+                </div>
+                <div className="small text-muted mt-1">
+                  Nota: aquí <strong>fcmToken</strong> se refiere al token de Firebase (FCM) de este dispositivo.
+                  <br />
+                  El sistema enviará notificaciones a <strong>todos</strong> los dispositivos del usuario que tengan un FCM token registrado.
+                </div>
+                <div className="small text-muted mt-1">
+                  Importante: <em>login/logout</em> usan el Bearer token (Sanctum) para la sesión y NO son el FCM token.
                 </div>
               </Alert>
             ) : (
               <Alert variant="info" className="mb-0 py-2">
                 <strong>🔔 Activando notificaciones...</strong>
                 <div className="small mt-1">
-                  El sistema configurará automáticamente las notificaciones cuando guardes.
+                  El sistema configurará automáticamente las notificaciones cuando guardes. Asegurate de permitir notificaciones en este dispositivo.
+                </div>
+                <div className="small text-muted mt-1">
+                  Si tenés dudas: <strong>Bearer token</strong> = sesión; <strong>FCM token</strong> = token de Firebase por dispositivo.
                 </div>
               </Alert>
             )}
