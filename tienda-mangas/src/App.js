@@ -1,4 +1,5 @@
 // src/App.js
+//
 import React, { useContext, useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import {
   BrowserRouter as Router,
