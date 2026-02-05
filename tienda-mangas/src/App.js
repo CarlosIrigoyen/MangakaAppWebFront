@@ -30,8 +30,6 @@ import {
   FaUserPlus
 } from 'react-icons/fa';
 
-// NOTE: no import estático de @react-oauth/google (evita costear la carga inicial)
-
 // Lazy components de la app
 const TomoList = lazy(() => import('./TomoList'));
 const SidebarFilters = lazy(() => import('./SideBarFilters'));
@@ -224,7 +222,6 @@ const MainApp = ({ googleClientId }) => {
       l.as = 'image';
       l.href = url;
       // signal to browser it's important
-      // 'importance' no está estandarizado para <link>, pero lo dejamos como metadata inofensiva
       l.setAttribute('importance', 'high');
       document.head.appendChild(l);
     } catch (e) {
@@ -481,6 +478,9 @@ const MainApp = ({ googleClientId }) => {
 
   return (
     <div className="bg-dark text-white min-vh-100">
+      {/* Skip link for keyboard users */}
+      <a href="#main-content" className="skip-link">Saltar al contenido</a>
+
       {/* Mensajes de éxito con mejor espaciado */}
       {successMessage && (
         <Alert
@@ -813,14 +813,8 @@ const MainApp = ({ googleClientId }) => {
         </div>
       )}
 
-      {/* CONTENIDO PRINCIPAL - Sin loading global */}
-      <div
-        className="d-flex flex-column flex-md-row main-content-container"
-        style={{
-          minHeight: 'calc(100vh - 56px)',
-          paddingTop: '80px'
-        }}
-      >
+      {/* CONTENIDO PRINCIPAL - SIN LOADING GLOBAL */}
+      <main id="main-content" role="main" tabIndex="-1" className="d-flex flex-column flex-md-row main-content-container" style={{ minHeight: 'calc(100vh - 56px)', paddingTop: '80px' }}>
         {/* SIDEBAR ESCRITORIO */}
         <div className="d-none d-md-block sidebar-fixed" style={{ width: 300 }}>
           {showSidebar ? (
@@ -861,7 +855,7 @@ const MainApp = ({ googleClientId }) => {
             />
           </Suspense>
         </div>
-      </div>
+      </main>
 
       {/* MODALES CON SUSPENSE */}
       <Suspense fallback={null}>
@@ -912,18 +906,22 @@ const MainApp = ({ googleClientId }) => {
                     </h6>
                     
                     <Suspense fallback={<div aria-hidden="true"><SmallSpinner /> Cargando Google...</div>}>
-                      <GoogleOAuthProviderLazy clientId={googleClientId}>
-                        <GoogleLoginLazy
-                          onSuccess={handleGoogleLogin}
-                          onError={handleGoogleError}
-                          theme="filled_blue"
-                          size="large"
-                          text="signin_with"
-                          shape="rectangular"
-                          width="100%"
-                          locale="es"
-                        />
-                      </GoogleOAuthProviderLazy>
+                      {process.env.REACT_APP_GOOGLE_CLIENT_ID ? (
+                        <GoogleOAuthProviderLazy clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+                          <GoogleLoginLazy
+                            onSuccess={handleGoogleLogin}
+                            onError={handleGoogleError}
+                            theme="filled_blue"
+                            size="large"
+                            text="signin_with"
+                            shape="rectangular"
+                            width="100%"
+                            locale="es"
+                          />
+                        </GoogleOAuthProviderLazy>
+                      ) : (
+                        <div className="text-muted">Inicio con Google no disponible (Client ID no configurado).</div>
+                      )}
                     </Suspense>
                     
                     {googleLoading && (
@@ -1035,21 +1033,8 @@ const App = () => {
   // Obtener el Google Client ID de las variables de entorno
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
   
-  // Verificar que el Client ID esté configurado
-  if (!googleClientId || googleClientId === 'TU_CLIENT_ID_DE_GOOGLE_AQUÍ') {
-    console.error('❌ ERROR: REACT_APP_GOOGLE_CLIENT_ID no está configurado correctamente');
-    
-    return (
-      <div className="alert alert-danger m-5">
-        <h4>Error de Configuración Google OAuth</h4>
-        <p>Por favor configura la variable de entorno:</p>
-        <pre>REACT_APP_GOOGLE_CLIENT_ID=tu_client_id_de_google_aquí</pre>
-        <p className="mt-3">
-          <strong>URL del Backend:</strong> {process.env.REACT_APP_API_URL}<br/>
-          <strong>Google Client ID:</strong> {googleClientId || 'NO CONFIGURADO'}
-        </p>
-      </div>
-    );
+  if (!googleClientId) {
+    console.warn('REACT_APP_GOOGLE_CLIENT_ID no está configurado. Google Login quedará deshabilitado hasta configurar la variable.');
   }
   
   return (
