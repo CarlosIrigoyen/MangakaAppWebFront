@@ -131,14 +131,6 @@ const SubscriptionManagerModal = ({ show, onHide }) => {
                     ? `Suscrito a ${suscripciones.length} manga(s).`
                     : 'Selecciona los mangas que quieres seguir.'}
                 </div>
-                <div className="small text-muted mt-1">
-                  Nota: aquí <strong>fcmToken</strong> se refiere al token de Firebase (FCM) de este dispositivo.
-                  <br />
-                  El sistema enviará notificaciones a <strong>todos</strong> los dispositivos del usuario que tengan un FCM token registrado.
-                </div>
-                <div className="small text-muted mt-1">
-                  Importante: <em>login/logout</em> usan el Bearer token (Sanctum) para la sesión y NO son el FCM token.
-                </div>
               </Alert>
             ) : (
               <Alert variant="info" className="mb-0 py-2">
