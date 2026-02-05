@@ -96,6 +96,30 @@ const MainApp = ({ googleClientId }) => {
     maxPrice: ''
   });
 
+  // PERF: preconnect a Cloudinary para reducir handshake DNS/TLS al cargar imágenes (mejora LCP)
+  useEffect(() => {
+    try {
+      const preconnectHref = 'https://res.cloudinary.com';
+      if (!document.querySelector(`link[rel="preconnect"][href="${preconnectHref}"]`)) {
+        const p = document.createElement('link');
+        p.rel = 'preconnect';
+        p.href = preconnectHref;
+        p.crossOrigin = 'anonymous';
+        document.head.appendChild(p);
+      }
+      // dns-prefetch extra
+      const dnsHref = 'https://res.cloudinary.com';
+      if (!document.querySelector(`link[rel="dns-prefetch"][href="${dnsHref}"]`)) {
+        const d = document.createElement('link');
+        d.rel = 'dns-prefetch';
+        d.href = dnsHref;
+        document.head.appendChild(d);
+      }
+    } catch (e) {
+      // noop
+    }
+  }, []);
+
   // control para montar sidebar con requestIdleCallback (evita bloquear LCP)
   const [showSidebar, setShowSidebar] = useState(false);
   useEffect(() => {
@@ -200,6 +224,7 @@ const MainApp = ({ googleClientId }) => {
       l.as = 'image';
       l.href = url;
       // signal to browser it's important
+      // 'importance' no está estandarizado para <link>, pero lo dejamos como metadata inofensiva
       l.setAttribute('importance', 'high');
       document.head.appendChild(l);
     } catch (e) {
@@ -247,17 +272,25 @@ const MainApp = ({ googleClientId }) => {
         if (imageUrl) addPreloadImage(imageUrl);
       }
 
-      // guardar el page actual en sessionStorage y en la URL
+      // guardar el page actual en sessionStorage
       sessionStorage.setItem('tomos_current_page', page);
-      // actualizar URL sin forzar recarga
-      navigate(`/?page=${page}`, { replace: true });
+
+      // PERF: actualizar la URL sin usar react-router navigate (evita posibles redirecciones/recargas en hosting)
+      try {
+        const base = window.location.pathname.split('?')[0] || '/';
+        const newUrl = `${base}?page=${page}`;
+        window.history.replaceState(null, '', newUrl);
+      } catch (e) {
+        // noop
+      }
+
     } catch (error) {
       console.error('Error fetch tomos:', error);
       setError('Error al cargar los tomos. Por favor, intenta nuevamente.');
     } finally {
       setIsLoading(false);
     }
-  }, [navigate]);
+  }, []);
 
   // Cargar tomos cuando filters o currentPage cambian
   useEffect(() => {
@@ -415,11 +448,14 @@ const MainApp = ({ googleClientId }) => {
 
   const handleLogout = useCallback(() => {
     logout();
-    navigate('/');
+    // evitar navegar si ya estamos en '/'
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
     setShowMobileDropdown(false);
     setSuccessMessage('¡Sesión cerrada correctamente!');
     setTimeout(() => setSuccessMessage(''), 3000);
-  }, [logout, navigate]);
+  }, [logout, navigate, location.pathname]);
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -487,7 +523,7 @@ const MainApp = ({ googleClientId }) => {
         style={{ zIndex: 1040 }}
       >
         <Container fluid>
-          <Navbar.Brand as={Link} to="/" onClick={() => { setNavExpanded(false); navigate('/'); }}>
+          <Navbar.Brand as={Link} to="/" onClick={() => { setNavExpanded(false); if (location.pathname !== '/') navigate('/'); }}>
             <span className="ms-2 fw-bold">Mangaka Baka Shop</span>
           </Navbar.Brand>
 
@@ -629,7 +665,7 @@ const MainApp = ({ googleClientId }) => {
                   {/* Opciones del menú */}
                   <Button 
                     variant="outline-light" 
-                    onClick={() => { navigate('/'); setShowMobileDropdown(false); }}
+                    onClick={() => { if (location.pathname !== '/') navigate('/'); setShowMobileDropdown(false); }}
                     className="text-start d-flex align-items-center w-100 mb-2 btn-equal"
                   >
                     <FaHome className="me-2" /> Inicio
