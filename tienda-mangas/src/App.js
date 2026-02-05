@@ -479,8 +479,6 @@ const MainApp = ({ googleClientId }) => {
 
   return (
     <div className="bg-dark text-white min-vh-100">
-      {/* Skip link for keyboard users */}
-      <a href="#main-content" className="skip-link">Saltar al contenido</a>
 
       {/* Mensajes de éxito con mejor espaciado */}
       {successMessage && (
