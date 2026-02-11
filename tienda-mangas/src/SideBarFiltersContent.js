@@ -62,7 +62,7 @@ const SideBarFiltersContent = ({
               </div>
             ) : (
               <>
-                {items.length === 0 && <small className="text-light">Sin opciones</small>}
+                {items.length === 0 && <small className="text-light">Cargando..</small>}
 
                 {key === 'authors' &&
                   items.map((a) => (
