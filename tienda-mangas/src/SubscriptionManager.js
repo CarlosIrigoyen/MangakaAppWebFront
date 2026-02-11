@@ -6,11 +6,6 @@ import { UserContext } from './UserContext';
 import { useAutoNotifications } from './hooks/useAutoNotifications';
 
 /**
- * SubscriptionManagerModal
- *
- * Notas importantes:
- * - `fcmToken` que expone el hook es el token de Firebase Cloud Messaging (FCM).
- *   NO tiene nada que ver con el Bearer token de sesión (Sanctum).
  * - Las suscripciones se guardan por cliente (cliente_id + manga_id).
  * - Las notificaciones se envían a TODOS los dispositivos registrados para ese cliente
  *   (tabla cliente_dispositivos donde se guardan los fcm_tokens).
@@ -27,7 +22,7 @@ const SubscriptionManagerModal = ({ show, onHide }) => {
     suscripciones,
     loading,
     hasPermission,
-    fcmToken, // <-- ESTE es el token de Firebase (FCM). No confundir con el token de sesión.
+    fcmToken, 
     actualizarSuscripciones,
     cargarMangasDisponibles,
     inicializarNotificaciones
@@ -134,12 +129,8 @@ const SubscriptionManagerModal = ({ show, onHide }) => {
               </Alert>
             ) : (
               <Alert variant="info" className="mb-0 py-2">
-                <strong>🔔 Activando notificaciones...</strong>
                 <div className="small mt-1">
-                  El sistema configurará automáticamente las notificaciones cuando guardes. Asegurate de permitir notificaciones en este dispositivo.
-                </div>
-                <div className="small text-muted mt-1">
-                  Si tenés dudas: <strong>Bearer token</strong> = sesión; <strong>FCM token</strong> = token de Firebase por dispositivo.
+                  Por Favor asegurate de permitir notificaciones en este dispositivo.
                 </div>
               </Alert>
             )}
