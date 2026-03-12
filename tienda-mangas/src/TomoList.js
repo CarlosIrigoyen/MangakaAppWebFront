@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, memo, useCallback } from 'react';
-import { Card, Button, Pagination } from 'react-bootstrap';
+import { Card, Button, Pagination, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { CartContext } from './CartContext';
 import LCPImage from './components/LCPImage';
 import { ShoppingCartIcon, InfoIcon } from './components/Icons';
+
 // Componente de paginación memoizado
 const PaginationComponent = memo(({ pagination, onPageChange }) => {
   const renderPaginationItems = useCallback(() => {
@@ -86,6 +87,7 @@ const PaginationComponent = memo(({ pagination, onPageChange }) => {
 // Componente individual de tomo memoizado
 const TomoCard = memo(({ tomo, index, onShowInfo, onAddToCart, isInCart, isLoggedIn }) => {
   const handleAddToCart = useCallback(() => {
+    if (tomo.stock === 0) return; // prevención extra en cliente
     onAddToCart(tomo);
   }, [onAddToCart, tomo]);
 
@@ -93,12 +95,39 @@ const TomoCard = memo(({ tomo, index, onShowInfo, onAddToCart, isInCart, isLogge
     onShowInfo(tomo);
   }, [onShowInfo, tomo]);
 
+  const isOutOfStock = Number(tomo.stock) === 0;
+
+  // Si el botón está deshabilitado, para que el Tooltip funcione envolvemos en span
+  const AddButton = (
+    <Button
+      variant={isInCart ? 'success' : 'primary'}
+      size="sm"
+      onClick={handleAddToCart}
+      disabled={isInCart || isOutOfStock}
+      aria-label={isOutOfStock ? 'Agotado' : isInCart ? 'En carrito' : 'Agregar al carrito'}
+      style={isOutOfStock ? { pointerEvents: 'none' } : undefined}
+    >
+      <ShoppingCartIcon /> {isInCart ? 'En Carrito' : (isOutOfStock ? 'Agotado' : 'Agregar')}
+    </Button>
+  );
+
   return (
     <div className="col-md-3 mb-4 d-flex">
       <Card
-        className="w-100 h-100 shadow-sm text-white bg-secondary border border-light"
+        className="w-100 h-100 shadow-sm text-white bg-secondary border border-light position-relative"
         style={{ minWidth: 0 }}
       >
+        {/* Badge 'Agotado' si stock 0 */}
+        {isOutOfStock && (
+          <Badge
+            bg="danger"
+            className="position-absolute"
+            style={{ right: '0.75rem', top: '0.75rem', zIndex: 5 }}
+          >
+            Agotado
+          </Badge>
+        )}
+
         {/* IMAGEN OPTIMIZADA CON LCP - SOLO LA PRIMERA ES CRÍTICA */}
         <LCPImage
           src={tomo.portada}
@@ -118,14 +147,20 @@ const TomoCard = memo(({ tomo, index, onShowInfo, onAddToCart, isInCart, isLogge
           <Card.Text className="mb-2">Stock: {tomo.stock}</Card.Text>
           <div className="mt-auto d-flex justify-content-center flex-wrap gap-2">
             {isLoggedIn && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleAddToCart}
-                disabled={isInCart}
-              >
-                <ShoppingCartIcon /> {isInCart ? 'En Carrito' : 'Agregar'}
-              </Button>
+              isOutOfStock ? (
+                // Envoltura para que tooltip funcione sobre elemento disabled
+                <OverlayTrigger
+                  overlay={<Tooltip id={`tooltip-out-${tomo.id}`}>No disponible: sin stock</Tooltip>}
+                  placement="top"
+                >
+                  <span className="d-inline-block">
+                    {/* mostramos el mismo botón pero deshabilitado */}
+                    {AddButton}
+                  </span>
+                </OverlayTrigger>
+              ) : (
+                AddButton
+              )
             )}
             <Button variant="info" size="sm" onClick={handleShowInfo}>
               <InfoIcon /> Info
@@ -153,6 +188,8 @@ const TomoList = ({ tomos, pagination, onPageChange, onShowInfo, isLoggedIn }) =
   }, [pagination?.currentPage]);
 
   const handleAddToCart = useCallback((tomo) => {
+    // prev: no agregamos si stock 0
+    if (Number(tomo.stock) === 0) return;
     addToCart(tomo);
   }, [addToCart]);
 
