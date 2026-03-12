@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, memo, useCallback } from 'react';
-import { Card, Button, Pagination, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Card, Button, Pagination, Badge } from 'react-bootstrap';
 import { CartContext } from './CartContext';
 import LCPImage from './components/LCPImage';
 import { ShoppingCartIcon, InfoIcon } from './components/Icons';
@@ -87,7 +87,7 @@ const PaginationComponent = memo(({ pagination, onPageChange }) => {
 // Componente individual de tomo memoizado
 const TomoCard = memo(({ tomo, index, onShowInfo, onAddToCart, isInCart, isLoggedIn }) => {
   const handleAddToCart = useCallback(() => {
-    if (tomo.stock === 0) return; // prevención extra en cliente
+    if (Number(tomo.stock) === 0) return; // prevención extra en cliente
     onAddToCart(tomo);
   }, [onAddToCart, tomo]);
 
@@ -97,23 +97,16 @@ const TomoCard = memo(({ tomo, index, onShowInfo, onAddToCart, isInCart, isLogge
 
   const isOutOfStock = Number(tomo.stock) === 0;
 
-  // Si el botón está deshabilitado, para que el Tooltip funcione envolvemos en span
+  // Botón de añadir al carrito — lo definimos pero lo mostramos sólo si hay stock y el usuario está logueado
   const AddButton = (
     <Button
       variant={isInCart ? 'success' : 'primary'}
       size="sm"
       onClick={handleAddToCart}
-      disabled={isInCart || isOutOfStock}
-      aria-label={isOutOfStock ? 'Agotado' : isInCart ? 'En carrito' : 'Agregar al carrito'}
-      style={isOutOfStock ? { pointerEvents: 'none' } : undefined}
+      disabled={isInCart}
+      aria-label={isInCart ? 'En carrito' : 'Agregar al carrito'}
     >
-      {isOutOfStock ? (
-        'Agotado'
-      ) : (
-        <>
-          <ShoppingCartIcon /> {isInCart ? 'En Carrito' : 'Agregar'}
-        </>
-      )}
+      <ShoppingCartIcon /> {isInCart ? 'En Carrito' : 'Agregar'}
     </Button>
   );
 
@@ -123,7 +116,7 @@ const TomoCard = memo(({ tomo, index, onShowInfo, onAddToCart, isInCart, isLogge
         className="w-100 h-100 shadow-sm text-white bg-secondary border border-light position-relative"
         style={{ minWidth: 0 }}
       >
-        {/* Badge 'Agotado' si stock 0 */}
+        {/* Badge 'Agotado' si stock 0 (queda como indicador, no es botón) */}
         {isOutOfStock && (
           <Badge
             bg="danger"
@@ -152,22 +145,10 @@ const TomoCard = memo(({ tomo, index, onShowInfo, onAddToCart, isInCart, isLogge
           <Card.Text className="mb-1">Precio: ${parseFloat(tomo.precio).toFixed(0)}</Card.Text>
           <Card.Text className="mb-2">Stock: {tomo.stock}</Card.Text>
           <div className="mt-auto d-flex justify-content-center flex-wrap gap-2">
-            {isLoggedIn && (
-              isOutOfStock ? (
-                // Envoltura para que tooltip funcione sobre elemento disabled
-                <OverlayTrigger
-                  overlay={<Tooltip id={`tooltip-out-${tomo.id}`}>No disponible: sin stock</Tooltip>}
-                  placement="top"
-                >
-                  <span className="d-inline-block">
-                    {/* mostramos el mismo botón pero deshabilitado */}
-                    {AddButton}
-                  </span>
-                </OverlayTrigger>
-              ) : (
-                AddButton
-              )
-            )}
+            {/* Mostrar el botón de añadir sólo si el usuario está logueado y hay stock */}
+            {isLoggedIn && !isOutOfStock && AddButton}
+
+            {/* El botón de Info siempre se muestra */}
             <Button variant="info" size="sm" onClick={handleShowInfo}>
               <InfoIcon /> Info
             </Button>
