@@ -107,7 +107,13 @@ const TomoCard = memo(({ tomo, index, onShowInfo, onAddToCart, isInCart, isLogge
       aria-label={isOutOfStock ? 'Agotado' : isInCart ? 'En carrito' : 'Agregar al carrito'}
       style={isOutOfStock ? { pointerEvents: 'none' } : undefined}
     >
-      <ShoppingCartIcon /> {isInCart ? 'En Carrito' : (isOutOfStock ? 'Agotado' : 'Agregar')}
+      {isOutOfStock ? (
+        'Agotado'
+      ) : (
+        <>
+          <ShoppingCartIcon /> {isInCart ? 'En Carrito' : 'Agregar'}
+        </>
+      )}
     </Button>
   );
 
